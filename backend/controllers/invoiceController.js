@@ -15,6 +15,8 @@ import { sendEmail } from '../utils/email.js';
 // @route   POST /api/invoices
 // @access  Private
 export const createInvoice = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
         console.log('Creates Invoice Payload Data:', JSON.stringify(req.body, null, 2));
         const { invoiceType, invoiceDate, customerId, items, payments, notes, sellerDetails, customerName, customerPhone, customerAddress, customerGstin } = req.body;
@@ -27,8 +29,8 @@ export const createInvoice = async (req, res) => {
         }
         console.log('Validation Passed');
 
-        // Generate unique invoice number
-        const invoiceNo = await generateInvoiceNumber();
+        // Generate unique invoice number (with session for rollback)
+        const invoiceNo = await generateInvoiceNumber(session);
         console.log('Invoice No Generated:', invoiceNo);
 
         if (!items || !Array.isArray(items) || items.length === 0) {
@@ -70,7 +72,8 @@ export const createInvoice = async (req, res) => {
 
         console.log('Creating Invoice Checkpoint 1');
         // Create invoice
-        const invoice = await Invoice.create({
+        // Use array syntax for proper transaction handling with create()
+        const [invoice] = await Invoice.create([{
             invoiceNo,
             type: invoiceType || 'Tax Invoice',
             invoiceDate: invoiceDate ? moment(invoiceDate).tz("Asia/Kolkata").toDate() : moment().tz("Asia/Kolkata").toDate(),
@@ -90,20 +93,9 @@ export const createInvoice = async (req, res) => {
             customerGstin,
             sellerDetails,
             createdBy: req.user._id
-        });
+        }], { session });
 
         const createdInvoice = invoice;
-
-        // Update customer balance if there's due amount
-        if (customerId) {
-            // Note: recalculate will handle overall balance, but we can do incremental check here if needed?
-            // Actually, best to just let recalculate handle it or do incremental update.
-            // Let's stick to standard practice: Increment balance by Due Amount.
-            // BUT: Ledger Recalculation will overwrite this anyway.
-            // With Bulk Write Optimization, we might rely entirely on recalculation OR 
-            // do incremental update now and let recalculation fix any drift later.
-            // Let's do incremental for immediate feedback, then recalc.
-        }
 
         // Update product stock (Bulk Write Optimization)
         const bulkOps = items
@@ -116,13 +108,13 @@ export const createInvoice = async (req, res) => {
             }));
 
         if (bulkOps.length > 0) {
-            await Product.bulkWrite(bulkOps);
+            await Product.bulkWrite(bulkOps, { session });
         }
 
         // Ledger Operations
         if (customerId) {
             // 1. Debit (Sale) - Full Invoice Amount
-            await LedgerEntry.create({
+            await LedgerEntry.create([{
                 customer: customerId,
                 date: new Date(),
                 refType: 'Invoice',
@@ -132,7 +124,7 @@ export const createInvoice = async (req, res) => {
                 debit: createdInvoice.grandTotal,
                 credit: 0,
                 balance: 0 // Will recalc
-            });
+            }], { session });
 
             // 2. Handle Payments
             if (paidAmount > 0 && payments && payments.length > 0) {
@@ -152,20 +144,10 @@ export const createInvoice = async (req, res) => {
                         notes: `Payment for Invoice ${invoiceNo}`,
                         recordedBy: req.user._id
                     });
-
-                    ledgerCredits.push({
-                        customer: customerId,
-                        date: new Date(),
-                        refType: 'Payment',
-                        refId: null, // Will need ID, but can't get it easily in parallel if relying on create.
-                        // Actually, we can create payments first.
-                        amount: p.amount,
-                        method: p.method
-                    });
                 }
 
                 // Insert Payments
-                const createdPayments = await Payment.create(newPayments);
+                const createdPayments = await Payment.create(newPayments, { session });
 
                 // Insert Ledger Credits (linked to payments)
                 const ledgerCreditEntries = createdPayments.map(cp => ({
@@ -180,14 +162,15 @@ export const createInvoice = async (req, res) => {
                     balance: 0
                 }));
 
-                await LedgerEntry.create(ledgerCreditEntries);
+                await LedgerEntry.create(ledgerCreditEntries, { session });
             }
 
             // Recalculate to ensure accuracy
-            await recalculateCustomerBalance(customerId);
+            await recalculateCustomerBalance(customerId, session);
         }
 
-
+        await session.commitTransaction();
+        session.endSession();
 
         const populatedInvoice = await Invoice.findById(createdInvoice._id)
             .populate('customer')
@@ -195,6 +178,8 @@ export const createInvoice = async (req, res) => {
 
         res.status(201).json(populatedInvoice);
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         console.error('Invoice Creation Error:', error);
         res.status(400).json({ message: error.message });
     }

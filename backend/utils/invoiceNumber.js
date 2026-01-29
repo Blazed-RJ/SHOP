@@ -24,7 +24,7 @@ const Counter = mongoose.model('Counter', counterSchema);
  * Format: INV-2026-0001
  * Uses findOneAndUpdate to prevent race conditions
  */
-export const generateInvoiceNumber = async () => {
+export const generateInvoiceNumber = async (session = null) => {
     const currentYear = new Date().getFullYear();
     const counterName = 'invoice';
 
@@ -35,7 +35,8 @@ export const generateInvoiceNumber = async () => {
         {
             new: true, // Return updated document
             upsert: true, // Create if doesn't exist
-            setDefaultsOnInsert: true
+            setDefaultsOnInsert: true,
+            session
         }
     );
 
