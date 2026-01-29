@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+:root,
+[data-theme='light'] {
+  --brand-color: #3b82f6;
+
+  /* Light Theme */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  /* gray-50 */
+  --bg-tertiary: #f3f4f6;
+  /* gray-100 */
+  --text-primary: #111827;
+  /* gray-900 */
+  --text-secondary: #4b5563;
+  /* gray-600 */
+  --border-color: #e5e7eb;
+  /* gray-200 */
+}
+
+[data-theme='dark'] {
+  /* Dark Theme */
+  --bg-primary: #1f2937;
+  /* gray-800 */
+  --bg-secondary: #111827;
+  /* gray-900 */
+  --bg-tertiary: #374151;
+  /* gray-700 */
+  --text-primary: #f9fafb;
+  /* gray-50 */
+  --text-secondary: #9ca3af;
+  /* gray-400 */
+  --border-color: #374151;
+  /* gray-700 */
+}
+
+/* Glassmorphism utilities */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-dark {
+  background: rgba(31, 41, 55, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Number alignment */
+.align-numbers {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Print styles for invoices */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  .rupee::before {
+    content: "₹";
+    margin-right: 2px;
+  }
+
+  .font-handwritten {
+    font-family: 'Dancing Script', cursive !important;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background-color: white !important;
+    color: black !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* A4 Page Container */
+  .a4-page-container {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    background-color: white !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* Force white background for all themed elements in print */
+  .print-white {
+    background-color: white !important;
+    color: black !important;
+    border-color: #e5e7eb !important;
+  }
+}
