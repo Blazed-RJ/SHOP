@@ -94,7 +94,7 @@ export const SettingsProvider = ({ children }) => {
 
     const value = {
         settings: settings || {
-            storeName: 'My Store',
+            shopName: 'SHOP',
             currency: 'INR',
             address: '',
             phone: '',

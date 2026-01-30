@@ -51,7 +51,7 @@ const Login = () => {
                             />
                         )}
                         <h1 className="text-3xl font-bold text-white tracking-widest uppercase">
-                            {settings?.shopName || 'Mobile POS'}
+                            {settings?.shopName || 'SHOP'}
                         </h1>
                         <p className="text-gray-300 mt-2">Point of Sale System</p>
                     </div>
