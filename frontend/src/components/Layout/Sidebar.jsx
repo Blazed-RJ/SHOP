@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useClientView } from '../../context/ClientViewContext.jsx';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
     const { user, logout, isAdmin } = useAuth();
     const { settings, theme, toggleTheme } = useSettings();
     const { isClientView, toggleClientView } = useClientView();
@@ -47,7 +47,12 @@ const Sidebar = () => {
     const filteredNav = navItems.filter(item => !item.admin || isAdmin());
 
     return (
-        <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-screen flex flex-col transition-colors duration-300">
+        <aside className={`
+            fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 
+            transform transition-transform duration-300 ease-in-out h-screen flex flex-col
+            md:translate-x-0 md:static md:inset-auto
+            ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}>
             {/* Logo & Brand */}
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-3">
@@ -69,6 +74,7 @@ const Sidebar = () => {
                     <NavLink
                         key={item.path}
                         to={item.path}
+                        onClick={() => window.innerWidth < 768 && onClose && onClose()}
                         className={({ isActive }) =>
                             `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive
                                 ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium'
@@ -149,7 +155,7 @@ const Sidebar = () => {
                     <span>Logout</span>
                 </button>
             </div>
-        </div>
+        </aside>
     );
 };
 

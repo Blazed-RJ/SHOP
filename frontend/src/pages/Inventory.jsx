@@ -212,7 +212,7 @@ const Inventory = () => {
                         </select>
 
                         {/* Action Buttons */}
-                        <div className="flex items-center gap-2 w-full lg:w-auto">
+                        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
                             <button
                                 onClick={() => setShowCategoryModal(true)}
                                 className="flex items-center space-x-2 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"

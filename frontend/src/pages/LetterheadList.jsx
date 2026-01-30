@@ -79,49 +79,51 @@ const LetterheadList = () => {
                             <p>No letterheads found.</p>
                         </div>
                     ) : (
-                        <table className="w-full">
-                            <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Number</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Date</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Recipient</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Subject</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {letterheads.map((doc) => (
-                                    <tr key={doc._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
-                                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{doc.letterheadNo}</td>
-                                        <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{formatDate(doc.date)}</td>
-                                        <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">
-                                            {doc.recipient?.name || 'Unknown'}
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300 truncate max-w-xs">{doc.subject}</td>
-                                        <td className="px-6 py-4 flex items-center space-x-3">
-                                            <button
-                                                onClick={() => navigate(`/letterheads/edit/${doc._id}`)}
-                                                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300" title="Edit"
-                                            >
-                                                <Edit className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => navigate(`/letterheads/view/${doc._id}`)}
-                                                className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200" title="Print"
-                                            >
-                                                <Printer className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(doc._id)}
-                                                className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" title="Delete"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </td>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Number</th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Date</th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Recipient</th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Subject</th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                    {letterheads.map((doc) => (
+                                        <tr key={doc._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                                            <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{doc.letterheadNo}</td>
+                                            <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{formatDate(doc.date)}</td>
+                                            <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">
+                                                {doc.recipient?.name || 'Unknown'}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-600 dark:text-gray-300 truncate max-w-xs">{doc.subject}</td>
+                                            <td className="px-6 py-4 flex items-center space-x-3">
+                                                <button
+                                                    onClick={() => navigate(`/letterheads/edit/${doc._id}`)}
+                                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300" title="Edit"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => navigate(`/letterheads/view/${doc._id}`)}
+                                                    className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200" title="Print"
+                                                >
+                                                    <Printer className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(doc._id)}
+                                                    className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" title="Delete"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                 </div>
             </div>

@@ -179,19 +179,19 @@ const Settings = () => {
                         {/* Tabs */}
                         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm mb-4 border border-gray-100 dark:border-gray-700">
                             <div className="border-b border-gray-200 dark:border-gray-700">
-                                <nav className="flex space-x-1 px-4" aria-label="Tabs">
+                                <nav className="flex space-x-1 px-4 overflow-x-auto scrollbar-hide" aria-label="Tabs">
                                     {tabs.map((tab) => {
                                         const Icon = tab.icon;
                                         return (
                                             <button
                                                 key={tab.id}
                                                 onClick={() => setActiveTab(tab.id)}
-                                                className={`flex items-center space-x-2 py-4 px-4 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
+                                                className={`flex items-center space-x-2 py-4 px-4 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === tab.id
                                                     ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
                                                     : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                                                     }`}
                                             >
-                                                <Icon className="w-5 h-5" />
+                                                <Icon className="w-5 h-5 flex-shrink-0" />
                                                 <span>{tab.name}</span>
                                             </button>
                                         );
