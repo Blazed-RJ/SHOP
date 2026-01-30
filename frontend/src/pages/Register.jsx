@@ -7,6 +7,7 @@ import { AlertCircle } from 'lucide-react';
 
 const Register = () => {
     const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,7 +27,7 @@ const Register = () => {
 
         setLoading(true);
 
-        const result = await register(name, username, password, shopCode);
+        const result = await register(name, username, email, password, shopCode);
 
         if (result.success) {
             toast.success(`Account created! Welcome, ${result.user.name}`);
@@ -89,6 +90,20 @@ const Register = () => {
                                 onChange={(e) => setName(e.target.value)}
                                 className="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500"
                                 placeholder="Enter your name"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-200 mb-2">
+                                Email Address
+                            </label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                placeholder="Enter your email"
                                 required
                             />
                         </div>

@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 const userSchema = mongoose.Schema({
     name: { type: String, required: true },
     username: { type: String, required: true, unique: true },
+    email: { type: String, unique: true, sparse: true }, // Logic: Link Google & Manual accounts via email
     password: {
         type: String,
         required: function () { return !this.googleId; } // Password required mainly if googleId is not present

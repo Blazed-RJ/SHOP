@@ -5,13 +5,13 @@ import generateToken from '../utils/generateToken.js';
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
-    const { name, username, password, shopCode } = req.body;
+    const { name, username, email, password, shopCode } = req.body;
 
-    const userExists = await User.findOne({ username });
+    const userExists = await User.findOne({ $or: [{ username }, { email }] });
 
     if (userExists) {
         res.status(400);
-        throw new Error('User already exists');
+        throw new Error('User already exists (Username or Email)');
     }
 
     // LOGIC: First user is Admin, OR if code matches OWNER2026
@@ -21,6 +21,7 @@ const registerUser = async (req, res) => {
     const user = await User.create({
         name,
         username,
+        email,
         password,
         role: isAdmin ? 'Admin' : 'Staff',
     });
@@ -29,7 +30,10 @@ const registerUser = async (req, res) => {
         res.status(201).json({
             _id: user._id,
             name: user.name,
+            _id: user._id,
+            name: user.name,
             username: user.username,
+            email: user.email,
             role: user.role,
             token: generateToken(user._id),
         });
@@ -92,14 +96,17 @@ const googleLogin = async (req, res) => {
 
         // Check if user exists (by googleId or email)
         let user = await User.findOne({
-            $or: [{ googleId: sub }, { username: email }]
+            $or: [{ googleId: sub }, { email: email }]
         });
 
         if (user) {
             // Update googleId if missing (linking accounts)
             if (!user.googleId) {
                 user.googleId = sub;
-                user.authProvider = 'google'; // or hybrid
+                // Don't overwrite authProvider if it was local, maybe just allow both? 
+                // For now, let's keep it simple. If we link, we allow Google login.
+                // We might want to store 'google' in an array of providers if we were complex, but this simple link is fine.
+                // user.authProvider = 'google'; // Optional: keep as local if they registered manually
                 if (!user.avatar) user.avatar = picture;
                 await user.save();
             }
@@ -110,7 +117,8 @@ const googleLogin = async (req, res) => {
 
             user = await User.create({
                 name,
-                username: email, // Use email as username for Google users
+                username: email.split('@')[0], // Use part of email as username for Google users (fallback)
+                email, // Save email!
                 // No password for Google users
                 googleId: sub,
                 authProvider: 'google',
