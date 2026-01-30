@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/Layout/Layout';
 import ConfirmationModal from '../components/ConfirmationModal';
 import api from '../utils/api';
@@ -26,11 +26,7 @@ const Daybook = () => {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState(null);
 
-    useEffect(() => {
-        loadDaybook();
-    }, [selectedDate]);
-
-    const loadDaybook = async () => {
+    const loadDaybook = useCallback(async () => {
         try {
             setLoading(true);
             const { data } = await api.get(`/ledger/daybook?date=${selectedDate}`);
@@ -41,7 +37,11 @@ const Daybook = () => {
             toast.error('Failed to load daybook');
             setLoading(false);
         }
-    };
+    }, [selectedDate]);
+
+    useEffect(() => {
+        loadDaybook();
+    }, [loadDaybook]);
 
     const handleDelete = (id) => {
         setTransactionToDelete(id);

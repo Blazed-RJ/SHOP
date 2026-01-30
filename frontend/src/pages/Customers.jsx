@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ConfirmationModal from '../components/ConfirmationModal';
 import Layout from '../components/Layout/Layout';
 import api from '../utils/api';
 import { formatINR } from '../utils/currency';
-import { formatDate } from '../utils/date';
 import {
     Users,
     Search,
@@ -23,7 +22,6 @@ import toast from 'react-hot-toast';
 const Customers = () => {
     const navigate = useNavigate();
     const [customers, setCustomers] = useState([]);
-    const [filteredCustomers, setFilteredCustomers] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -31,36 +29,32 @@ const Customers = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [customerToDelete, setCustomerToDelete] = useState(null);
 
-    useEffect(() => {
-        loadCustomers();
-    }, []);
 
-    useEffect(() => {
-        if (searchQuery) {
-            const filtered = customers.filter(c =>
-                c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                c.phone.includes(searchQuery) ||
-                c.email?.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-            setFilteredCustomers(filtered);
-        } else {
-            setFilteredCustomers(customers);
-        }
-    }, [searchQuery, customers]);
-
-    const loadCustomers = async () => {
+    const loadCustomers = useCallback(async () => {
         try {
             setLoading(true);
             const { data } = await api.get('/customers');
             setCustomers(data);
-            setFilteredCustomers(data);
             setLoading(false);
         } catch (error) {
             console.error('Failed to load customers:', error);
             toast.error('Failed to load customers');
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        loadCustomers();
+    }, [loadCustomers]);
+
+    const filteredCustomers = React.useMemo(() => {
+        if (!searchQuery) return customers;
+        return customers.filter(c =>
+            c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            c.phone.includes(searchQuery) ||
+            c.email?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [customers, searchQuery]);
 
     const handleDeleteClick = (customer) => {
         setCustomerToDelete(customer);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 import {
     X,
@@ -30,14 +30,9 @@ const CategoryManagementModal = ({ onClose }) => {
         subCount: 0,
         isSubCategory: false
     });
-    // Inline sub-category inputs
     const [subInputs, setSubInputs] = useState({});
 
-    useEffect(() => {
-        loadCategories();
-    }, []);
-
-    const loadCategories = async () => {
+    const loadCategories = useCallback(async () => {
         try {
             setLoading(true);
             const { data } = await api.get('/categories?parent=null');
@@ -65,7 +60,11 @@ const CategoryManagementModal = ({ onClose }) => {
             toast.error('Failed to load categories');
             setLoading(false);
         }
-    };
+    }, [selectedParent]);
+
+    useEffect(() => {
+        loadCategories();
+    }, [loadCategories]);
 
     const handleSaveCategory = async (e) => {
         if (e) e.preventDefault();
@@ -241,8 +240,8 @@ const CategoryManagementModal = ({ onClose }) => {
                                         <div
                                             onClick={() => handleCategoryClick(cat)}
                                             className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all border ${selectedParent?._id === cat._id
-                                                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                                                    : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500'
+                                                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                                                : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500'
                                                 }`}
                                         >
                                             <span className={`font-medium ${selectedParent?._id === cat._id ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}>

@@ -16,6 +16,9 @@ import paymentRoutes from './routes/payments.js';
 import supplierLedgerRoutes from './routes/supplierLedger.js';
 import letterheadRoutes from './routes/letterheadRoutes.js';
 
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+
 // Config
 dotenv.config();
 connectDB();
@@ -24,12 +27,28 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use('/uploads', express.static('uploads')); // Serve uploaded files // Body parser
+// Security Middleware
+app.use(helmet());
 
-// Static Folder for Images (Option A)
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 500, // Limit each IP to 500 requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use(limiter);
+
+// Middleware
+const corsOptions = {
+    origin: process.env.FRONTEND_URL || '*', // Allow specific domain or all for dev
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+app.use(express.json());
+
+// Static Folder for Images
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
 // Routes
@@ -63,5 +82,5 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000; // Let Railway decide the port
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });

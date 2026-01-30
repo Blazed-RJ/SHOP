@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useClientView } from '../context/ClientViewContext.jsx';
 import Layout from '../components/Layout/Layout';
 import api from '../utils/api';
 import { formatINR } from '../utils/currency';
-import { formatDate } from '../utils/date';
 import {
     ShoppingCart,
     Package,
@@ -28,25 +27,18 @@ const Dashboard = () => {
         totalSales: 0,
         totalInvoices: 0,
         cashCollection: 0,
-        onlineCollection: 0,
-        todaySales: 0,
-        creditUdhaar: 0,
-        totalStockValue: 0,
-        potentialProfit: 0,
+        totalCollections: 0,
+        totalReceivables: 0,
+        recentInvoices: []
     });
-    const [recentInvoices, setRecentInvoices] = useState([]);
-    const [lowStockProducts, setLowStockProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [lowStockProducts, setLowStockProducts] = useState([]); // Keep this if it's still used later
 
-    useEffect(() => {
-        loadDashboardData();
-    }, []);
+    const { recentInvoices } = stats;
 
-    const loadDashboardData = async () => {
+    const loadDashboardData = useCallback(async () => {
         try {
             setLoading(true);
-
-            // Fetch data
             const [productsRes, invoicesRes, customersRes] = await Promise.all([
                 api.get('/products'),
                 api.get('/invoices'),
@@ -73,21 +65,25 @@ const Dashboard = () => {
             }, 0);
 
             const onlineCollection = todaysInvoices.reduce((sum, inv) => {
-                const upiPayment = inv.payments?.find(p => p.mode === 'Upi');
+                const upiPayment = inv.payments?.find(p => p.mode === 'UPI');
                 const cardPayment = inv.payments?.find(p => p.mode === 'Card');
-                const bankPayment = inv.payments?.find(p => p.mode === 'Bank');
+                const bankPayment = inv.payments?.find(p => p.mode === 'Bank Transfer');
                 return sum + (upiPayment?.amount || 0) + (cardPayment?.amount || 0) + (bankPayment?.amount || 0);
             }, 0);
 
-            // Credit/Udhaar (today's unpaid)
+            // Credit/Udhaar (today's unpaid from today's invoices?)
+            // Or total credit? Usually "Credit (Udhaar)" implies total outstanding or today's credit given.
+            // Let's assume today's credit given for now based on context of "Today's Collection Breakdown"
+            // But if it's "Credit (Udhaar)", it might mean how much credit was given TODAY.
             const creditUdhaar = todaysInvoices.reduce((sum, inv) => {
-                return sum + (inv.grandTotal - inv.paidAmount);
+                // Check if fully paid? Or just grandTotal - paidAmount
+                return sum + (inv.grandTotal - (inv.paidAmount || 0));
             }, 0);
 
             // Stock value and potential profit
-            const totalStockValue = products.reduce((sum, p) => sum + (p.costPrice * p.stock), 0);
+            const totalStockValue = products.reduce((sum, p) => sum + ((p.costPrice || 0) * p.stock), 0);
             const potentialProfit = products.reduce((sum, p) =>
-                sum + ((p.sellingPrice - p.costPrice) * p.stock), 0
+                sum + (((p.sellingPrice || 0) - (p.costPrice || 0)) * p.stock), 0
             );
 
             // Get low stock items (stock <= 5)
@@ -104,20 +100,20 @@ const Dashboard = () => {
                 creditUdhaar,
                 totalStockValue,
                 potentialProfit,
+                recentInvoices: invoices.slice(0, 5) // Most recent 5 (assuming sorted by backend or insert order)
             });
 
-            // Get recent invoices (last 5)
-            setRecentInvoices(invoices.slice(0, 5));
-
-            // Get low stock products
             setLowStockProducts(lowStock.slice(0, 10));
-
             setLoading(false);
         } catch (error) {
             console.error('Failed to load dashboard data:', error);
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        loadDashboardData();
+    }, [loadDashboardData]);
 
     const getStatusColor = (status) => {
         switch (status) {

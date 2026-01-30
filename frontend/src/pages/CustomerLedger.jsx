@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout/Layout';
 import api from '../utils/api';
@@ -20,11 +20,7 @@ const CustomerLedger = () => {
         notes: ''
     });
 
-    useEffect(() => {
-        loadData();
-    }, [id]);
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         try {
             setLoading(true);
             const [customerRes, ledgerRes] = await Promise.all([
@@ -39,7 +35,11 @@ const CustomerLedger = () => {
             toast.error('Failed to load ledger');
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
     const handleRecalculate = async () => {
         try {

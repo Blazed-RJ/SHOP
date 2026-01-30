@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 
 const SettingsContext = createContext();
@@ -15,7 +16,7 @@ export const SettingsProvider = ({ children }) => {
     const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const refreshSettings = async () => {
+    const refreshSettings = useCallback(async () => {
         try {
             const { data } = await api.get('/settings');
             setSettings(data);
@@ -29,11 +30,11 @@ export const SettingsProvider = ({ children }) => {
             console.error('Failed to load settings (Full Error):', error.response || error);
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         refreshSettings();
-    }, []);
+    }, [refreshSettings]);
 
     const updateSettings = async (newSettings) => {
         try {
