@@ -43,6 +43,23 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const googleLogin = async (token) => {
+        try {
+            const { data } = await api.post('/auth/google', { token });
+
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data));
+            setUser(data);
+
+            return { success: true, user: data };
+        } catch (error) {
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || 'Google Login failed.'
+            };
+        }
+    };
+
     const register = async (name, username, password, shopCode) => {
         try {
             const { data } = await api.post('/auth/register', {
@@ -83,6 +100,7 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         login,
+        googleLogin,
         register,
         logout,
         isAdmin,

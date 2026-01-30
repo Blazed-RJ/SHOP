@@ -73,4 +73,65 @@ const authUser = async (req, res) => {
     }
 };
 
-export { registerUser, authUser };
+// @desc    Google Login
+// @route   POST /api/auth/google
+// @access  Public
+import { OAuth2Client } from 'google-auth-library';
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const googleLogin = async (req, res) => {
+    const { token } = req.body;
+
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const { name, email, picture, sub } = ticket.getPayload();
+
+        // Check if user exists (by googleId or email)
+        let user = await User.findOne({
+            $or: [{ googleId: sub }, { username: email }]
+        });
+
+        if (user) {
+            // Update googleId if missing (linking accounts)
+            if (!user.googleId) {
+                user.googleId = sub;
+                user.authProvider = 'google'; // or hybrid
+                if (!user.avatar) user.avatar = picture;
+                await user.save();
+            }
+        } else {
+            // Create new user
+            // Check if first user for admin rights
+            const isFirstAccount = (await User.countDocuments({})) === 0;
+
+            user = await User.create({
+                name,
+                username: email, // Use email as username for Google users
+                // No password for Google users
+                googleId: sub,
+                authProvider: 'google',
+                avatar: picture,
+                role: isFirstAccount ? 'Admin' : 'Staff',
+            });
+        }
+
+        res.json({
+            _id: user._id,
+            name: user.name,
+            username: user.username,
+            role: user.role,
+            avatar: user.avatar,
+            token: generateToken(user._id),
+        });
+
+    } catch (error) {
+        res.status(401);
+        throw new Error('Google authentication failed: ' + error.message);
+    }
+};
+
+export { registerUser, authUser, googleLogin };

@@ -4,7 +4,12 @@ import bcrypt from 'bcryptjs';
 const userSchema = mongoose.Schema({
     name: { type: String, required: true },
     username: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
+    password: {
+        type: String,
+        required: function () { return !this.googleId; } // Password required mainly if googleId is not present
+    },
+    googleId: { type: String, unique: true, sparse: true }, // Add googleId
+    authProvider: { type: String, default: 'local' },
     role: {
         type: String,
         enum: ['Admin', 'Staff'],
@@ -18,8 +23,9 @@ const userSchema = mongoose.Schema({
 
 // Password Hash Middleware
 userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) {
+    if (!this.isModified('password') || !this.password) { // Skip if password is missing (Google auth)
         next();
+        return;
     }
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);

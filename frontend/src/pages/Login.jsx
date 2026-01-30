@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
@@ -9,7 +10,7 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, googleLogin } = useAuth();
     const { settings } = useSettings();
 
     const handleSubmit = async (e) => {
@@ -94,6 +95,28 @@ const Login = () => {
                             {loading ? 'Signing In...' : 'Sign In'}
                         </button>
                     </form>
+
+                    {/* Google Login */}
+                    <div className="mt-6 flex justify-center">
+                        <GoogleLogin
+                            onSuccess={async (credentialResponse) => {
+                                setLoading(true);
+                                const result = await googleLogin(credentialResponse.credential);
+                                if (result.success) {
+                                    toast.success(`Welcome back, ${result.user.name}!`);
+                                    navigate('/dashboard');
+                                } else {
+                                    toast.error(result.error);
+                                }
+                                setLoading(false);
+                            }}
+                            onError={() => {
+                                toast.error('Google authorization failed');
+                            }}
+                            theme="filled_black"
+                            shape="pill"
+                        />
+                    </div>
 
                     {/* Demo Mode Hint */}
                     <div className="mt-6 text-center">
