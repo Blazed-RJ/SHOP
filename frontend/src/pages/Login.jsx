@@ -126,9 +126,7 @@ const Login = () => {
                                 Register
                             </Link>
                         </p>
-                        <p className="text-gray-400 text-xs mt-2">
-                            Demo mode: Use <span className="font-mono bg-white bg-opacity-10 px-2 py-1 rounded">demo/demo</span>
-                        </p>
+
                     </div>
                 </div>
             </div>
