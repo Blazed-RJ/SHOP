@@ -92,7 +92,10 @@ export const createInvoice = async (req, res) => {
             customerAddress,
             customerGstin,
             sellerDetails,
-            createdBy: req.user._id
+            customerGstin,
+            sellerDetails,
+            createdBy: req.user._id,
+            user: req.user._id
         }], { session });
 
         const createdInvoice = invoice;
@@ -102,7 +105,7 @@ export const createInvoice = async (req, res) => {
             .filter(item => item.productId)
             .map(item => ({
                 updateOne: {
-                    filter: { _id: item.productId },
+                    filter: { _id: item.productId, user: req.user._id },
                     update: { $inc: { stock: -item.quantity } }
                 }
             }));
@@ -123,7 +126,8 @@ export const createInvoice = async (req, res) => {
                 description: `Invoice ${invoiceNo} Generated`,
                 debit: createdInvoice.grandTotal,
                 credit: 0,
-                balance: 0 // Will recalc
+                balance: 0, // Will recalc
+                user: req.user._id
             }], { session });
 
             // 2. Handle Payments
@@ -159,7 +163,8 @@ export const createInvoice = async (req, res) => {
                     description: `Payment Received (${cp.method})`,
                     debit: 0,
                     credit: cp.amount,
-                    balance: 0
+                    balance: 0,
+                    user: req.user._id
                 }));
 
                 await LedgerEntry.create(ledgerCreditEntries, { session });
@@ -192,7 +197,7 @@ export const getInvoices = async (req, res) => {
     try {
         const { startDate, endDate, status, type } = req.query;
 
-        let query = {};
+        let query = { user: req.user._id };
 
         if (startDate && endDate) {
             query.createdAt = {
@@ -220,7 +225,7 @@ export const getInvoices = async (req, res) => {
 // @access  Private
 export const getInvoiceById = async (req, res) => {
     try {
-        const invoice = await Invoice.findById(req.params.id)
+        const invoice = await Invoice.findOne({ _id: req.params.id, user: req.user._id })
             .populate('customer')
             .populate('createdBy', 'name')
             .populate('items.productId');
@@ -264,8 +269,8 @@ export const updateInvoicePayment = async (req, res) => {
         // Update customer balance & Record Payment (Only for tracked customers)
         if (invoice.customer) {
             const paymentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
-            await Customer.findByIdAndUpdate(
-                invoice.customer,
+            await Customer.findOneAndUpdate(
+                { _id: invoice.customer, user: req.user._id },
                 { $inc: { balance: -paymentTotal } }
             );
 
@@ -290,7 +295,8 @@ export const updateInvoicePayment = async (req, res) => {
                 description: `Payment for Invoice ${invoice.invoiceNo}`,
                 debit: 0,
                 credit: paymentTotal,
-                balance: 0
+                balance: 0,
+                user: req.user._id
             });
             await recalculateCustomerBalance(invoice.customer);
         }
@@ -321,8 +327,8 @@ export const voidInvoice = async (req, res) => {
         if (invoice.items && invoice.items.length > 0) {
             for (const item of invoice.items) {
                 if (item.productId && item.quantity) {
-                    await Product.findByIdAndUpdate(
-                        item.productId,
+                    await Product.findOneAndUpdate(
+                        { _id: item.productId, user: req.user._id },
                         { $inc: { stock: item.quantity } }
                     );
                 }
@@ -331,8 +337,8 @@ export const voidInvoice = async (req, res) => {
 
         // 2. Revert Customer Due Balance (Cancel Debt)
         if (invoice.dueAmount > 0 && invoice.customer) {
-            await Customer.findByIdAndUpdate(
-                invoice.customer,
+            await Customer.findOneAndUpdate(
+                { _id: invoice.customer, user: req.user._id },
                 { $inc: { balance: -invoice.dueAmount } }
             );
         }
@@ -403,7 +409,8 @@ export const deleteInvoice = async (req, res) => {
                 description: `Invoice ${invoice.invoiceNo} Deleted (Reversal)`,
                 debit: 0,
                 credit: invoice.grandTotal, // Reverse the Full Sale Amount
-                balance: 0
+                balance: 0,
+                user: req.user._id
             });
             await recalculateCustomerBalance(invoice.customer);
         }

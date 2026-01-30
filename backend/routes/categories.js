@@ -11,7 +11,10 @@ router.get('/', protect, async (req, res) => {
     try {
         const { parent } = req.query;
 
-        const filter = {};
+        // Filter by user
+        const filter = {
+            $or: [{ user: req.user._id }, { createdBy: req.user._id }]
+        };
         if (parent === 'null' || parent === '') {
             filter.parentCategory = null; // Top-level categories only
         } else if (parent) {
@@ -42,7 +45,11 @@ router.get('/:id', protect, async (req, res) => {
         }
 
         // Get sub-categories
-        const subCategories = await Category.find({ parentCategory: req.params.id })
+        // Get sub-categories
+        const subCategories = await Category.find({
+            parentCategory: req.params.id,
+            $or: [{ user: req.user._id }, { createdBy: req.user._id }]
+        })
             .sort({ name: 1 });
 
         res.json({ ...category.toObject(), subCategories });
@@ -60,9 +67,11 @@ router.post('/', protect, admin, async (req, res) => {
         const { name, description, parentCategory } = req.body;
 
         // Check if category with same name exists at same level
+        // Check if category with same name exists at same level for this user
         const existingCategory = await Category.findOne({
             name,
             parentCategory: parentCategory || null,
+            $or: [{ user: req.user._id }, { createdBy: req.user._id }]
         });
 
         if (existingCategory) {
@@ -77,7 +86,8 @@ router.post('/', protect, admin, async (req, res) => {
             name,
             description,
             parentCategory: parentCategory || null,
-            createdBy: req.user._id === 'demo123' ? null : req.user._id,
+            createdBy: req.user._id,
+            user: req.user._id
         });
 
         await category.save();

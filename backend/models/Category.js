@@ -20,6 +20,11 @@ const categorySchema = new mongoose.Schema({
         ref: 'User',
         required: false, // Not required to support demo users
     },
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User'
+    }
 }, {
     timestamps: true,
 });

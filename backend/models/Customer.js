@@ -29,6 +29,11 @@ const customerSchema = mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User'
     }
 }, {
     timestamps: true // IST timezone

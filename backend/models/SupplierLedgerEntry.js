@@ -43,6 +43,11 @@ const supplierLedgerEntrySchema = mongoose.Schema({
     billAttachment: {
         type: String, // File path to uploaded bill
         default: ''
+    },
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User'
     }
 }, {
     timestamps: true

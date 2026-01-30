@@ -41,7 +41,8 @@ export const createLetterhead = async (req, res) => {
             content,
             status: status || 'Draft',
             configSnapshot,
-            createdBy: req.user._id
+            createdBy: req.user._id,
+            user: req.user._id
         });
 
         res.status(201).json(letterhead);
@@ -56,7 +57,7 @@ export const createLetterhead = async (req, res) => {
 export const getLetterheads = async (req, res) => {
     try {
         const { search } = req.query;
-        let query = {};
+        let query = { user: req.user._id };
 
         if (search) {
             query = {
@@ -83,7 +84,7 @@ export const getLetterheads = async (req, res) => {
 // @access  Private
 export const getLetterheadById = async (req, res) => {
     try {
-        const letterhead = await Letterhead.findById(req.params.id)
+        const letterhead = await Letterhead.findOne({ _id: req.params.id, user: req.user._id })
             .populate('createdBy', 'name');
 
         if (!letterhead) {
@@ -103,7 +104,7 @@ export const updateLetterhead = async (req, res) => {
     try {
         const { recipient, subject, content, status } = req.body;
 
-        const letterhead = await Letterhead.findById(req.params.id);
+        const letterhead = await Letterhead.findOne({ _id: req.params.id, user: req.user._id });
         if (!letterhead) {
             return res.status(404).json({ message: 'Letterhead not found' });
         }
@@ -125,7 +126,7 @@ export const updateLetterhead = async (req, res) => {
 // @access  Private
 export const deleteLetterhead = async (req, res) => {
     try {
-        const letterhead = await Letterhead.findById(req.params.id);
+        const letterhead = await Letterhead.findOne({ _id: req.params.id, user: req.user._id });
         if (!letterhead) {
             return res.status(404).json({ message: 'Letterhead not found' });
         }

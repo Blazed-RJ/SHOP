@@ -6,7 +6,7 @@ import { protect, admin, staffOrAdmin } from '../middleware/auth.js';
 // @access  Private (Staff can view but cost price hidden in response)
 export const getProducts = async (req, res) => {
     try {
-        const products = await Product.find({ isActive: true });
+        const products = await Product.find({ isActive: true, user: req.user._id });
 
         // If user is Staff, hide cost price
         if (req.user.role === 'Staff') {
@@ -80,7 +80,8 @@ export const createProduct = async (req, res) => {
             imei1,
             imei2,
             serialNo,
-            description
+            description,
+            user: req.user._id
         });
 
         res.status(201).json(product);
@@ -94,7 +95,7 @@ export const createProduct = async (req, res) => {
 // @access  Private/Admin
 export const updateProduct = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id);
+        const product = await Product.findOne({ _id: req.params.id, user: req.user._id });
 
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
@@ -120,7 +121,7 @@ export const updateProduct = async (req, res) => {
 // @access  Private/Admin
 export const deleteProduct = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id);
+        const product = await Product.findOne({ _id: req.params.id, user: req.user._id });
 
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
@@ -144,6 +145,7 @@ export const searchProducts = async (req, res) => {
 
         const products = await Product.find({
             isActive: true,
+            user: req.user._id,
             $or: [
                 { name: { $regex: keyword, $options: 'i' } },
                 { category: { $regex: keyword, $options: 'i' } },

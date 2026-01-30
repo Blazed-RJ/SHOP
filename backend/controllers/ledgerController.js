@@ -8,7 +8,8 @@ import moment from 'moment-timezone';
 export const getLedger = async (req, res) => {
     try {
         const { customerId } = req.params;
-        const ledger = await LedgerEntry.find({ customer: customerId })
+        // Verify customer ownership implicitly by ensuring LedgerEntries belong to user
+        const ledger = await LedgerEntry.find({ customer: customerId, user: req.user._id })
             .sort({ date: 1, createdAt: 1 });
 
         res.json(ledger);
@@ -96,7 +97,8 @@ export const getDaybook = async (req, res) => {
         const customerPayments = await Payment.find({
             customer: { $ne: null },
             type: 'Debit', // Customer paid us
-            createdAt: { $gte: startDate, $lte: endDate }
+            createdAt: { $gte: startDate, $lte: endDate },
+            user: req.user._id
         }).populate('customer', 'name');
 
         customerPayments.forEach(payment => {
@@ -113,7 +115,8 @@ export const getDaybook = async (req, res) => {
         // 2. Get supplier payments (Cash OUT)
         const supplierPayments = await Payment.find({
             supplier: { $ne: null },
-            createdAt: { $gte: startDate, $lte: endDate }
+            createdAt: { $gte: startDate, $lte: endDate },
+            user: req.user._id
         }).populate('supplier', 'name');
 
         supplierPayments.forEach(payment => {
@@ -130,7 +133,8 @@ export const getDaybook = async (req, res) => {
         // 2b. Get Expenses and Drawings (Cash OUT)
         const expenses = await Payment.find({
             category: { $in: ['Expense', 'Drawing'] },
-            createdAt: { $gte: startDate, $lte: endDate }
+            createdAt: { $gte: startDate, $lte: endDate },
+            user: req.user._id
         });
 
         expenses.forEach(exp => {
@@ -148,7 +152,8 @@ export const getDaybook = async (req, res) => {
         const Invoice = (await import('../models/Invoice.js')).default;
         const invoices = await Invoice.find({
             createdAt: { $gte: startDate, $lte: endDate },
-            status: { $ne: 'Void' } // Exclude voided invoices
+            status: { $ne: 'Void' }, // Exclude voided invoices
+            user: req.user._id
         }).populate('customer', 'name');
 
         invoices.forEach(inv => {

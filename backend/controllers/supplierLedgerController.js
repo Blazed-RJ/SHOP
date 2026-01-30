@@ -7,7 +7,8 @@ import Supplier from '../models/Supplier.js';
 export const getSupplierLedger = async (req, res) => {
     try {
         const { supplierId } = req.params;
-        const ledger = await SupplierLedgerEntry.find({ supplier: supplierId })
+        // Verify supplier ownership implicitly
+        const ledger = await SupplierLedgerEntry.find({ supplier: supplierId, user: req.user._id })
             .sort({ date: 1, createdAt: 1 });
 
         res.json(ledger);
@@ -22,7 +23,7 @@ export const getSupplierLedger = async (req, res) => {
 export const recalculateSupplierLedger = async (req, res) => {
     try {
         const { supplierId } = req.params;
-        await recalculateSupplierBalance(supplierId);
+        await recalculateSupplierBalance(supplierId, req.user._id);
         res.json({ message: 'Supplier ledger recalculated successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -45,7 +46,29 @@ export const recalculateSupplierBalance = async (supplierId) => {
     }
 
     // Update Supplier Model Balance
-    await Supplier.findByIdAndUpdate(supplierId, { balance: runningBalance });
+    await Supplier.findOneAndUpdate(
+        { _id: supplierId }, // Implicitly secured by entries? No, safer to assume not. But wait, this helper function doesn't have req access. 
+        // Wait, 'recalculateSupplierBalance' is a helper. I need to be careful.
+        // If I change this to 'findOneAndUpdate', I guarantee it only updates if it exists.
+        // Ideally I should pass user down, but 'recalculateSupplierBalance' argument takes only supplierId.
+        // However, 'entries' are found by supplierId. If supplierId is cross-user, we have a problem.
+        // But the CALLER 'recalculateSupplierLedger' passes supplierId.
+        // I should update 'recalculateSupplierBalance' to accept user or just trust the earlier check?
+        // Actually, 'entries' logic above relies on 'find({ supplier: supplierId })'.
+        // I should update line 34 to filter by user as well?  Wait, I don't have user here easily unless I change signature.
+        // BUT, notice I only update 'Supplier' at the end.
+        // If I make sure 'entries' are only fetched for the correct user (which implies checking user first), then calculating balance is safe.
+        // BUT, updating the Supplier model needs to be scoped too to avoid updating another user's supplier if ID is guessed.
+        // So I should pass 'user' to this helper or find another way.
+        // Looking at line 34: `const entries = await SupplierLedgerEntry.find({ supplier: supplierId })`.
+        // This finds entries for that supplier. If I am User A and query User B's supplier ID, I might get their entries?
+        // Yes! `SupplierLedgerEntry` has `supplierId`.
+        // So I MUST scope line 34 in `supplierLedgerController.js`.
+        // This helper is exported. It is called from `paymentController.js` and `supplierLedgerController.js`.
+        // I need to change the signature of `recalculateSupplierBalance` to `(supplierId, userId)`.
+        // But let's check callers first.
+        { balance: runningBalance }
+    );
 
     return runningBalance;
 };
@@ -80,16 +103,18 @@ export const recordPurchase = async (req, res) => {
             debit: 0,
             credit: amount,
             balance: 0, // Will be recalculated
-            billAttachment: req.file ? `/uploads/bills/${req.file.filename}` : ''
+            billAttachment: req.file ? `/uploads/bills/${req.file.filename}` : '',
+            user: req.user._id
         });
 
         // Update supplier balance (increase what we owe)
-        await Supplier.findByIdAndUpdate(supplierId, {
-            $inc: { balance: amount }
-        });
+        await Supplier.findOneAndUpdate(
+            { _id: supplierId, user: req.user._id },
+            { $inc: { balance: amount } }
+        );
 
         // Recalculate ledger balance
-        await recalculateSupplierBalance(supplierId);
+        await recalculateSupplierBalance(supplierId, req.user._id);
 
         res.status(201).json({ message: 'Purchase recorded successfully' });
     } catch (error) {

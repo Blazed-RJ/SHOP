@@ -6,7 +6,7 @@ import LedgerEntry from '../models/LedgerEntry.js';
 // @access  Private
 export const getCustomers = async (req, res) => {
     try {
-        const customers = await Customer.find({ isActive: true }).sort({ name: 1 });
+        const customers = await Customer.find({ isActive: true, user: req.user._id }).sort({ name: 1 });
         res.json(customers);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -37,7 +37,7 @@ export const createCustomer = async (req, res) => {
     try {
         const { name, phone, email, address, gstNumber, initialBalance } = req.body;
 
-        const customerExists = await Customer.findOne({ phone });
+        const customerExists = await Customer.findOne({ phone, user: req.user._id });
 
         if (customerExists) {
             return res.status(400).json({ message: 'Customer with this phone already exists' });
@@ -51,7 +51,8 @@ export const createCustomer = async (req, res) => {
             email,
             address,
             gstNumber,
-            balance
+            balance,
+            user: req.user._id
         });
 
         // Ledger Entry: Opening Balance
@@ -65,7 +66,8 @@ export const createCustomer = async (req, res) => {
                 description: 'Opening Balance',
                 debit: balance > 0 ? balance : 0, // Positive = Debt/Udhaar (Debit)
                 credit: balance < 0 ? Math.abs(balance) : 0, // Negative = Advance (Credit)
-                balance: balance
+                balance: balance,
+                user: req.user._id
             });
         }
 
@@ -102,7 +104,8 @@ export const getCustomersWithDues = async (req, res) => {
     try {
         const customers = await Customer.find({
             balance: { $gt: 0 },
-            isActive: true
+            isActive: true,
+            user: req.user._id
         }).sort({ balance: -1 });
 
         res.json(customers);

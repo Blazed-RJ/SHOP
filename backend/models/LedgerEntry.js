@@ -40,6 +40,11 @@ const ledgerEntrySchema = mongoose.Schema({
     balance: {
         type: Number,
         required: true // Running Balance Snapshot
+    },
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User'
     }
 }, {
     timestamps: true

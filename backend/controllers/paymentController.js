@@ -32,7 +32,8 @@ export const recordPayment = async (req, res) => {
             amount: amount,
             method: method || 'Cash',
             notes: notes || 'Direct payment recorded',
-            recordedBy: req.user._id
+            recordedBy: req.user._id,
+            user: req.user._id
         });
 
         // Update customer balance
@@ -50,7 +51,8 @@ export const recordPayment = async (req, res) => {
             description: notes || 'Direct payment received',
             debit: 0,
             credit: amount,
-            balance: 0 // Will be recalculated
+            balance: 0, // Will be recalculated
+            user: req.user._id
         });
 
         // Recalculate ledger balance
@@ -91,7 +93,8 @@ export const recordSupplierPayment = async (req, res) => {
             amount: amount,
             method: method || 'Cash',
             notes: notes || 'Payment to supplier',
-            recordedBy: req.user._id
+            recordedBy: req.user._id,
+            user: req.user._id
         });
 
         // Update supplier balance (decrease what we owe)
@@ -109,11 +112,12 @@ export const recordSupplierPayment = async (req, res) => {
             description: notes || 'Payment to supplier',
             debit: amount,
             credit: 0,
-            balance: 0 // Will be recalculated
+            balance: 0, // Will be recalculated
+            user: req.user._id
         });
 
         // Recalculate ledger balance
-        await recalculateSupplierBalance(supplierId);
+        await recalculateSupplierBalance(supplierId, req.user._id);
 
         res.status(201).json({
             message: 'Supplier payment recorded successfully',
@@ -150,7 +154,8 @@ export const recordExpense = async (req, res) => {
             method: method || 'Cash',
             notes: notes || `${category} recorded`,
             category: category,
-            recordedBy: req.user._id
+            recordedBy: req.user._id,
+            user: req.user._id
         });
 
         res.status(201).json({
@@ -168,7 +173,7 @@ export const recordExpense = async (req, res) => {
 // @access  Private (Admin/Manager)
 export const deletePayment = async (req, res) => {
     try {
-        const payment = await Payment.findById(req.params.id);
+        const payment = await Payment.findOne({ _id: req.params.id, user: req.user._id });
 
         if (!payment) {
             return res.status(404).json({ message: 'Payment not found' });
@@ -177,24 +182,26 @@ export const deletePayment = async (req, res) => {
         // 1. Revert Customer Balance
         if (payment.customer) {
             const reversalAmount = payment.type === 'Debit' ? payment.amount : -payment.amount;
-            await Customer.findByIdAndUpdate(payment.customer, {
-                $inc: { balance: reversalAmount }
-            });
+            await Customer.findOneAndUpdate(
+                { _id: payment.customer, user: req.user._id },
+                { $inc: { balance: reversalAmount } }
+            );
             await LedgerEntry.deleteMany({ refId: payment._id });
         }
 
         // 2. Revert Supplier Balance
         if (payment.supplier) {
             const reversalAmount = payment.type === 'Credit' ? payment.amount : -payment.amount;
-            await Supplier.findByIdAndUpdate(payment.supplier, {
-                $inc: { balance: reversalAmount }
-            });
+            await Supplier.findOneAndUpdate(
+                { _id: payment.supplier, user: req.user._id },
+                { $inc: { balance: reversalAmount } }
+            );
             await SupplierLedgerEntry.deleteMany({ refId: payment._id });
         }
 
         // 3. Update Invoice (if linked)
         if (payment.invoice) {
-            const invoice = await Invoice.findById(payment.invoice);
+            const invoice = await Invoice.findOne({ _id: payment.invoice, user: req.user._id });
             if (invoice) {
                 invoice.paidAmount = Math.max(0, invoice.paidAmount - payment.amount);
                 invoice.dueAmount = invoice.grandTotal - invoice.paidAmount;
@@ -212,7 +219,7 @@ export const deletePayment = async (req, res) => {
 
         // 5. Recalculate Ledgers
         if (payment.customer) await recalculateCustomerBalance(payment.customer);
-        if (payment.supplier) await recalculateSupplierBalance(payment.supplier);
+        if (payment.supplier) await recalculateSupplierBalance(payment.supplier, req.user._id);
 
         res.json({ message: 'Payment deleted successfully' });
 
