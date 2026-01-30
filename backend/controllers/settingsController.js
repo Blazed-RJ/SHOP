@@ -6,11 +6,11 @@ import QRCode from 'qrcode';
 // @access  Private/Admin
 export const getSettings = async (req, res) => {
     try {
-        let settings = await Settings.findById('shop_settings');
+        let settings = await Settings.findOne({ user: req.user._id });
 
         // Create default settings if none exist
         if (!settings) {
-            settings = await Settings.create({ _id: 'shop_settings' });
+            settings = await Settings.create({ user: req.user._id });
         }
 
         res.json(settings);
@@ -24,10 +24,10 @@ export const getSettings = async (req, res) => {
 // @access  Private/Admin
 export const updateSettings = async (req, res) => {
     try {
-        let settings = await Settings.findById('shop_settings');
+        let settings = await Settings.findOne({ user: req.user._id });
 
         if (!settings) {
-            settings = await Settings.create({ _id: 'shop_settings', ...req.body });
+            settings = await Settings.create({ user: req.user._id, ...req.body });
         } else {
             Object.assign(settings, req.body);
 

@@ -38,10 +38,10 @@ const Sidebar = ({ isOpen, onClose }) => {
         { name: 'New Invoice', icon: FileText, path: '/invoice/new', admin: false },
         { name: 'Invoice History', icon: BookOpen, path: '/invoices', admin: false },
         { name: 'Customers', icon: Users, path: '/customers', admin: false },
-        { name: 'Suppliers', icon: TruckIcon, path: '/suppliers', admin: true }, // Admin only
+        { name: 'Suppliers', icon: TruckIcon, path: '/suppliers', admin: false }, // Everyone
         { name: 'Daybook', icon: BookOpen, path: '/daybook', admin: false },
         { name: 'Letterheads', icon: ScrollText, path: '/letterheads', admin: false },
-        { name: 'Settings', icon: Settings, path: '/settings', admin: true }, // Admin only
+        { name: 'Settings', icon: Settings, path: '/settings', admin: false }, // Everyone
     ];
 
     const filteredNav = navItems.filter(item => !item.admin || isAdmin());

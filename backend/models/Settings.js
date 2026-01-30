@@ -1,10 +1,12 @@
 import mongoose from 'mongoose';
 
 const settingsSchema = mongoose.Schema({
-    // There will only be one settings document
-    _id: {
-        type: String,
-        default: 'shop_settings'
+    // Link settings to a specific user/account
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User',
+        unique: true
     },
     // General Settings
     shopName: {
