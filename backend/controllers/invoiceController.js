@@ -73,6 +73,7 @@ export const createInvoice = async (req, res) => {
         console.log('Creating Invoice Checkpoint 1');
         // Create invoice
         // Use array syntax for proper transaction handling with create()
+        // Use array syntax for proper transaction handling with create()
         const [invoice] = await Invoice.create([{
             invoiceNo,
             type: invoiceType || 'Tax Invoice',
@@ -92,10 +93,8 @@ export const createInvoice = async (req, res) => {
             customerAddress,
             customerGstin,
             sellerDetails,
-            customerGstin,
-            sellerDetails,
-            createdBy: req.user._id,
-            user: req.user._id
+            createdBy: req.user._id, // Created By is the actual user (Staff/Admin)
+            user: req.user.ownerId   // Ownership belongs to the Admin
         }], { session });
 
         const createdInvoice = invoice;
@@ -105,7 +104,7 @@ export const createInvoice = async (req, res) => {
             .filter(item => item.productId)
             .map(item => ({
                 updateOne: {
-                    filter: { _id: item.productId, user: req.user._id },
+                    filter: { _id: item.productId, user: req.user.ownerId }, // Check against owner
                     update: { $inc: { stock: -item.quantity } }
                 }
             }));
@@ -127,7 +126,7 @@ export const createInvoice = async (req, res) => {
                 debit: createdInvoice.grandTotal,
                 credit: 0,
                 balance: 0, // Will recalc
-                user: req.user._id
+                user: req.user.ownerId
             }], { session });
 
             // 2. Handle Payments
@@ -135,7 +134,6 @@ export const createInvoice = async (req, res) => {
 
                 // Prepare Payment and Ledger Entries
                 const newPayments = [];
-                const ledgerCredits = [];
 
                 for (const p of payments) {
                     newPayments.push({
@@ -146,7 +144,7 @@ export const createInvoice = async (req, res) => {
                         method: p.method,
                         reference: p.reference,
                         notes: `Payment for Invoice ${invoiceNo}`,
-                        recordedBy: req.user._id
+                        recordedBy: req.user._id // Who recorded it
                     });
                 }
 
@@ -164,7 +162,7 @@ export const createInvoice = async (req, res) => {
                     debit: 0,
                     credit: cp.amount,
                     balance: 0,
-                    user: req.user._id
+                    user: req.user.ownerId // Owner owns the ledger
                 }));
 
                 await LedgerEntry.create(ledgerCreditEntries, { session });
@@ -197,7 +195,7 @@ export const getInvoices = async (req, res) => {
     try {
         const { startDate, endDate, status, type } = req.query;
 
-        let query = { user: req.user._id };
+        let query = { user: req.user.ownerId }; // Filter by Owner
 
         if (startDate && endDate) {
             query.createdAt = {
@@ -225,7 +223,7 @@ export const getInvoices = async (req, res) => {
 // @access  Private
 export const getInvoiceById = async (req, res) => {
     try {
-        const invoice = await Invoice.findOne({ _id: req.params.id, user: req.user._id })
+        const invoice = await Invoice.findOne({ _id: req.params.id, user: req.user.ownerId })
             .populate('customer')
             .populate('createdBy', 'name')
             .populate('items.productId');
@@ -249,7 +247,8 @@ export const updateInvoicePayment = async (req, res) => {
 
         const invoice = await Invoice.findById(req.params.id);
 
-        if (!invoice) {
+        // Security check: must belong to owner
+        if (!invoice || invoice.user.toString() !== req.user.ownerId.toString()) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
 
@@ -270,7 +269,7 @@ export const updateInvoicePayment = async (req, res) => {
         if (invoice.customer) {
             const paymentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
             await Customer.findOneAndUpdate(
-                { _id: invoice.customer, user: req.user._id },
+                { _id: invoice.customer, user: req.user.ownerId },
                 { $inc: { balance: -paymentTotal } }
             );
 
@@ -282,7 +281,7 @@ export const updateInvoicePayment = async (req, res) => {
                 amount: paymentTotal,
                 method: payments[0].method,
                 notes: `Payment received for Invoice ${invoice.invoiceNo}`,
-                recordedBy: req.user._id
+                recordedBy: req.user._id // Actual Staff doing the update
             });
 
             // Ledger Entry: Credit (Payment)
@@ -296,7 +295,7 @@ export const updateInvoicePayment = async (req, res) => {
                 debit: 0,
                 credit: paymentTotal,
                 balance: 0,
-                user: req.user._id
+                user: req.user.ownerId
             });
             await recalculateCustomerBalance(invoice.customer);
         }
@@ -315,7 +314,7 @@ export const voidInvoice = async (req, res) => {
         const { reason } = req.body;
         const invoice = await Invoice.findById(req.params.id);
 
-        if (!invoice) {
+        if (!invoice || invoice.user.toString() !== req.user.ownerId.toString()) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
 
@@ -328,7 +327,7 @@ export const voidInvoice = async (req, res) => {
             for (const item of invoice.items) {
                 if (item.productId && item.quantity) {
                     await Product.findOneAndUpdate(
-                        { _id: item.productId, user: req.user._id },
+                        { _id: item.productId, user: req.user.ownerId },
                         { $inc: { stock: item.quantity } }
                     );
                 }
@@ -338,7 +337,7 @@ export const voidInvoice = async (req, res) => {
         // 2. Revert Customer Due Balance (Cancel Debt)
         if (invoice.dueAmount > 0 && invoice.customer) {
             await Customer.findOneAndUpdate(
-                { _id: invoice.customer, user: req.user._id },
+                { _id: invoice.customer, user: req.user.ownerId },
                 { $inc: { balance: -invoice.dueAmount } }
             );
         }
@@ -363,7 +362,7 @@ export const deleteInvoice = async (req, res) => {
     try {
         const invoice = await Invoice.findById(req.params.id);
 
-        if (!invoice) {
+        if (!invoice || invoice.user.toString() !== req.user.ownerId.toString()) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
 
@@ -410,7 +409,7 @@ export const deleteInvoice = async (req, res) => {
                 debit: 0,
                 credit: invoice.grandTotal, // Reverse the Full Sale Amount
                 balance: 0,
-                user: req.user._id
+                user: req.user.ownerId
             });
             await recalculateCustomerBalance(invoice.customer);
         }

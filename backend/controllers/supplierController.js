@@ -5,7 +5,7 @@ import Supplier from '../models/Supplier.js';
 // @access  Private/Admin
 export const getSuppliers = async (req, res) => {
     try {
-        const suppliers = await Supplier.find({ user: req.user._id, isActive: true }).sort({ name: 1 });
+        const suppliers = await Supplier.find({ user: req.user.ownerId, isActive: true }).sort({ name: 1 });
         res.json(suppliers);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -24,7 +24,7 @@ export const getSupplierById = async (req, res) => {
         }
 
         // Check ownership
-        if (supplier.user?.toString() !== req.user._id.toString()) {
+        if (supplier.user?.toString() !== req.user.ownerId.toString()) {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
@@ -48,7 +48,7 @@ export const createSupplier = async (req, res) => {
             email,
             address,
             gstNumber,
-            user: req.user._id
+            user: req.user.ownerId
         });
 
         res.status(201).json(supplier);
@@ -69,7 +69,7 @@ export const updateSupplier = async (req, res) => {
         }
 
         // Check ownership
-        if (supplier.user?.toString() !== req.user._id.toString()) {
+        if (supplier.user?.toString() !== req.user.ownerId.toString()) {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
@@ -94,7 +94,7 @@ export const deleteSupplier = async (req, res) => {
         }
 
         // Check ownership
-        if (supplier.user.toString() !== req.user._id.toString()) {
+        if (supplier.user.toString() !== req.user.ownerId.toString()) {
             return res.status(401).json({ message: 'Not authorized' });
         }
 

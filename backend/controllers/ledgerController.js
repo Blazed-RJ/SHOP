@@ -9,7 +9,7 @@ export const getLedger = async (req, res) => {
     try {
         const { customerId } = req.params;
         // Verify customer ownership implicitly by ensuring LedgerEntries belong to user
-        const ledger = await LedgerEntry.find({ customer: customerId, user: req.user._id })
+        const ledger = await LedgerEntry.find({ customer: customerId, user: req.user.ownerId })
             .sort({ date: 1, createdAt: 1 });
 
         res.json(ledger);
@@ -98,7 +98,7 @@ export const getDaybook = async (req, res) => {
             customer: { $ne: null },
             type: 'Debit', // Customer paid us
             createdAt: { $gte: startDate, $lte: endDate },
-            user: req.user._id
+            user: req.user.ownerId
         }).populate('customer', 'name');
 
         customerPayments.forEach(payment => {
@@ -116,7 +116,7 @@ export const getDaybook = async (req, res) => {
         const supplierPayments = await Payment.find({
             supplier: { $ne: null },
             createdAt: { $gte: startDate, $lte: endDate },
-            user: req.user._id
+            user: req.user.ownerId
         }).populate('supplier', 'name');
 
         supplierPayments.forEach(payment => {
@@ -134,7 +134,7 @@ export const getDaybook = async (req, res) => {
         const expenses = await Payment.find({
             category: { $in: ['Expense', 'Drawing'] },
             createdAt: { $gte: startDate, $lte: endDate },
-            user: req.user._id
+            user: req.user.ownerId
         });
 
         expenses.forEach(exp => {
@@ -153,7 +153,7 @@ export const getDaybook = async (req, res) => {
         const invoices = await Invoice.find({
             createdAt: { $gte: startDate, $lte: endDate },
             status: { $ne: 'Void' }, // Exclude voided invoices
-            user: req.user._id
+            user: req.user.ownerId
         }).populate('customer', 'name');
 
         invoices.forEach(inv => {

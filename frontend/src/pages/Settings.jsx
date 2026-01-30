@@ -6,7 +6,7 @@ import Layout from '../components/Layout/Layout';
 import api from '../utils/api';
 import {
     Store, CreditCard, FileText, Smartphone,
-    Save, Upload, Info, X, Image, Layout as LayoutIcon
+    Save, Upload, Info, X, Image, Layout as LayoutIcon, Users
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
@@ -17,6 +17,8 @@ const Settings = () => {
     const { settings: currentSettings, refreshSettings, updateSettings } = useSettings();
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('general');
+    const [staffList, setStaffList] = useState([]);
+    const [newStaff, setNewStaff] = useState({ name: '', email: '', username: '', password: '' });
 
     const [formData, setFormData] = useState({
         shopName: '',
@@ -75,6 +77,34 @@ const Settings = () => {
         }
     }, [currentSettings]);
 
+    // Fetch Staff when tab is active
+    useEffect(() => {
+        if (activeTab === 'team') {
+            fetchStaff();
+        }
+    }, [activeTab]);
+
+    const fetchStaff = async () => {
+        try {
+            const { data } = await api.get('/auth/staff');
+            setStaffList(data);
+        } catch (error) {
+            toast.error('Failed to load staff');
+        }
+    };
+
+    const handleCreateStaff = async (e) => {
+        e.preventDefault();
+        try {
+            await api.post('/auth/staff', newStaff);
+            toast.success('Staff created successfully');
+            setNewStaff({ name: '', email: '', username: '', password: '' });
+            fetchStaff();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to create staff');
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -129,6 +159,7 @@ const Settings = () => {
         { id: 'invoice', name: 'Invoice Design', icon: FileText },
         { id: 'appearance', name: 'App Appearance', icon: Smartphone },
         { id: 'letterheadTemplate', name: 'Letterhead Design', icon: LayoutIcon },
+        { id: 'team', name: 'Team Management', icon: Users },
     ];
 
     const colorPresets = [
@@ -786,6 +817,111 @@ const Settings = () => {
                                     </div>
                                 )}
 
+
+
+                                {/* Team Management Tab */}
+                                {activeTab === 'team' && (
+                                    <div className="space-y-6">
+                                        <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-500 p-4 rounded-lg">
+                                            <p className="text-sm text-blue-800 dark:text-blue-300">
+                                                <strong>Team Management</strong>
+                                                <br />
+                                                Invite staff members to help manage your store. They can view and create invoices/products but cannot change these settings.
+                                            </p>
+                                        </div>
+
+                                        {/* Add Staff Form */}
+                                        <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+                                            <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-3">Add New Staff Member</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Full Name"
+                                                    value={newStaff.name}
+                                                    onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+                                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                />
+                                                <input
+                                                    type="email"
+                                                    placeholder="Email Address"
+                                                    value={newStaff.email}
+                                                    onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+                                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Username"
+                                                    value={newStaff.username}
+                                                    onChange={(e) => setNewStaff({ ...newStaff, username: e.target.value })}
+                                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                />
+                                                <input
+                                                    type="password"
+                                                    placeholder="Password"
+                                                    value={newStaff.password}
+                                                    onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
+                                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                />
+                                            </div>
+                                            <div className="mt-3 flex justify-end">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleCreateStaff}
+                                                    disabled={!newStaff.name || !newStaff.email || !newStaff.username || !newStaff.password}
+                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                    Add Staff Member
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Staff List */}
+                                        <div>
+                                            <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-3">Existing Team Members</h3>
+                                            <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                                                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                                    <thead className="bg-gray-50 dark:bg-gray-800">
+                                                        <tr>
+                                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
+                                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Role</th>
+                                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Joined</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                                        {staffList.length > 0 ? (
+                                                            staffList.map((staff) => (
+                                                                <tr key={staff._id}>
+                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                                                        {staff.name}
+                                                                    </td>
+                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                                        {staff.email}
+                                                                    </td>
+                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                                                            {staff.role}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                                        {new Date(staff.createdAt).toLocaleDateString()}
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                        ) : (
+                                                            <tr>
+                                                                <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                                                                    No staff members found. Invite someone above!
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {activeTab === 'letterheadTemplate' && (
                                     <div className="flex flex-col lg:flex-row gap-6">
                                         <div className="lg:w-1/2 space-y-6">
@@ -1256,8 +1392,8 @@ const Settings = () => {
                         </div>
                     )}
                 </div>
-            </div>
-        </Layout>
+            </div >
+        </Layout >
     );
 };
 

@@ -30,6 +30,12 @@ const protect = async (req, res, next) => {
             // Get user from the token
             req.user = await User.findById(decoded.id).select('-password');
 
+            // TEAM LOGIC: Ensure ownerId is set.
+            // If legacy user or Admin/Owner without explicit ownerId, default to self.
+            if (req.user && !req.user.ownerId) {
+                req.user.ownerId = req.user._id;
+            }
+
             next();
         } catch (error) {
             console.error(error);

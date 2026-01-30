@@ -6,7 +6,7 @@ import { protect, admin, staffOrAdmin } from '../middleware/auth.js';
 // @access  Private (Staff can view but cost price hidden in response)
 export const getProducts = async (req, res) => {
     try {
-        const products = await Product.find({ isActive: true, user: req.user._id });
+        const products = await Product.find({ isActive: true, user: req.user.ownerId });
 
         // If user is Staff, hide cost price
         if (req.user.role === 'Staff') {
@@ -28,9 +28,10 @@ export const getProducts = async (req, res) => {
 // @access  Private
 export const getProductById = async (req, res) => {
     try {
+        // Allow staff to access product if it belongs to ownerId
         const product = await Product.findById(req.params.id);
 
-        if (!product) {
+        if (!product || product.user.toString() !== req.user.ownerId.toString()) {
             return res.status(404).json({ message: 'Product not found' });
         }
 
@@ -81,7 +82,7 @@ export const createProduct = async (req, res) => {
             imei2,
             serialNo,
             description,
-            user: req.user._id
+            user: req.user.ownerId
         });
 
         res.status(201).json(product);
@@ -95,7 +96,7 @@ export const createProduct = async (req, res) => {
 // @access  Private/Admin
 export const updateProduct = async (req, res) => {
     try {
-        const product = await Product.findOne({ _id: req.params.id, user: req.user._id });
+        const product = await Product.findOne({ _id: req.params.id, user: req.user.ownerId });
 
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
@@ -121,7 +122,7 @@ export const updateProduct = async (req, res) => {
 // @access  Private/Admin
 export const deleteProduct = async (req, res) => {
     try {
-        const product = await Product.findOne({ _id: req.params.id, user: req.user._id });
+        const product = await Product.findOne({ _id: req.params.id, user: req.user.ownerId });
 
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
@@ -145,7 +146,7 @@ export const searchProducts = async (req, res) => {
 
         const products = await Product.find({
             isActive: true,
-            user: req.user._id,
+            user: req.user.ownerId,
             $or: [
                 { name: { $regex: keyword, $options: 'i' } },
                 { category: { $regex: keyword, $options: 'i' } },

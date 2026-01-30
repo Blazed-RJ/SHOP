@@ -6,7 +6,7 @@ import LedgerEntry from '../models/LedgerEntry.js';
 // @access  Private
 export const getCustomers = async (req, res) => {
     try {
-        const customers = await Customer.find({ isActive: true, user: req.user._id }).sort({ name: 1 });
+        const customers = await Customer.find({ isActive: true, user: req.user.ownerId }).sort({ name: 1 });
         res.json(customers);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -18,9 +18,10 @@ export const getCustomers = async (req, res) => {
 // @access  Private
 export const getCustomerById = async (req, res) => {
     try {
+        // Only same owner
         const customer = await Customer.findById(req.params.id);
 
-        if (!customer) {
+        if (!customer || customer.user.toString() !== req.user.ownerId.toString()) {
             return res.status(404).json({ message: 'Customer not found' });
         }
 
@@ -37,7 +38,7 @@ export const createCustomer = async (req, res) => {
     try {
         const { name, phone, email, address, gstNumber, initialBalance } = req.body;
 
-        const customerExists = await Customer.findOne({ phone, user: req.user._id });
+        const customerExists = await Customer.findOne({ phone, user: req.user.ownerId });
 
         if (customerExists) {
             return res.status(400).json({ message: 'Customer with this phone already exists' });
@@ -52,7 +53,7 @@ export const createCustomer = async (req, res) => {
             address,
             gstNumber,
             balance,
-            user: req.user._id
+            user: req.user.ownerId
         });
 
         // Ledger Entry: Opening Balance
@@ -67,7 +68,7 @@ export const createCustomer = async (req, res) => {
                 debit: balance > 0 ? balance : 0, // Positive = Debt/Udhaar (Debit)
                 credit: balance < 0 ? Math.abs(balance) : 0, // Negative = Advance (Credit)
                 balance: balance,
-                user: req.user._id
+                user: req.user.ownerId
             });
         }
 
@@ -82,7 +83,7 @@ export const createCustomer = async (req, res) => {
 // @access  Private
 export const updateCustomer = async (req, res) => {
     try {
-        const customer = await Customer.findById(req.params.id);
+        const customer = await Customer.findOne({ _id: req.params.id, user: req.user.ownerId });
 
         if (!customer) {
             return res.status(404).json({ message: 'Customer not found' });
@@ -105,7 +106,7 @@ export const getCustomersWithDues = async (req, res) => {
         const customers = await Customer.find({
             balance: { $gt: 0 },
             isActive: true,
-            user: req.user._id
+            user: req.user.ownerId
         }).sort({ balance: -1 });
 
         res.json(customers);

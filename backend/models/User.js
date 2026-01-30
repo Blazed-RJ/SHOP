@@ -14,7 +14,11 @@ const userSchema = mongoose.Schema({
     role: {
         type: String,
         enum: ['Admin', 'Staff'],
-        default: 'Staff'
+        default: 'Admin' // New signups are Admins by default
+    },
+    ownerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     },
     shopCode: { type: String }, // Used during registration to verify intent
     avatar: { type: String }, // Path to local image

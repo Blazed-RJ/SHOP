@@ -3,14 +3,15 @@ import QRCode from 'qrcode';
 
 // @desc    Get settings
 // @route   GET /api/settings
-// @access  Private/Admin
+// @access  Private/Admin (Staff can view)
 export const getSettings = async (req, res) => {
     try {
-        let settings = await Settings.findOne({ user: req.user._id });
+        // Staff should see Owner's settings
+        let settings = await Settings.findOne({ user: req.user.ownerId });
 
         // Create default settings if none exist
         if (!settings) {
-            settings = await Settings.create({ user: req.user._id });
+            settings = await Settings.create({ user: req.user.ownerId });
         }
 
         res.json(settings);
@@ -24,10 +25,11 @@ export const getSettings = async (req, res) => {
 // @access  Private/Admin
 export const updateSettings = async (req, res) => {
     try {
-        let settings = await Settings.findOne({ user: req.user._id });
+        // Admin only, so ownerId === _id usually
+        let settings = await Settings.findOne({ user: req.user.ownerId });
 
         if (!settings) {
-            settings = await Settings.create({ user: req.user._id, ...req.body });
+            settings = await Settings.create({ user: req.user.ownerId, ...req.body });
         } else {
             Object.assign(settings, req.body);
 
