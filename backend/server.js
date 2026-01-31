@@ -15,6 +15,7 @@ import categoryRoutes from './routes/categories.js';
 import paymentRoutes from './routes/payments.js';
 import supplierLedgerRoutes from './routes/supplierLedger.js';
 import letterheadRoutes from './routes/letterheadRoutes.js';
+import dashboardRoutes from './routes/dashboard.js';
 
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -33,7 +34,7 @@ app.use(helmet());
 // Rate Limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 500, // Limit each IP to 500 requests per windowMs
+    max: 10000, // Increased limit for dev
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -63,6 +64,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/supplier-ledger', supplierLedgerRoutes);
 app.use('/api/letterheads', letterheadRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Placeholder routes for later phases
 app.get('/', (req, res) => {

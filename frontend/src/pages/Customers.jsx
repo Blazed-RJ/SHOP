@@ -34,7 +34,7 @@ const Customers = () => {
         try {
             setLoading(true);
             const { data } = await api.get('/customers');
-            setCustomers(data);
+            setCustomers(data.customers || []);
             setLoading(false);
         } catch (error) {
             console.error('Failed to load customers:', error);
@@ -86,111 +86,155 @@ const Customers = () => {
 
     return (
         <Layout>
-            <div className="p-6">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Customers</h1>
-                        <p className="text-gray-600 dark:text-gray-400 mt-1">Manage customer information and ledgers</p>
-                    </div>
-                    <button
-                        onClick={handleAdd}
-                        className="flex items-center space-x-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 shadow-sm transition-all"
-                    >
-                        <Plus className="w-5 h-5" />
-                        <span>Add Customer</span>
-                    </button>
-                </div>
-
-                {/* Search */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 mb-6 border border-gray-100 dark:border-gray-700">
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search by name, phone, or email..."
-                            className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
-                        />
-                    </div>
-                </div>
-
-                {/* Customers Grid */}
-                {loading ? (
-                    <div className="text-center py-12">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-                    </div>
-                ) : filteredCustomers.length === 0 ? (
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-12 text-center text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-700">
-                        <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg">No customers found</p>
+            <div className="p-4 md:p-8 min-h-screen bg-gray-50/50 dark:bg-[#050505] transition-colors duration-500">
+                {/* Header Section */}
+                <div className="mb-10 relative">
+                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-500/10 blur-[120px] rounded-full pointer-events-none"></div>
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
+                        <div>
+                            <div className="flex items-center space-x-3 mb-2">
+                                <div className="p-2 bg-blue-500/10 rounded-lg">
+                                    <Users className="w-5 h-5 text-blue-500" />
+                                </div>
+                                <span className="text-blue-600 dark:text-blue-400 text-xs font-black uppercase tracking-[0.3em]">Relationship Hub</span>
+                            </div>
+                            <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-sky-500">Customers</span>
+                            </h1>
+                            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium max-w-md">
+                                Manage customer information and ledgers
+                            </p>
+                        </div>
                         <button
                             onClick={handleAdd}
-                            className="mt-4 text-blue-500 hover:text-blue-600 font-medium"
+                            className="flex items-center space-x-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl shadow-[0_20px_40px_rgba(37,99,235,0.2)] hover:shadow-[0_25px_50px_rgba(37,99,235,0.3)] transition-all duration-300 transform hover:-translate-y-1 group"
                         >
-                            Add your first customer
+                            <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" />
+                            <span className="font-black tracking-tight text-lg">Add Customer</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Cognitive Search Bar */}
+                <div className="mb-8 relative z-10">
+                    <div className="bg-white/80 dark:bg-white/2 backdrop-blur-2xl p-2 rounded-[28px] border border-white dark:border-white/5 shadow-2xl shadow-blue-500/5">
+                        <div className="relative group">
+                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search by name, phone, or digital ID..."
+                                className="w-full pl-14 pr-6 py-4.5 bg-gray-50/50 dark:bg-white/5 border border-transparent focus:border-blue-500/30 rounded-[22px] text-gray-900 dark:text-white placeholder-gray-400 transition-all outline-none"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Partners Pulse Grid */}
+                {loading ? (
+                    <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 p-20 text-center">
+                        <div className="relative inline-block">
+                            <div className="w-16 h-16 border-t-2 border-blue-500 rounded-full animate-spin mx-auto"></div>
+                            <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full"></div>
+                        </div>
+                        <p className="mt-4 text-blue-600 dark:text-blue-400 font-bold tracking-widest uppercase text-xs animate-pulse font-mono">Syncing Directory...</p>
+                    </div>
+                ) : filteredCustomers.length === 0 ? (
+                    <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 p-20 text-center group">
+                        <div className="relative inline-block mb-6">
+                            <div className="absolute inset-0 bg-blue-500/10 blur-3xl rounded-full group-hover:bg-blue-500/20 transition-all duration-700"></div>
+                            <Users className="w-20 h-20 text-blue-500/20 group-hover:text-blue-500/40 transition-all duration-500 relative z-10 mx-auto" strokeWidth={1} />
+                        </div>
+                        <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Hub Empty</h3>
+                        <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium">No partners found matching your search matrix.</p>
+                        <button onClick={handleAdd} className="mt-8 px-8 py-3 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 rounded-xl hover:bg-blue-500 hover:text-white transition-all duration-300 font-bold uppercase tracking-widest text-xs">
+                            Add Customer
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
                         {filteredCustomers.map((customer) => (
                             <div
                                 key={customer._id}
-                                className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700"
+                                className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 p-8 hover:bg-blue-500/[0.02] transition-all duration-500 shadow-xl shadow-black/5 group hover:-translate-y-2"
                             >
-                                <div className="flex items-start justify-between mb-4">
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{customer.name}</h3>
-                                        <div className="flex items-center space-x-2 mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                            <Phone className="w-4 h-4" />
-                                            <span>{customer.phone}</span>
-                                        </div>
-                                        {customer.email && (
-                                            <div className="flex items-center space-x-2 mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                                <Mail className="w-4 h-4" />
-                                                <span>{customer.email}</span>
+                                <div className="flex items-start justify-between mb-6">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="relative">
+                                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-sky-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-xl border border-blue-500/10 group-hover:scale-110 transition-transform duration-500">
+                                                {customer.name.charAt(0).toUpperCase()}
                                             </div>
-                                        )}
+                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-white dark:border-[#0a0a0a] rounded-full"></div>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                {customer.name}
+                                            </h3>
+                                            <div className="flex items-center space-x-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-0.5">
+                                                <span>Level ID: {customer._id.slice(-6).toUpperCase()}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {customer.address && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">{customer.address}</p>
-                                )}
-
-                                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">Balance:</span>
-                                        <span className={`text-lg font-bold rupee ${customer.balance > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
-                                            }`}>
-                                            {formatINR(Math.abs(customer.balance))}
-                                        </span>
+                                <div className="space-y-3 mb-8">
+                                    <div className="flex items-center space-x-3 p-3 bg-gray-50/50 dark:bg-white/5 rounded-2xl border border-transparent group-hover:border-blue-500/10 transition-all duration-500">
+                                        <div className="p-2 bg-blue-500/10 rounded-lg">
+                                            <Phone className="w-4 h-4 text-blue-500" />
+                                        </div>
+                                        <span className="text-sm font-bold text-gray-600 dark:text-gray-300 tracking-tight">+91 {customer.phone}</span>
                                     </div>
-                                    {customer.balance > 0 && (
-                                        <p className="text-xs text-red-600 dark:text-red-400">Due amount</p>
+                                    {customer.email && (
+                                        <div className="flex items-center space-x-3 p-3 bg-gray-50/50 dark:bg-white/5 rounded-2xl border border-transparent group-hover:border-sky-500/10 transition-all duration-500">
+                                            <div className="p-2 bg-sky-500/10 rounded-lg">
+                                                <Mail className="w-4 h-4 text-sky-500" />
+                                            </div>
+                                            <span className="text-sm font-bold text-gray-600 dark:text-gray-300 tracking-tight truncate">{customer.email}</span>
+                                        </div>
                                     )}
                                 </div>
 
-                                <div className="flex items-center justify-end space-x-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <div className="p-5 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-white/5 dark:to-transparent rounded-[24px] border border-white dark:border-white/5 group-hover:border-blue-500/20 transition-all duration-500 mb-6">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Credit Portfolio</span>
+                                        <IndianRupee className="w-3 h-3 text-gray-400" />
+                                    </div>
+                                    <div className={`text-2xl font-black rupee font-mono tracking-tighter ${customer.balance > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                        {formatINR(Math.abs(customer.balance))}
+                                    </div>
+                                    <div className="flex items-center space-x-2 mt-2">
+                                        <div className="h-1 flex-1 bg-gray-200 dark:bg-white/5 rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full rounded-full transition-all duration-1000 ${customer.balance > 0 ? 'bg-red-500' : 'bg-emerald-500'}`}
+                                                style={{ width: '40%' }}
+                                            ></div>
+                                        </div>
+                                        <span className={`text-[10px] font-bold ${customer.balance > 0 ? 'text-red-500' : 'text-emerald-500'} uppercase`}>
+                                            {customer.balance > 0 ? 'Account Due' : 'Account Clear'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">
                                     <button
                                         onClick={() => navigate(`/customers/${customer._id}/ledger`)}
-                                        className="p-2 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
-                                        title="View Ledger"
+                                        className="p-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-500/20 transition-all"
+                                        title="Ledger"
                                     >
                                         <BookOpen className="w-4 h-4" />
                                     </button>
                                     <button
                                         onClick={() => handleEdit(customer)}
-                                        className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                        title="Edit"
+                                        className="p-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all"
+                                        title="Modify"
                                     >
                                         <Edit2 className="w-4 h-4" />
                                     </button>
                                     <button
                                         onClick={() => handleDeleteClick(customer)}
-                                        className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                        title="Delete"
+                                        className="p-3 bg-white dark:bg-white/5 text-red-500 hover:bg-red-500 hover:text-white rounded-xl border border-red-500/10 transition-all"
+                                        title="Expunge"
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>

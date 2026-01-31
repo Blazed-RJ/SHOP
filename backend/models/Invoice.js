@@ -146,5 +146,14 @@ const invoiceSchema = mongoose.Schema({
     timestamps: true // IST timezone
 });
 
+// Indexes for performance and multi-tenant isolation
+// invoiceSchema.index({ invoiceNo: 1 }, { unique: true }); // Already defined in schema
+invoiceSchema.index({ user: 1, invoiceDate: -1 });
+invoiceSchema.index({ user: 1, customer: 1 });
+invoiceSchema.index({ user: 1, status: 1 });
+invoiceSchema.index({ customerName: 'text', invoiceNo: 'text' });
+invoiceSchema.index({ customerName: 1 });
+invoiceSchema.index({ customerPhone: 1 });
+
 const Invoice = mongoose.model('Invoice', invoiceSchema);
 export default Invoice;

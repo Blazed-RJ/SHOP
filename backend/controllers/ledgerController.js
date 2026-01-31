@@ -8,11 +8,22 @@ import moment from 'moment-timezone';
 export const getLedger = async (req, res) => {
     try {
         const { customerId } = req.params;
+        const { limit = 100, skip = 0 } = req.query;
+
         // Verify customer ownership implicitly by ensuring LedgerEntries belong to user
         const ledger = await LedgerEntry.find({ customer: customerId, user: req.user.ownerId })
-            .sort({ date: 1, createdAt: 1 });
+            .sort({ date: 1, createdAt: 1 })
+            .limit(Number(limit))
+            .skip(Number(skip));
 
-        res.json(ledger);
+        const total = await LedgerEntry.countDocuments({ customer: customerId, user: req.user.ownerId });
+
+        res.json({
+            ledger,
+            total,
+            limit: Number(limit),
+            skip: Number(skip)
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -24,20 +35,23 @@ export const getLedger = async (req, res) => {
 export const recalculateLedger = async (req, res) => {
     try {
         const { customerId } = req.params;
-        await recalculateCustomerBalance(customerId);
+        await recalculateCustomerBalance(customerId, null, req.user.ownerId);
         res.json({ message: 'Ledger recalculated successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// Helper: Recalculate Logic
-export const recalculateCustomerBalance = async (customerId, session = null) => {
+// Helper: Recalculate Logic (Optimized)
+export const recalculateCustomerBalance = async (customerId, session = null, userId = null) => {
     // Pass session if available
-    const queryOptions = { session };
-    const entries = await LedgerEntry.find({ customer: customerId })
-        .sort({ date: 1, createdAt: 1 })
-        .session(session);
+    const queryOptions = session ? { session } : {};
+    const filter = { customer: customerId };
+    if (userId) filter.user = userId;
+
+    const entries = session
+        ? await LedgerEntry.find(filter).sort({ date: 1, createdAt: 1 }).session(session)
+        : await LedgerEntry.find(filter).sort({ date: 1, createdAt: 1 });
 
     let runningBalance = 0;
     const bulkOps = [];
@@ -46,22 +60,28 @@ export const recalculateCustomerBalance = async (customerId, session = null) => 
         // Logic: Balance = Previous + Debit - Credit
         runningBalance = runningBalance + (entry.debit || 0) - (entry.credit || 0);
 
-        // Only update if balance is different to save writes (optional but good practice)
-        // For simplicity and correctness in bulk recap, we just overwrite.
-        bulkOps.push({
-            updateOne: {
-                filter: { _id: entry._id },
-                update: { $set: { balance: runningBalance } }
-            }
-        });
+        // Only update if balance is different to save writes (use stricter tolerance)
+        if (Math.abs(entry.balance - runningBalance) > 0.001) {
+            bulkOps.push({
+                updateOne: {
+                    filter: { _id: entry._id },
+                    update: { $set: { balance: runningBalance } }
+                }
+            });
+        }
     }
 
+    // Batch update only if there are changes
     if (bulkOps.length > 0) {
         await LedgerEntry.bulkWrite(bulkOps, queryOptions);
     }
 
     // Update Customer Model Balance too
-    await Customer.findByIdAndUpdate(customerId, { balance: runningBalance }).session(session);
+    if (session) {
+        await Customer.findByIdAndUpdate(customerId, { balance: runningBalance }).session(session);
+    } else {
+        await Customer.findByIdAndUpdate(customerId, { balance: runningBalance });
+    }
 
     return runningBalance;
 };
@@ -86,20 +106,35 @@ export const getDaybook = async (req, res) => {
 
         console.log(`Fetching Daybook for ${date} (Query: ${startDate.toISOString()} - ${endDate.toISOString()})`);
 
-        // TODO: Get opening balance (cash in hand from previous day)
-        const openingBalance = 0; // Placeholder
+        // Calculate opening balance (cash in hand from previous day)
+        // Cash In = Payments from Customers
+        // Cash Out = Payments to Suppliers, Expenses, Drawings
+        const Payment = (await import('../models/Payment.js')).default;
+
+        const previousIn = await Payment.aggregate([
+            { $match: { user: req.user.ownerId, createdAt: { $lt: startDate }, type: 'Debit' } },
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]);
+
+        const previousOut = await Payment.aggregate([
+            { $match: { user: req.user.ownerId, createdAt: { $lt: startDate }, type: 'Credit' } },
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]);
+
+        const openingBalance = (previousIn[0]?.total || 0) - (previousOut[0]?.total || 0);
 
         // Get all transactions for the day
         const transactions = [];
 
-        // 1. Get customer payments (Cash IN)
-        const Payment = (await import('../models/Payment.js')).default;
+        // 1. Get customer payments (Cash IN) -  optimized query
         const customerPayments = await Payment.find({
             customer: { $ne: null },
             type: 'Debit', // Customer paid us
             createdAt: { $gte: startDate, $lte: endDate },
             user: req.user.ownerId
-        }).populate('customer', 'name');
+        })
+            .populate('customer', 'name')
+            .lean(); // Use lean() for better performance
 
         customerPayments.forEach(payment => {
             transactions.push({

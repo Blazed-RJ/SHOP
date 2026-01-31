@@ -1,0 +1,4 @@
+Error: Invoice creation failed: {"message":"createdInvoice is not defined"}
+Error: Invoice creation failed: {"message":"createdInvoice is not defined"}
+    at runTest (file:///D:/Software/Create/Shop/backend/tests/integration_test.js:140:31)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)

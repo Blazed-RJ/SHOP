@@ -6,8 +6,30 @@ import LedgerEntry from '../models/LedgerEntry.js';
 // @access  Private
 export const getCustomers = async (req, res) => {
     try {
-        const customers = await Customer.find({ isActive: true, user: req.user.ownerId }).sort({ name: 1 });
-        res.json(customers);
+        const { search, limit = 50, skip = 0 } = req.query;
+        let filters = { isActive: true, user: req.user.ownerId };
+
+        if (search) {
+            filters.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { phone: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const customers = await Customer.find(filters)
+            .sort({ name: 1 })
+            .limit(Number(limit))
+            .skip(Number(skip));
+
+        const total = await Customer.countDocuments(filters);
+
+        res.json({
+            customers,
+            total,
+            limit: Number(limit),
+            skip: Number(skip)
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -119,10 +141,15 @@ export const getCustomersWithDues = async (req, res) => {
 // @access  Private
 export const deleteCustomer = async (req, res) => {
     try {
-        const customer = await Customer.findById(req.params.id);
+        const customer = await Customer.findOne({ _id: req.params.id, user: req.user.ownerId });
 
         if (!customer) {
             return res.status(404).json({ message: 'Customer not found' });
+        }
+
+        // Optional: Check if customer has balance
+        if (Math.abs(customer.balance) > 0.1) {
+            return res.status(400).json({ message: 'Cannot delete customer with active balance' });
         }
 
         // Soft delete

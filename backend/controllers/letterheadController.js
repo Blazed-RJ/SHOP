@@ -1,20 +1,25 @@
 import Letterhead from '../models/Letterhead.js';
 import Settings from '../models/Settings.js';
+import Counter from '../utils/invoiceNumber.js';
 
 // Helper: Generate Letterhead Number (LH-YYYY-001)
-const generateLetterheadNumber = async () => {
-    const today = new Date();
-    const year = today.getFullYear();
+// Helper: Generate Letterhead Number (LH-YYYY-001) atomically
+const generateLetterheadNumber = async (session = null) => {
+    const currentYear = new Date().getFullYear();
+    const counterName = 'letterhead';
 
-    const lastDoc = await Letterhead.findOne({
-        letterheadNo: { $regex: `LH-${year}-` }
-    }).sort({ createdAt: -1 });
+    const counter = await Counter.findOneAndUpdate(
+        { name: counterName, year: currentYear },
+        { $inc: { sequence: 1 } },
+        {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true,
+            session
+        }
+    );
 
-    if (lastDoc) {
-        const lastNum = parseInt(lastDoc.letterheadNo.split('-')[2]);
-        return `LH-${year}-${String(lastNum + 1).padStart(3, '0')}`;
-    }
-    return `LH-${year}-001`;
+    return `LH-${currentYear}-${String(counter.sequence).padStart(3, '0')}`;
 };
 
 // @desc    Create new letterhead

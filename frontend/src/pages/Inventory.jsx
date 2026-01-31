@@ -34,6 +34,9 @@ const Inventory = () => {
     const [editingProduct, setEditingProduct] = useState(null);
 
     const [categories, setCategories] = useState(['All Categories']);
+    const [subCategoryFilter, setSubCategoryFilter] = useState('All Sub-Categories');
+    const [allCategories, setAllCategories] = useState([]);
+    const [subCategories, setSubCategories] = useState(['All Sub-Categories']);
 
     // Delete Confirmation State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -48,10 +51,38 @@ const Inventory = () => {
         try {
             const { data } = await api.get('/categories?parent=null');
             setCategories(['All Categories', ...data.map(c => c.name)]);
+            setAllCategories(data);
         } catch (error) {
             console.error('Failed to load categories');
         }
     };
+
+    // Handle Category Filter Change to load Sub-Categories
+    useEffect(() => {
+        setSubCategoryFilter('All Sub-Categories');
+
+        if (categoryFilter === 'All Categories') {
+            setSubCategories(['All Sub-Categories']);
+            return;
+        }
+
+        const selectedCat = allCategories.find(c => c.name === categoryFilter);
+        if (selectedCat) {
+            // Fetch sub-categories for the selected category
+            api.get(`/categories/${selectedCat._id}`)
+                .then(({ data }) => {
+                    if (data.subCategories && data.subCategories.length > 0) {
+                        setSubCategories(['All Sub-Categories', ...data.subCategories.map(sub => sub.name)]);
+                    } else {
+                        setSubCategories(['All Sub-Categories']);
+                    }
+                })
+                .catch(err => {
+                    console.error("Failed to load sub-categories for filter", err);
+                    setSubCategories(['All Sub-Categories']);
+                });
+        }
+    }, [categoryFilter, allCategories]);
 
     useEffect(() => {
         let filtered = products;
@@ -72,15 +103,20 @@ const Inventory = () => {
             filtered = filtered.filter(p => p.category === categoryFilter);
         }
 
+        // Sub-Category filter
+        if (subCategoryFilter !== 'All Sub-Categories') {
+            filtered = filtered.filter(p => p.subCategory === subCategoryFilter);
+        }
+
         setFilteredProducts(filtered);
-    }, [searchQuery, categoryFilter, products]);
+    }, [searchQuery, categoryFilter, subCategoryFilter, products]);
 
     const loadProducts = async () => {
         try {
             setLoading(true);
-            const { data } = await api.get('/products');
-            setProducts(data);
-            setFilteredProducts(data);
+            const { data } = await api.get('/products?limit=1000'); // Fetch a reasonable amount for inventory view
+            setProducts(data.products || []);
+            setFilteredProducts(data.products || []);
             setLoading(false);
         } catch (error) {
             console.error('Failed to load products:', error);
@@ -171,198 +207,252 @@ const Inventory = () => {
 
     return (
         <Layout>
-            <div className="p-6">
-                {/* Header */}
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Inventory Management</h1>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your product catalog</p>
-                </div>
-
-                {/* Toolbar */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 mb-6 border border-gray-100 dark:border-gray-700">
-                    <div className="flex flex-col lg:flex-row items-center gap-4">
-                        {/* Search */}
-                        <div className="relative flex-1 w-full">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search by name or SKU..."
-                                className="w-full pl-12 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
-                            />
+            <div className="p-4 md:p-8 min-h-screen bg-gray-50/50 dark:bg-[#050505] transition-colors duration-500">
+                {/* Header Section */}
+                <div className="mb-10 relative">
+                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none"></div>
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
+                        <div>
+                            <div className="flex items-center space-x-3 mb-2">
+                                <div className="p-2 bg-emerald-500/10 rounded-lg">
+                                    <Package className="w-5 h-5 text-emerald-500" />
+                                </div>
+                                <span className="text-emerald-600 dark:text-emerald-400 text-xs font-black uppercase tracking-[0.3em]">Stock Explorer</span>
+                            </div>
+                            <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
+                                Inventory <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">Master</span>
+                            </h1>
+                            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium max-w-md">
+                                Real-time inventory tracking with advanced filtering and stock optimization.
+                            </p>
                         </div>
-
-                        {/* Category Filter */}
-                        <select
-                            value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(e.target.value)}
-                            className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full lg:w-auto bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        >
-                            {categories.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                        </select>
-
-                        {/* Sub-Category Filter (Placeholder) */}
-                        <select
-                            className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full lg:w-auto bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        >
-                            <option>All Sub-Categories</option>
-                        </select>
-
-                        {/* Action Buttons */}
-                        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                            <button
-                                onClick={() => setShowCategoryModal(true)}
-                                className="flex items-center space-x-2 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
-                            >
-                                <FolderTree className="w-4 h-4" />
-                                <span className="text-sm font-medium">Manage Categories</span>
-                            </button>
-
-                            <button className="flex items-center space-x-2 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300">
-                                <Upload className="w-4 h-4" />
-                                <span className="text-sm font-medium">Import CSV</span>
-                            </button>
-
+                        <div className="flex items-center space-x-3">
                             <button
                                 onClick={handleExport}
-                                className="flex items-center space-x-2 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+                                className="group flex items-center space-x-2 px-5 py-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl hover:border-emerald-500/30 transition-all duration-300"
                             >
-                                <Download className="w-4 h-4" />
-                                <span className="text-sm font-medium">Export CSV</span>
+                                <Download className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" />
+                                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Export Registry</span>
                             </button>
-
                             <button
                                 onClick={handleAdd}
-                                className="flex items-center space-x-2 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                                className="flex items-center space-x-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-[0_10px_20px_rgba(16,185,129,0.2)] hover:shadow-[0_15px_25px_rgba(16,185,129,0.3)] transition-all duration-300 transform hover:-translate-y-0.5"
                             >
-                                <Plus className="w-4 h-4" />
-                                <span className="text-sm font-medium">Add Product</span>
+                                <Plus className="w-5 h-5" />
+                                <span className="font-bold">Add Item</span>
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Products Table */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700">
+                {/* Intelligent Filter Bar */}
+                <div className="mb-8 relative z-10">
+                    <div className="bg-white/80 dark:bg-white/2 backdrop-blur-2xl p-2 rounded-[24px] border border-white dark:border-white/5 shadow-2xl shadow-emerald-500/5">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
+                            {/* Search Engine */}
+                            <div className="lg:col-span-5 relative group">
+                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Search by name, SKU or serial..."
+                                    className="w-full pl-14 pr-6 py-4 bg-gray-50/50 dark:bg-white/5 border border-transparent focus:border-emerald-500/30 rounded-[18px] text-gray-900 dark:text-white placeholder-gray-400 transition-all outline-none"
+                                />
+                            </div>
+
+                            {/* Category Navigator */}
+                            <div className="lg:col-span-3 flex gap-2">
+                                <select
+                                    value={categoryFilter}
+                                    onChange={(e) => setCategoryFilter(e.target.value)}
+                                    className="w-full px-6 py-4 bg-gray-50/50 dark:bg-white/5 border border-transparent focus:border-emerald-500/30 rounded-[18px] text-gray-900 dark:text-white transition-all outline-none appearance-none cursor-pointer"
+                                >
+                                    {categories.map(cat => (
+                                        <option key={cat} value={cat} className="dark:bg-gray-900">{cat}</option>
+                                    ))}
+                                </select>
+                                {categoryFilter !== 'All Categories' && subCategories.length > 1 && (
+                                    <select
+                                        value={subCategoryFilter}
+                                        onChange={(e) => setSubCategoryFilter(e.target.value)}
+                                        className="w-full px-6 py-4 bg-gray-50/50 dark:bg-white/5 border border-transparent focus:border-emerald-500/30 rounded-[18px] text-gray-900 dark:text-white transition-all outline-none appearance-none cursor-pointer animate-in fade-in slide-in-from-left-4 duration-300"
+                                    >
+                                        {subCategories.map(sub => (
+                                            <option key={sub} value={sub} className="dark:bg-gray-900">{sub}</option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+
+                            {/* Management Actions */}
+                            <div className="lg:col-span-4 flex items-center justify-end space-x-2 pr-2">
+                                <button
+                                    onClick={() => setShowCategoryModal(true)}
+                                    className="p-4 bg-gray-50/50 dark:bg-white/5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-500/5 rounded-[18px] transition-all"
+                                    title="Schema Manager"
+                                >
+                                    <FolderTree className="w-5 h-5" />
+                                </button>
+                                <button
+                                    className="p-4 bg-gray-50/50 dark:bg-white/5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-500/5 rounded-[18px] transition-all"
+                                    title="Bulk Interface"
+                                >
+                                    <Upload className="w-5 h-5" />
+                                </button>
+                                <div className="h-8 w-px bg-gray-200 dark:bg-white/10 mx-2"></div>
+                                <div className="px-4 py-2 bg-emerald-500/10 rounded-full">
+                                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">
+                                        {filteredProducts.length} Results
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Optimized Registry Table */}
+                <div className="relative z-10 transition-all duration-500">
                     {loading ? (
-                        <div className="text-center py-12">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 p-20 text-center">
+                            <div className="relative inline-block">
+                                <div className="w-16 h-16 border-t-2 border-emerald-500 rounded-full animate-spin mx-auto"></div>
+                                <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full"></div>
+                            </div>
+                            <p className="mt-4 text-emerald-600 dark:text-emerald-400 font-bold tracking-widest uppercase text-xs animate-pulse font-mono">Syncing Registry...</p>
                         </div>
                     ) : filteredProducts.length === 0 ? (
-                        <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-                            <Package className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                            <p className="text-lg">No products found. Add your first product to get started.</p>
+                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 p-20 text-center group">
+                            <div className="relative inline-block mb-6">
+                                <div className="absolute inset-0 bg-emerald-500/10 blur-3xl rounded-full group-hover:bg-emerald-500/20 transition-all duration-700"></div>
+                                <Package className="w-20 h-20 text-emerald-500/20 group-hover:text-emerald-500/40 transition-all duration-500 relative z-10 mx-auto" strokeWidth={1} />
+                            </div>
+                            <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Vault Empty</h3>
+                            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium">No assets detected in the current filter scope.</p>
+                            <button onClick={handleAdd} className="mt-8 px-8 py-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl hover:bg-emerald-500 hover:text-white transition-all duration-300 font-bold uppercase tracking-widest text-xs">
+                                Add First Item
+                            </button>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                            Image
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                            Product Name
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                            SKU
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                            Category
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                            Sub-Category
-                                        </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                            Selling Price
-                                        </th>
-                                        {isAdmin() && !isClientView && (
-                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                Cost Price
-                                            </th>
-                                        )}
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                            Stock
-                                        </th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                            Actions
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                    {filteredProducts.map((product) => (
-                                        <tr key={product._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                {product.image ? (
-                                                    <img
-                                                        src={product.image}
-                                                        alt={product.name}
-                                                        className="w-12 h-12 rounded-lg object-cover border border-gray-200 dark:border-gray-600"
-                                                    />
-                                                ) : (
-                                                    <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                                                        <Package className="w-6 h-6 text-gray-400 dark:text-gray-500" />
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div>
-                                                    <p className="font-medium text-gray-900 dark:text-white">{product.name}</p>
-                                                    {product.imei1 && (
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400">IMEI: {product.imei1}</p>
-                                                    )}
-                                                    {product.serialNumber && (
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400">S/N: {product.serialNumber}</p>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                                                {product.sku || '-'}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                                                {product.category}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                                                -
-                                            </td>
-                                            <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900 dark:text-white rupee">
-                                                {formatINR(product.sellingPrice)}
-                                            </td>
+                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 overflow-hidden shadow-2xl shadow-black/5">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b border-gray-100 dark:border-white/5">
+                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Visual</th>
+                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Product Intelligence</th>
+                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Category</th>
+                                            <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Selling Index</th>
                                             {isAdmin() && !isClientView && (
-                                                <td className="px-6 py-4 text-right text-sm text-gray-600 dark:text-gray-400 rupee">
-                                                    {formatINR(product.costPrice)}
-                                                </td>
+                                                <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Acquisition</th>
                                             )}
-                                            <td className="px-6 py-4 text-center">
-                                                <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getStockColor(product.stock)}`}>
-                                                    {product.stock}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <div className="flex items-center justify-center space-x-2">
-                                                    <button
-                                                        onClick={() => handleEdit(product)}
-                                                        className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                                        title="Edit"
-                                                    >
-                                                        <Edit2 className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteClick(product)}
-                                                        className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
+                                            <th className="px-8 py-6 text-center text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Stock Level</th>
+                                            <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Actions</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                                        {filteredProducts.map((product) => (
+                                            <tr key={product._id} className="group hover:bg-emerald-500/[0.02] transition-colors duration-300">
+                                                <td className="px-8 py-5">
+                                                    <div className="relative w-14 h-14">
+                                                        {product.image ? (
+                                                            <img
+                                                                src={product.image}
+                                                                alt={product.name}
+                                                                className="w-full h-full rounded-2xl object-cover border border-gray-200 dark:border-white/10 group-hover:scale-110 transition-transform duration-500"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-gray-100 dark:bg-white/5 rounded-2xl flex items-center justify-center border border-transparent group-hover:border-emerald-500/30 transition-all duration-500">
+                                                                <Package className="w-6 h-6 text-gray-400 dark:text-gray-500 group-hover:text-emerald-500" />
+                                                            </div>
+                                                        )}
+                                                        <div className="absolute inset-0 rounded-2xl bg-emerald-500/20 blur opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <div>
+                                                        <p className="text-base font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                                                            {product.name}
+                                                        </p>
+                                                        <div className="flex items-center mt-1 space-x-3">
+                                                            <span className="text-[10px] font-mono font-black text-gray-400 dark:text-gray-500 uppercase tracking-tighter">
+                                                                SKU: {product.sku || 'N/A'}
+                                                            </span>
+                                                            {product.imei1 && (
+                                                                <span className="text-[10px] font-mono font-black text-emerald-600/60 dark:text-emerald-400/40 uppercase tracking-tighter bg-emerald-500/5 px-2 rounded">
+                                                                    IMEI SECURED
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <div className="flex flex-col items-start gap-1">
+                                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100/50 dark:bg-emerald-500/10 border border-emerald-500/20 uppercase tracking-widest">
+                                                            {product.category}
+                                                        </span>
+                                                        {product.subCategory && (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 uppercase tracking-wider ml-1">
+                                                                {product.subCategory}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-5 text-right">
+                                                    <p className="text-lg font-black text-gray-900 dark:text-white rupee font-mono tracking-tighter">
+                                                        {formatINR(product.sellingPrice)}
+                                                    </p>
+                                                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tighter">retail value</p>
+                                                </td>
+                                                {isAdmin() && !isClientView && (
+                                                    <td className="px-8 py-5 text-right">
+                                                        <p className="text-base font-bold text-gray-500 dark:text-gray-400 rupee font-mono opacity-60">
+                                                            {formatINR(product.costPrice)}
+                                                        </p>
+                                                        <p className="text-[10px] font-bold text-gray-400/50 dark:text-gray-500/30 uppercase tracking-tighter">cost basis</p>
+                                                    </td>
+                                                )}
+                                                <td className="px-8 py-5">
+                                                    <div className="flex flex-col items-center justify-center">
+                                                        <div className={`text-xl font-black font-mono tracking-tighter ${product.stock <= product.minStockAlert ? 'text-red-500' :
+                                                            product.stock <= product.minStockAlert * 2 ? 'text-amber-500' :
+                                                                'text-emerald-500'
+                                                            }`}>
+                                                            {product.stock}
+                                                        </div>
+                                                        <div className="w-12 h-1 bg-gray-100 dark:bg-white/5 rounded-full mt-1 overflow-hidden">
+                                                            <div
+                                                                className={`h-full rounded-full transition-all duration-1000 ${product.stock <= product.minStockAlert ? 'bg-red-500 w-1/4' :
+                                                                    product.stock <= product.minStockAlert * 2 ? 'bg-amber-500 w-1/2' :
+                                                                        'bg-emerald-500 w-full'
+                                                                    }`}
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-5 text-right">
+                                                    <div className="flex items-center justify-end space-x-2">
+                                                        <button
+                                                            onClick={() => handleEdit(product)}
+                                                            className="p-3 bg-gray-50/50 dark:bg-white/5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-500/5 rounded-xl transition-all duration-300"
+                                                            title="Edit Specifications"
+                                                        >
+                                                            <Edit2 className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteClick(product)}
+                                                            className="p-3 bg-gray-50/50 dark:bg-white/5 text-gray-400 hover:text-red-500 hover:bg-red-500/5 rounded-xl transition-all duration-300"
+                                                            title="Purge Entry"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )}
                 </div>

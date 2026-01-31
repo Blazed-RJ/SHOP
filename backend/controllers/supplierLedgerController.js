@@ -8,7 +8,7 @@ export const getSupplierLedger = async (req, res) => {
     try {
         const { supplierId } = req.params;
         // Verify supplier ownership implicitly
-        const ledger = await SupplierLedgerEntry.find({ supplier: supplierId, user: req.user._id })
+        const ledger = await SupplierLedgerEntry.find({ supplier: supplierId, user: req.user.ownerId })
             .sort({ date: 1, createdAt: 1 });
 
         res.json(ledger);
@@ -23,7 +23,7 @@ export const getSupplierLedger = async (req, res) => {
 export const recalculateSupplierLedger = async (req, res) => {
     try {
         const { supplierId } = req.params;
-        await recalculateSupplierBalance(supplierId, req.user._id);
+        await recalculateSupplierBalance(supplierId, req.user.ownerId);
         res.json({ message: 'Supplier ledger recalculated successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -31,44 +31,39 @@ export const recalculateSupplierLedger = async (req, res) => {
 };
 
 // Helper: Recalculate Logic
-export const recalculateSupplierBalance = async (supplierId) => {
-    const entries = await SupplierLedgerEntry.find({ supplier: supplierId }).sort({ date: 1, createdAt: 1 });
+export const recalculateSupplierBalance = async (supplierId, userId = null) => {
+    const filter = { supplier: supplierId };
+    if (userId) filter.user = userId; // Secure if userId provided
+
+    const entries = await SupplierLedgerEntry.find(filter).sort({ date: 1, createdAt: 1 });
 
     let runningBalance = 0;
+    const bulkOps = [];
 
     for (const entry of entries) {
         // Logic: Balance = Previous + Credit - Debit
-        // (Balance represents what WE OWE the supplier)
         runningBalance = runningBalance + (entry.credit || 0) - (entry.debit || 0);
 
-        entry.balance = runningBalance;
-        await entry.save();
+        // Only update if balance is different
+        if (Math.abs(entry.balance - runningBalance) > 0.001) {
+            bulkOps.push({
+                updateOne: {
+                    filter: { _id: entry._id },
+                    update: { $set: { balance: runningBalance } }
+                }
+            });
+        }
+    }
+
+    if (bulkOps.length > 0) {
+        await SupplierLedgerEntry.bulkWrite(bulkOps);
     }
 
     // Update Supplier Model Balance
-    await Supplier.findOneAndUpdate(
-        { _id: supplierId }, // Implicitly secured by entries? No, safer to assume not. But wait, this helper function doesn't have req access. 
-        // Wait, 'recalculateSupplierBalance' is a helper. I need to be careful.
-        // If I change this to 'findOneAndUpdate', I guarantee it only updates if it exists.
-        // Ideally I should pass user down, but 'recalculateSupplierBalance' argument takes only supplierId.
-        // However, 'entries' are found by supplierId. If supplierId is cross-user, we have a problem.
-        // But the CALLER 'recalculateSupplierLedger' passes supplierId.
-        // I should update 'recalculateSupplierBalance' to accept user or just trust the earlier check?
-        // Actually, 'entries' logic above relies on 'find({ supplier: supplierId })'.
-        // I should update line 34 to filter by user as well?  Wait, I don't have user here easily unless I change signature.
-        // BUT, notice I only update 'Supplier' at the end.
-        // If I make sure 'entries' are only fetched for the correct user (which implies checking user first), then calculating balance is safe.
-        // BUT, updating the Supplier model needs to be scoped too to avoid updating another user's supplier if ID is guessed.
-        // So I should pass 'user' to this helper or find another way.
-        // Looking at line 34: `const entries = await SupplierLedgerEntry.find({ supplier: supplierId })`.
-        // This finds entries for that supplier. If I am User A and query User B's supplier ID, I might get their entries?
-        // Yes! `SupplierLedgerEntry` has `supplierId`.
-        // So I MUST scope line 34 in `supplierLedgerController.js`.
-        // This helper is exported. It is called from `paymentController.js` and `supplierLedgerController.js`.
-        // I need to change the signature of `recalculateSupplierBalance` to `(supplierId, userId)`.
-        // But let's check callers first.
-        { balance: runningBalance }
-    );
+    const supplierFilter = { _id: supplierId };
+    if (userId) supplierFilter.user = userId;
+
+    await Supplier.findOneAndUpdate(supplierFilter, { balance: runningBalance });
 
     return runningBalance;
 };
@@ -109,12 +104,12 @@ export const recordPurchase = async (req, res) => {
 
         // Update supplier balance (increase what we owe)
         await Supplier.findOneAndUpdate(
-            { _id: supplierId, user: req.user._id },
+            { _id: supplierId, user: req.user.ownerId },
             { $inc: { balance: amount } }
         );
 
         // Recalculate ledger balance
-        await recalculateSupplierBalance(supplierId, req.user._id);
+        await recalculateSupplierBalance(supplierId, req.user.ownerId);
 
         res.status(201).json({ message: 'Purchase recorded successfully' });
     } catch (error) {

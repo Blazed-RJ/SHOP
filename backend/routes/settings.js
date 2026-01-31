@@ -10,7 +10,7 @@ import upload from '../config/multer.js';
 
 const router = express.Router();
 
-router.get('/', getSettings); // Public route for branding/theme
+router.get('/', protect, getSettings);
 router.put('/', protect, upload.fields([
     { name: 'logo', maxCount: 1 },
     { name: 'digitalSignature', maxCount: 1 },

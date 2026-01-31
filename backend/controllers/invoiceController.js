@@ -10,133 +10,144 @@ import { recalculateCustomerBalance } from './ledgerController.js';
 import { validateInvoice } from '../utils/validation.js';
 import moment from 'moment-timezone';
 import { sendEmail } from '../utils/email.js';
+import { runInTransaction } from '../utils/transactionWrapper.js';
+import { validateStockAvailability, deductStock, restoreStock, formatStockErrors } from '../utils/stockManager.js';
+import { ValidationError, StockError } from '../utils/errorHandler.js';
+
+const log = (msg) => {
+    // Debug logging disabled
+    // console.log(msg);
+};
 
 // @desc    Create new invoice
 // @route   POST /api/invoices
 // @access  Private
 export const createInvoice = async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
     try {
-        console.log('Creates Invoice Payload Data:', JSON.stringify(req.body, null, 2));
-        const { invoiceType, invoiceDate, customerId, items, payments, notes, sellerDetails, customerName, customerPhone, customerAddress, customerGstin } = req.body;
+        // Pre-validate stock BEFORE starting transaction (performance optimization)
+        const { items, customerId, invoiceType, invoiceDate, payments, notes, sellerDetails, customerName, customerPhone, customerAddress, customerGstin } = req.body;
 
         // Validation
         const validationErrors = validateInvoice(req.body);
         if (validationErrors.length > 0) {
-            res.status(400);
-            throw new Error(validationErrors.join(' '));
+            throw new ValidationError(validationErrors.join('; '));
         }
         console.log('Validation Passed');
 
-        // Generate unique invoice number (with session for rollback)
-        const invoiceNo = await generateInvoiceNumber(session);
-        console.log('Invoice No Generated:', invoiceNo);
-
-        if (!items || !Array.isArray(items) || items.length === 0) {
-            res.status(400);
-            throw new Error('No items in invoice');
+        // Check stock availability BEFORE transaction
+        const stockValidation = await validateStockAvailability(items, req.user.ownerId);
+        if (!stockValidation.valid) {
+            throw new StockError(formatStockErrors(stockValidation.errors));
         }
+        console.log('Stock validation passed');
 
-        // Calculate line items with GST
-        const calculatedItems = items.map(item => {
-            const subtotal = item.quantity * item.pricePerUnit;
-            let calculation;
+        const result = await runInTransaction(async (session) => {
+            console.log('Creates Invoice Payload Data:', JSON.stringify(req.body, null, 2));
 
-            if (item.isTaxInclusive) {
-                calculation = calculateFromInclusive(subtotal, item.gstPercent);
-            } else {
-                calculation = calculateFromExclusive(subtotal, item.gstPercent);
+            log('Calling generateInvoiceNumber with session: ' + (session ? 'YES' : 'NO'));
+            const invoiceNo = await generateInvoiceNumber(session);
+            log('Invoice No Generated: ' + invoiceNo);
+
+            // Calculate line items with GST
+            const calculatedItems = items.map(item => {
+                const subtotal = item.quantity * item.pricePerUnit;
+                let calculation;
+
+                if (item.isTaxInclusive) {
+                    calculation = calculateFromInclusive(subtotal, item.gstPercent);
+                } else {
+                    calculation = calculateFromExclusive(subtotal, item.gstPercent);
+                }
+
+                return {
+                    ...item,
+                    taxableValue: calculation.taxableValue,
+                    gstAmount: calculation.gstAmount,
+                    totalAmount: calculation.totalAmount
+                };
+            });
+
+            // Calculate invoice summary
+            const summary = calculateInvoiceSummary(calculatedItems);
+
+            // Calculate paid amount from payments array
+            const paidAmount = payments ? payments.reduce((sum, payment) => sum + payment.amount, 0) : 0;
+            const dueAmount = summary.grandTotal - paidAmount;
+
+            // Determine status
+            let status = 'Paid';
+            if (dueAmount > 0.01) { // Floating point tolerance
+                status = paidAmount > 0 ? 'Partial' : 'Due';
             }
 
-            return {
-                ...item,
-                taxableValue: calculation.taxableValue,
-                gstAmount: calculation.gstAmount,
-                totalAmount: calculation.totalAmount
-            };
-        });
-
-        // Calculate invoice summary
-        const summary = calculateInvoiceSummary(calculatedItems);
-
-        // Calculate paid amount from payments array
-        const paidAmount = payments ? payments.reduce((sum, payment) => sum + payment.amount, 0) : 0;
-        const dueAmount = summary.grandTotal - paidAmount;
-
-        // Determine status
-        let status = 'Paid';
-        if (dueAmount > 0.01) { // Floating point tolerance
-            status = paidAmount > 0 ? 'Partial' : 'Due';
-        }
-
-        console.log('Creating Invoice Checkpoint 1');
-        // Create invoice
-        // Use array syntax for proper transaction handling with create()
-        // Use array syntax for proper transaction handling with create()
-        const [invoice] = await Invoice.create([{
-            invoiceNo,
-            type: invoiceType || 'Tax Invoice',
-            invoiceDate: invoiceDate ? moment(invoiceDate).tz("Asia/Kolkata").toDate() : moment().tz("Asia/Kolkata").toDate(),
-            customer: customerId,
-            items: calculatedItems,
-            payments: payments || [],
-            totalTaxable: summary.totalTaxable,
-            totalGST: summary.totalGST,
-            grandTotal: summary.grandTotal,
-            paidAmount,
-            dueAmount,
-            status,
-            notes,
-            customerName,
-            customerPhone,
-            customerAddress,
-            customerGstin,
-            sellerDetails,
-            createdBy: req.user._id, // Created By is the actual user (Staff/Admin)
-            user: req.user.ownerId   // Ownership belongs to the Admin
-        }], { session });
-
-        const createdInvoice = invoice;
-
-        // Update product stock (Bulk Write Optimization)
-        const bulkOps = items
-            .filter(item => item.productId)
-            .map(item => ({
-                updateOne: {
-                    filter: { _id: item.productId, user: req.user.ownerId }, // Check against owner
-                    update: { $inc: { stock: -item.quantity } }
-                }
-            }));
-
-        if (bulkOps.length > 0) {
-            await Product.bulkWrite(bulkOps, { session });
-        }
-
-        // Ledger Operations
-        if (customerId) {
-            // 1. Debit (Sale) - Full Invoice Amount
-            await LedgerEntry.create([{
+            log('Creating Invoice Checkpoint: Calling Invoice.create');
+            let invoice;
+            const invoiceData = [{
+                invoiceNo,
+                type: invoiceType || 'Tax Invoice',
+                invoiceDate: invoiceDate ? moment(invoiceDate).tz("Asia/Kolkata").toDate() : moment().tz("Asia/Kolkata").toDate(),
                 customer: customerId,
-                date: new Date(),
-                refType: 'Invoice',
-                refId: createdInvoice._id,
-                refNo: invoiceNo,
-                description: `Invoice ${invoiceNo} Generated`,
-                debit: createdInvoice.grandTotal,
-                credit: 0,
-                balance: 0, // Will recalc
-                user: req.user.ownerId
-            }], { session });
+                items: calculatedItems,
+                payments: payments || [],
+                totalTaxable: summary.totalTaxable,
+                totalGST: summary.totalGST,
+                grandTotal: summary.grandTotal,
+                paidAmount,
+                dueAmount,
+                status,
+                notes,
+                customerName,
+                customerPhone,
+                customerAddress,
+                customerGstin,
+                sellerDetails,
+                createdBy: req.user._id, // Created By is the actual user (Staff/Admin)
+                user: req.user.ownerId   // Ownership belongs to the Admin
+            }];
 
-            // 2. Handle Payments
-            if (paidAmount > 0 && payments && payments.length > 0) {
+            if (session) {
+                log('Using SESSION for Invoice.create');
+                [invoice] = await Invoice.create(invoiceData, { session });
+            } else {
+                log('Using NO SESSION for Invoice.create');
+                [invoice] = await Invoice.create(invoiceData);
+            }
+            log('Invoice Created Successfully');
+            const createdInvoice = invoice;
+            log('Invoice Created Successfully: ' + createdInvoice._id);
 
-                // Prepare Payment and Ledger Entries
-                const newPayments = [];
+            // Update product stock using stockManager (Optimized)
+            log('Checkpoint: Stock Update');
+            await deductStock(items, req.user.ownerId, session);
 
-                for (const p of payments) {
-                    newPayments.push({
+            // Ledger Operations
+            if (customerId) {
+                log('Checkpoint: Ledger Create');
+                // 1. Debit (Sale) - Full Invoice Amount
+                const ledgerEntryData = [{
+                    customer: customerId,
+                    date: new Date(),
+                    refType: 'Invoice',
+                    refId: createdInvoice._id,
+                    refNo: invoiceNo,
+                    description: `Invoice ${invoiceNo} Generated`,
+                    debit: createdInvoice.grandTotal,
+                    credit: 0,
+                    balance: 0, // Will recalc
+                    user: req.user.ownerId
+                }];
+
+                if (session) {
+                    await LedgerEntry.create(ledgerEntryData, { session });
+                } else {
+                    await LedgerEntry.create(ledgerEntryData);
+                }
+
+                // 2. Handle Payments (Optimized with bulk operations)
+                if (paidAmount > 0 && payments && payments.length > 0) {
+
+                    // Prepare Payment entries
+                    const newPayments = payments.map(p => ({
                         customer: customerId,
                         invoice: createdInvoice._id,
                         type: 'Debit', // We received money
@@ -144,47 +155,79 @@ export const createInvoice = async (req, res) => {
                         method: p.method,
                         reference: p.reference,
                         notes: `Payment for Invoice ${invoiceNo}`,
-                        recordedBy: req.user._id // Who recorded it
-                    });
+                        recordedBy: req.user._id,
+                        user: req.user.ownerId
+                    }));
+
+                    // Insert Payments (bulk operation)
+                    let createdPayments;
+                    if (session) {
+                        createdPayments = await Payment.create(newPayments, { session });
+                    } else {
+                        createdPayments = await Payment.create(newPayments);
+                    }
+
+                    // Prepare Ledger Credit entries (bulk)
+                    const ledgerCreditEntries = createdPayments.map(cp => ({
+                        customer: customerId,
+                        date: new Date(),
+                        refType: 'Payment',
+                        refId: cp._id,
+                        refNo: invoiceNo,
+                        description: `Payment Received (${cp.method})`,
+                        debit: 0,
+                        credit: cp.amount,
+                        balance: 0,
+                        user: req.user.ownerId
+                    }));
+
+                    // Insert Ledger Credits (bulk operation)
+                    if (session) {
+                        await LedgerEntry.create(ledgerCreditEntries, { session });
+                    } else {
+                        await LedgerEntry.create(ledgerCreditEntries);
+                    }
                 }
 
-                // Insert Payments
-                const createdPayments = await Payment.create(newPayments, { session });
-
-                // Insert Ledger Credits (linked to payments)
-                const ledgerCreditEntries = createdPayments.map(cp => ({
-                    customer: customerId,
-                    date: new Date(),
-                    refType: 'Payment',
-                    refId: cp._id,
-                    refNo: invoiceNo,
-                    description: `Payment Received (${cp.method})`,
-                    debit: 0,
-                    credit: cp.amount,
-                    balance: 0,
-                    user: req.user.ownerId // Owner owns the ledger
-                }));
-
-                await LedgerEntry.create(ledgerCreditEntries, { session });
+                // Recalculate to ensure accuracy
+                log('Checkpoint: Recalc');
+                await recalculateCustomerBalance(customerId, session, req.user.ownerId);
             }
+            log('Checkpoint: Success Final');
 
-            // Recalculate to ensure accuracy
-            await recalculateCustomerBalance(customerId, session);
+            return createdInvoice;
+        });
+
+        // Populate with error handling
+        let populatedInvoice;
+        try {
+            populatedInvoice = await Invoice.findById(result._id)
+                .populate('customer')
+                .populate('createdBy', 'name');
+        } catch (populateError) {
+            console.warn('Failed to populate invoice, returning basic data:', populateError.message);
+            populatedInvoice = result; // Fallback to unpopulated
         }
 
-        await session.commitTransaction();
-        session.endSession();
-
-        const populatedInvoice = await Invoice.findById(createdInvoice._id)
-            .populate('customer')
-            .populate('createdBy', 'name');
-
+        log('Sending Response 201');
         res.status(201).json(populatedInvoice);
     } catch (error) {
-        await session.abortTransaction();
-        session.endSession();
-        console.error('Invoice Creation Error:', error);
-        res.status(400).json({ message: error.message });
+        log('ERROR CAUGHT in createInvoice: ' + error.message);
+        console.error('Invoice Creation Error:', {
+            message: error.message,
+            name: error.name,
+            userId: req.user?._id,
+            itemCount: req.body?.items?.length
+        });
+
+        // Only send response if not already sent
+        if (!res.headersSent) {
+            const statusCode = error.statusCode || (error instanceof ValidationError || error instanceof StockError ? 400 : 500);
+            res.status(statusCode).json({
+                message: error.message,
+                code: error.code || 'INVOICE_CREATION_FAILED'
+            });
+        }
     }
 };
 
@@ -193,9 +236,9 @@ export const createInvoice = async (req, res) => {
 // @access  Private
 export const getInvoices = async (req, res) => {
     try {
-        const { startDate, endDate, status, type } = req.query;
+        const { startDate, endDate, status, type, search, limit = 50, skip = 0 } = req.query;
 
-        let query = { user: req.user.ownerId }; // Filter by Owner
+        let query = { user: req.user.ownerId };
 
         if (startDate && endDate) {
             query.createdAt = {
@@ -204,15 +247,32 @@ export const getInvoices = async (req, res) => {
             };
         }
 
-        if (status) query.status = status;
+        if (status && status !== 'All') query.status = status;
         if (type) query.type = type;
+
+        if (search) {
+            query.$or = [
+                { invoiceNo: { $regex: search, $options: 'i' } },
+                { customerName: { $regex: search, $options: 'i' } },
+                { customerPhone: { $regex: search, $options: 'i' } }
+            ];
+        }
 
         const invoices = await Invoice.find(query)
             .populate('customer', 'name phone')
             .populate('createdBy', 'name')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .limit(Number(limit))
+            .skip(Number(skip));
 
-        res.json(invoices);
+        const total = await Invoice.countDocuments(query);
+
+        res.json({
+            invoices,
+            total,
+            limit: Number(limit),
+            skip: Number(skip)
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -243,66 +303,71 @@ export const getInvoiceById = async (req, res) => {
 // @access  Private
 export const updateInvoicePayment = async (req, res) => {
     try {
-        const { payments } = req.body;
+        const result = await runInTransaction(async (session) => {
+            const { payments } = req.body;
 
-        const invoice = await Invoice.findById(req.params.id);
+            const invoice = await Invoice.findById(req.params.id).session(session);
 
-        // Security check: must belong to owner
-        if (!invoice || invoice.user.toString() !== req.user.ownerId.toString()) {
-            return res.status(404).json({ message: 'Invoice not found' });
-        }
+            // Security check: must belong to owner
+            if (!invoice || invoice.user.toString() !== req.user.ownerId.toString()) {
+                res.status(404);
+                throw new Error('Invoice not found');
+            }
 
-        // Add new payments
-        invoice.payments.push(...payments);
+            // Add new payments
+            invoice.payments.push(...payments);
 
-        // Recalculate paid amount
-        const newPaidAmount = invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
-        const newDueAmount = invoice.grandTotal - newPaidAmount;
+            // Recalculate paid amount
+            const newPaidAmount = invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
+            const newDueAmount = invoice.grandTotal - newPaidAmount;
 
-        invoice.paidAmount = newPaidAmount;
-        invoice.dueAmount = newDueAmount;
-        invoice.status = newDueAmount <= 0 ? 'Paid' : (newPaidAmount > 0 ? 'Partial' : 'Due');
+            invoice.paidAmount = newPaidAmount;
+            invoice.dueAmount = newDueAmount;
+            invoice.status = newDueAmount <= 0 ? 'Paid' : (newPaidAmount > 0 ? 'Partial' : 'Due');
 
-        await invoice.save();
+            await invoice.save({ session });
 
-        // Update customer balance & Record Payment (Only for tracked customers)
-        if (invoice.customer) {
-            const paymentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
-            await Customer.findOneAndUpdate(
-                { _id: invoice.customer, user: req.user.ownerId },
-                { $inc: { balance: -paymentTotal } }
-            );
+            // Update customer balance & Record Payment (Only for tracked customers)
+            if (invoice.customer) {
+                const paymentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+                await Customer.findOneAndUpdate(
+                    { _id: invoice.customer, user: req.user.ownerId },
+                    { $inc: { balance: -paymentTotal } }
+                ).session(session);
 
-            // Record payment transaction (Payment Model)
-            await Payment.create({
-                customer: invoice.customer,
-                invoice: invoice._id,
-                type: 'Debit', // Customer paid us
-                amount: paymentTotal,
-                method: payments[0].method,
-                notes: `Payment received for Invoice ${invoice.invoiceNo}`,
-                recordedBy: req.user._id // Actual Staff doing the update
-            });
+                // Record payment transaction (Payment Model)
+                await Payment.create([{
+                    customer: invoice.customer,
+                    invoice: invoice._id,
+                    type: 'Debit', // Customer paid us
+                    amount: paymentTotal,
+                    method: payments[0].method,
+                    notes: `Payment received for Invoice ${invoice.invoiceNo}`,
+                    recordedBy: req.user._id, // Actual Staff doing the update
+                    user: req.user.ownerId
+                }], { session });
 
-            // Ledger Entry: Credit (Payment)
-            await LedgerEntry.create({
-                customer: invoice.customer,
-                date: new Date(),
-                refType: 'Payment',
-                refId: invoice._id, // Linking to Invoice as ref
-                refNo: invoice.invoiceNo,
-                description: `Payment for Invoice ${invoice.invoiceNo}`,
-                debit: 0,
-                credit: paymentTotal,
-                balance: 0,
-                user: req.user.ownerId
-            });
-            await recalculateCustomerBalance(invoice.customer);
-        }
+                // Ledger Entry: Credit (Payment)
+                await LedgerEntry.create([{
+                    customer: invoice.customer,
+                    date: new Date(),
+                    refType: 'Payment',
+                    refId: invoice._id, // Linking to Invoice as ref
+                    refNo: invoice.invoiceNo,
+                    description: `Payment for Invoice ${invoice.invoiceNo}`,
+                    debit: 0,
+                    credit: paymentTotal,
+                    balance: 0,
+                    user: req.user.ownerId
+                }], { session });
+                await recalculateCustomerBalance(invoice.customer, session, req.user.ownerId);
+            }
+            return invoice;
+        });
 
-        res.json(invoice);
+        res.json(result);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(res.statusCode === 200 ? 400 : res.statusCode).json({ message: error.message });
     }
 };
 
@@ -311,113 +376,116 @@ export const updateInvoicePayment = async (req, res) => {
 // @access  Private (Admin/Manager)
 export const voidInvoice = async (req, res) => {
     try {
-        const { reason } = req.body;
-        const invoice = await Invoice.findById(req.params.id);
+        const result = await runInTransaction(async (session) => {
+            const { reason } = req.body;
+            const invoice = await Invoice.findById(req.params.id).session(session);
 
-        if (!invoice || invoice.user.toString() !== req.user.ownerId.toString()) {
-            return res.status(404).json({ message: 'Invoice not found' });
-        }
-
-        if (invoice.status === 'Void') {
-            return res.status(400).json({ message: 'Invoice is already voided' });
-        }
-
-        // 1. Restore Stock
-        if (invoice.items && invoice.items.length > 0) {
-            for (const item of invoice.items) {
-                if (item.productId && item.quantity) {
-                    await Product.findOneAndUpdate(
-                        { _id: item.productId, user: req.user.ownerId },
-                        { $inc: { stock: item.quantity } }
-                    );
-                }
+            if (!invoice || invoice.user.toString() !== req.user.ownerId.toString()) {
+                res.status(404);
+                throw new Error('Invoice not found');
             }
-        }
 
-        // 2. Revert Customer Due Balance (Cancel Debt)
-        if (invoice.dueAmount > 0 && invoice.customer) {
-            await Customer.findOneAndUpdate(
-                { _id: invoice.customer, user: req.user.ownerId },
-                { $inc: { balance: -invoice.dueAmount } }
-            );
-        }
+            if (invoice.status === 'Void') {
+                res.status(400);
+                throw new Error('Invoice is already voided');
+            }
 
-        // 3. Mark as Void
-        invoice.status = 'Void';
-        invoice.voidReason = reason || 'No reason provided';
-        invoice.voidedBy = req.user._id;
-        invoice.voidedAt = new Date();
+            // 1. Restore Stock (Optimized with stockManager)
+            if (invoice.items && invoice.items.length > 0) {
+                await restoreStock(invoice.items, req.user.ownerId, session);
+            }
 
-        await invoice.save();
+            // 2. Revert Customer Due Balance (Cancel Debt)
+            if (invoice.dueAmount > 0 && invoice.customer) {
+                await Customer.findOneAndUpdate(
+                    { _id: invoice.customer, user: req.user.ownerId },
+                    { $inc: { balance: -invoice.dueAmount } }
+                ).session(session);
+            }
 
-        res.json({ message: 'Invoice voided successfully', invoice });
+            // 3. Mark as Void
+            invoice.status = 'Void';
+            invoice.voidReason = reason || 'No reason provided';
+            invoice.voidedBy = req.user._id;
+            invoice.voidedAt = new Date();
+
+            await invoice.save({ session });
+
+            // 4. Record in Ledger (if customer exists)
+            if (invoice.customer) {
+                await LedgerEntry.create([{
+                    customer: invoice.customer,
+                    date: new Date(),
+                    refType: 'Reversal',
+                    refId: invoice._id,
+                    refNo: invoice.invoiceNo,
+                    description: `Invoice ${invoice.invoiceNo} Voided: ${reason || 'Cancelled'}`,
+                    debit: 0,
+                    credit: invoice.grandTotal, // Reverse the Full Sale Amount
+                    balance: 0,
+                    user: req.user.ownerId
+                }], { session });
+                await recalculateCustomerBalance(invoice.customer, session, req.user.ownerId);
+            }
+
+            return invoice;
+        });
+
+        res.json({ message: 'Invoice voided successfully', invoice: result });
 
     } catch (error) {
         console.error('Void Invoice Error:', error);
-        res.status(500).json({ message: error.message });
+        res.status(res.statusCode === 200 ? 500 : res.statusCode).json({ message: error.message });
     }
 };
 
 export const deleteInvoice = async (req, res) => {
     try {
-        const invoice = await Invoice.findById(req.params.id);
+        await runInTransaction(async (session) => {
+            const invoice = await Invoice.findById(req.params.id).session(session);
 
-        if (!invoice || invoice.user.toString() !== req.user.ownerId.toString()) {
-            return res.status(404).json({ message: 'Invoice not found' });
-        }
+            if (!invoice || invoice.user.toString() !== req.user.ownerId.toString()) {
+                res.status(404);
+                throw new Error('Invoice not found');
+            }
 
-        // Restore customer balance if there was due amount
-        if (invoice.dueAmount > 0 && invoice.customer) {
-            try {
+            // Restore customer balance if there was due amount
+            if (invoice.dueAmount > 0 && invoice.customer) {
                 await Customer.findByIdAndUpdate(
                     invoice.customer,
                     { $inc: { balance: -invoice.dueAmount } }
-                );
-            } catch (err) {
-                console.error('Failed to restore customer balance:', err);
-                // Continue deletion
+                ).session(session);
             }
-        }
 
-        // Restore product stock (Robust)
-        if (invoice.items && invoice.items.length > 0) {
-            for (const item of invoice.items) {
-                if (item.productId && item.quantity) {
-                    try {
-                        await Product.findByIdAndUpdate(
-                            item.productId,
-                            { $inc: { stock: item.quantity } }
-                        );
-                    } catch (e) {
-                        console.error('Stock restore error:', e);
-                    }
-                }
+            // Restore product stock (Optimized with stockManager)
+            if (invoice.items && invoice.items.length > 0) {
+                await restoreStock(invoice.items, req.user.ownerId, session);
             }
-        }
 
-        await Invoice.deleteOne({ _id: invoice._id });
+            await Invoice.deleteOne({ _id: invoice._id }).session(session);
 
-        // Ledger Entry: Reversal (Credit)
-        if (invoice.customer) {
-            await LedgerEntry.create({
-                customer: invoice.customer,
-                date: new Date(),
-                refType: 'Reversal',
-                refId: null, // Hard deleted, so no link
-                refNo: invoice.invoiceNo,
-                description: `Invoice ${invoice.invoiceNo} Deleted (Reversal)`,
-                debit: 0,
-                credit: invoice.grandTotal, // Reverse the Full Sale Amount
-                balance: 0,
-                user: req.user.ownerId
-            });
-            await recalculateCustomerBalance(invoice.customer);
-        }
+            // Ledger Entry: Reversal (Credit)
+            if (invoice.customer) {
+                await LedgerEntry.create([{
+                    customer: invoice.customer,
+                    date: new Date(),
+                    refType: 'Reversal',
+                    refId: null, // Hard deleted, so no link
+                    refNo: invoice.invoiceNo,
+                    description: `Invoice ${invoice.invoiceNo} Deleted (Reversal)`,
+                    debit: 0,
+                    credit: invoice.grandTotal, // Reverse the Full Sale Amount
+                    balance: 0,
+                    user: req.user.ownerId
+                }], { session });
+                await recalculateCustomerBalance(invoice.customer, session, req.user.ownerId);
+            }
+        });
 
         res.json({ message: 'Invoice deleted' });
     } catch (error) {
         console.error('Delete Invoice Error:', error);
-        res.status(500).json({ message: error.message });
+        res.status(res.statusCode === 200 ? 500 : res.statusCode).json({ message: error.message });
     }
 };
 

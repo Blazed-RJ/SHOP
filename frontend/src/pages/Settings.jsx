@@ -174,66 +174,65 @@ const Settings = () => {
 
     return (
         <Layout>
-            <div className="p-6">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center space-x-3">
-                        <Store className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <div className="p-4 md:p-8 min-h-screen bg-gray-50/50 dark:bg-[#050505] transition-colors duration-500">
+                {/* Header Section */}
+                <div className="mb-10 relative">
+                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-slate-500/10 blur-[120px] rounded-full pointer-events-none"></div>
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Store Settings & Branding</h1>
-                            <p className="text-gray-600 dark:text-gray-400 mt-1">Customize your store information and app appearance</p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={loading}
-                        className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                    >
-                        <Save className="w-5 h-5" />
-                        <span>{loading ? 'Saving...' : 'Save All Changes'}</span>
-                    </button>
-                </div>
-
-                {/* Demo Mode Indicator */}
-                <div className="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-400 p-4 mb-6 rounded-lg hidden">
-                    <div className="flex items-center space-x-2">
-                        <Info className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                        <p className="text-sm text-orange-800 dark:text-orange-200">
-                            <strong>Demo Mode:</strong> Settings saved to browser localStorage
-                        </p>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Side - Tabs and Forms */}
-                    <div className={activeTab === 'letterheadTemplate' ? "lg:col-span-3" : "lg:col-span-2"}>
-                        {/* Tabs */}
-                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm mb-4 border border-gray-100 dark:border-gray-700">
-                            <div className="border-b border-gray-200 dark:border-gray-700">
-                                <nav className="flex space-x-1 px-4 overflow-x-auto scrollbar-hide" aria-label="Tabs">
-                                    {tabs.map((tab) => {
-                                        const Icon = tab.icon;
-                                        return (
-                                            <button
-                                                key={tab.id}
-                                                onClick={() => setActiveTab(tab.id)}
-                                                className={`flex items-center space-x-2 py-4 px-4 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === tab.id
-                                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                                                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                                                    }`}
-                                            >
-                                                <Icon className="w-5 h-5 flex-shrink-0" />
-                                                <span>{tab.name}</span>
-                                            </button>
-                                        );
-                                    })}
-                                </nav>
+                            <div className="flex items-center space-x-3 mb-2">
+                                <div className="p-2 bg-slate-500/10 rounded-lg">
+                                    <Store className="w-5 h-5 text-slate-500" />
+                                </div>
+                                <span className="text-slate-600 dark:text-slate-400 text-xs font-black uppercase tracking-[0.3em]">System Core</span>
                             </div>
+                            <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
+                                Workspace <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-600 to-gray-500">Control</span>
+                            </h1>
+                            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium max-w-md">
+                                Define your business identity and orchestrate operational parameters.
+                            </p>
                         </div>
+                        <button
+                            onClick={handleSubmit}
+                            disabled={loading}
+                            className={`flex items-center space-x-2 px-8 py-4 ${loading ? 'bg-gray-400' : 'bg-slate-800 dark:bg-slate-700'} hover:bg-slate-900 text-white rounded-2xl shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group`}
+                        >
+                            <Save className={`${loading ? 'animate-pulse' : 'group-hover:scale-110'} w-6 h-6 transition-transform`} />
+                            <span className="font-black tracking-tight text-lg">{loading ? 'Syncing...' : 'Commit Configuration'}</span>
+                        </button>
+                    </div>
+                </div>
 
-                        {/* Tab Content */}
+                {/* Intelligence Navigation */}
+                <div className="mb-8 relative z-10">
+                    <div className="bg-white/80 dark:bg-white/2 backdrop-blur-2xl p-2 rounded-[28px] border border-white dark:border-white/5 shadow-2xl shadow-slate-500/5">
+                        <nav className="flex space-x-1 px-2 overflow-x-auto scrollbar-hide no-scrollbar" aria-label="Tabs">
+                            {tabs.map((tab) => {
+                                const Icon = tab.icon;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`flex items-center space-x-3 py-4 px-6 rounded-[22px] font-black text-xs uppercase tracking-widest transition-all duration-500 whitespace-nowrap ${activeTab === tab.id
+                                            ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 translate-y-0 opacity-100'
+                                            : 'text-gray-500 dark:text-gray-400 hover:bg-slate-500/10 hover:text-slate-900 dark:hover:text-white opacity-60 hover:opacity-100'
+                                            }`}
+                                    >
+                                        <Icon className={`w-4 h-4 ${activeTab === tab.id ? 'animate-pulse' : ''}`} />
+                                        <span>{tab.name}</span>
+                                    </button>
+                                );
+                            })}
+                        </nav>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
+                    {/* Left Side - Forms */}
+                    <div className={activeTab === 'letterheadTemplate' ? "lg:col-span-3" : "lg:col-span-2"}>
                         <form onSubmit={handleSubmit}>
-                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+                            <div className="bg-white/80 dark:bg-white/5 backdrop-blur-xl rounded-[32px] p-8 border border-white dark:border-white/5 shadow-2xl">
                                 {/* General Tab */}
                                 {activeTab === 'general' && (
                                     <div className="space-y-4">
@@ -258,7 +257,7 @@ const Settings = () => {
                                                 type="text"
                                                 value={formData.tagline}
                                                 onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
-                                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+                                                className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 focus:border-slate-500 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
                                                 placeholder="e.g., Best Deals in Tech"
                                             />
                                         </div>
@@ -270,7 +269,7 @@ const Settings = () => {
                                             <textarea
                                                 value={formData.address}
                                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+                                                className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 focus:border-slate-500 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
                                                 rows={3}
                                                 placeholder="Shop No. 12, Ground Floor&#10;Tech Plaza, MG Road&#10;Indore - 452001, MP"
                                             />
@@ -285,7 +284,7 @@ const Settings = () => {
                                                     type="tel"
                                                     value={formData.phone}
                                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+                                                    className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 focus:border-slate-500 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
                                                     placeholder="+91 98765 43210"
                                                 />
                                             </div>
@@ -298,7 +297,7 @@ const Settings = () => {
                                                     type="email"
                                                     value={formData.email}
                                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+                                                    className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 focus:border-slate-500 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
                                                     placeholder="contact@yourbusiness.com"
                                                 />
                                             </div>
@@ -313,7 +312,7 @@ const Settings = () => {
                                                     type="text"
                                                     value={formData.gstNumber}
                                                     onChange={(e) => setFormData({ ...formData, gstNumber: e.target.value })}
-                                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+                                                    className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 focus:border-slate-500 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
                                                     placeholder="e.g., 22AAAAA0000A1Z5"
                                                 />
                                             </div>
@@ -325,7 +324,7 @@ const Settings = () => {
                                                     type="text"
                                                     value={formData.website || ''}
                                                     onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+                                                    className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 focus:border-slate-500 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
                                                     placeholder="www.yourbusiness.com"
                                                 />
                                             </div>
@@ -550,7 +549,7 @@ const Settings = () => {
                                                         <span className="font-serif italic text-lg">Signed</span>
                                                     </div>
                                                 )}
-                                                <label className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 cursor-pointer transition-colors">
+                                                <label className="flex items-center space-x-2 px-6 py-2.5 bg-slate-800 dark:bg-slate-700 text-white rounded-xl hover:bg-slate-900 cursor-pointer transition-all duration-300 transform hover:-translate-y-0.5">
                                                     <Upload className="w-5 h-5" />
                                                     <span>Upload Signature</span>
                                                     <input
@@ -601,7 +600,7 @@ const Settings = () => {
                                                         type="text"
                                                         value={formData.invoiceFooterText || ''}
                                                         onChange={(e) => setFormData({ ...formData, invoiceFooterText: e.target.value })}
-                                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+                                                        className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
                                                         placeholder="e.g. Thank you for your business!"
                                                     />
                                                 </div>
@@ -868,9 +867,9 @@ const Settings = () => {
                                                     type="button"
                                                     onClick={handleCreateStaff}
                                                     disabled={!newStaff.name || !newStaff.email || !newStaff.username || !newStaff.password}
-                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                    className="px-8 py-3 bg-slate-800 dark:bg-slate-700 text-white rounded-xl hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:-translate-y-0.5"
                                                 >
-                                                    Add Staff Member
+                                                    Incorporate Member
                                                 </button>
                                             </div>
                                         </div>

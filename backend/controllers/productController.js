@@ -6,18 +6,41 @@ import { protect, admin, staffOrAdmin } from '../middleware/auth.js';
 // @access  Private (Staff can view but cost price hidden in response)
 export const getProducts = async (req, res) => {
     try {
-        const products = await Product.find({ isActive: true, user: req.user.ownerId });
+        const { search, category, limit = 50, skip = 0 } = req.query;
+        let filters = { isActive: true, user: req.user.ownerId };
 
-        // If user is Staff, hide cost price
-        if (req.user.role === 'Staff') {
-            const productsWithoutCost = products.map(product => {
-                const { costPrice, ...productWithoutCost } = product.toObject();
-                return productWithoutCost;
-            });
-            return res.json(productsWithoutCost);
+        if (search) {
+            filters.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { imei1: { $regex: search, $options: 'i' } },
+                { imei2: { $regex: search, $options: 'i' } },
+                { serialNo: { $regex: search, $options: 'i' } }
+            ];
         }
 
-        res.json(products);
+        if (category) {
+            filters.category = category;
+        }
+
+        let query = Product.find(filters)
+            .sort({ name: 1 })
+            .limit(Number(limit))
+            .skip(Number(skip));
+
+        // If user is Staff, hide cost price at DB level
+        if (req.user.role === 'Staff') {
+            query = query.select('-costPrice');
+        }
+
+        const products = await query;
+        const total = await Product.countDocuments(filters);
+
+        res.json({
+            products,
+            total,
+            limit: Number(limit),
+            skip: Number(skip)
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -28,17 +51,17 @@ export const getProducts = async (req, res) => {
 // @access  Private
 export const getProductById = async (req, res) => {
     try {
-        // Allow staff to access product if it belongs to ownerId
-        const product = await Product.findById(req.params.id);
-
-        if (!product || product.user.toString() !== req.user.ownerId.toString()) {
-            return res.status(404).json({ message: 'Product not found' });
-        }
+        let query = Product.findById(req.params.id);
 
         // Hide cost price for Staff
         if (req.user.role === 'Staff') {
-            const { costPrice, ...productWithoutCost } = product.toObject();
-            return res.json(productWithoutCost);
+            query = query.select('-costPrice');
+        }
+
+        const product = await query;
+
+        if (!product || product.user.toString() !== req.user.ownerId.toString()) {
+            return res.status(404).json({ message: 'Product not found' });
         }
 
         res.json(product);
@@ -144,7 +167,7 @@ export const searchProducts = async (req, res) => {
     try {
         const keyword = req.params.keyword;
 
-        const products = await Product.find({
+        let query = Product.find({
             isActive: true,
             user: req.user.ownerId,
             $or: [
@@ -158,13 +181,10 @@ export const searchProducts = async (req, res) => {
 
         // Hide cost price for Staff
         if (req.user.role === 'Staff') {
-            const productsWithoutCost = products.map(product => {
-                const { costPrice, ...productWithoutCost } = product.toObject();
-                return productWithoutCost;
-            });
-            return res.json(productsWithoutCost);
+            query = query.select('-costPrice');
         }
 
+        const products = await query;
         res.json(products);
     } catch (error) {
         res.status(500).json({ message: error.message });

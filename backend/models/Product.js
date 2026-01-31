@@ -77,6 +77,13 @@ const productSchema = mongoose.Schema({
     timestamps: true // IST timezone
 });
 
+// Indexes for faster searching
+productSchema.index({ name: 'text', category: 'text' });
+productSchema.index({ imei1: 1 });
+productSchema.index({ imei2: 1 });
+productSchema.index({ serialNumber: 1 });
+productSchema.index({ user: 1, isActive: 1 });
+
 // Virtual for profit (Admin only)
 productSchema.virtual('profit').get(function () {
     return this.sellingPrice - this.costPrice;

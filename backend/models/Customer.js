@@ -7,8 +7,7 @@ const customerSchema = mongoose.Schema({
     },
     phone: {
         type: String,
-        required: true,
-        unique: true
+        required: true
     },
     email: {
         type: String,
@@ -38,6 +37,10 @@ const customerSchema = mongoose.Schema({
 }, {
     timestamps: true // IST timezone
 });
+
+// Index for multi-tenant uniqueness and lookup
+customerSchema.index({ phone: 1, user: 1 }, { unique: true });
+customerSchema.index({ name: 'text' });
 
 const Customer = mongoose.model('Customer', customerSchema);
 export default Customer;

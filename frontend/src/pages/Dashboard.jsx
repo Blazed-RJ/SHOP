@@ -14,7 +14,9 @@ import {
     Users,
     FileText,
     Wallet,
-    CreditCard
+    CreditCard,
+    History,
+    Activity
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -39,71 +41,14 @@ const Dashboard = () => {
     const loadDashboardData = useCallback(async () => {
         try {
             setLoading(true);
-            const [productsRes, invoicesRes, customersRes] = await Promise.all([
-                api.get('/products'),
-                api.get('/invoices'),
-                api.get('/customers'),
-            ]);
+            const statsRes = await api.get('/dashboard/stats');
+            setStats(statsRes.data);
 
-            const products = productsRes.data;
-            const invoices = invoicesRes.data;
-            const customers = customersRes.data;
+            // For low stock, we can still fetch products with a small limit if needed
+            // but for now, let's just use the products we can get
+            const productsRes = await api.get('/products?limit=10');
+            setLowStockProducts(productsRes.data.products?.filter(p => p.stock <= 5) || []);
 
-            // Calculate stats
-            const today = new Date().toDateString();
-            const todaysInvoices = invoices.filter(inv =>
-                new Date(inv.createdAt).toDateString() === today
-            );
-
-            const todaySales = todaysInvoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
-            const totalSales = invoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
-
-            // Cash vs Online collection (today)
-            const cashCollection = todaysInvoices.reduce((sum, inv) => {
-                const cashPayment = inv.payments?.find(p => p.mode === 'Cash');
-                return sum + (cashPayment?.amount || 0);
-            }, 0);
-
-            const onlineCollection = todaysInvoices.reduce((sum, inv) => {
-                const upiPayment = inv.payments?.find(p => p.mode === 'UPI');
-                const cardPayment = inv.payments?.find(p => p.mode === 'Card');
-                const bankPayment = inv.payments?.find(p => p.mode === 'Bank Transfer');
-                return sum + (upiPayment?.amount || 0) + (cardPayment?.amount || 0) + (bankPayment?.amount || 0);
-            }, 0);
-
-            // Credit/Udhaar (today's unpaid from today's invoices?)
-            // Or total credit? Usually "Credit (Udhaar)" implies total outstanding or today's credit given.
-            // Let's assume today's credit given for now based on context of "Today's Collection Breakdown"
-            // But if it's "Credit (Udhaar)", it might mean how much credit was given TODAY.
-            const creditUdhaar = todaysInvoices.reduce((sum, inv) => {
-                // Check if fully paid? Or just grandTotal - paidAmount
-                return sum + (inv.grandTotal - (inv.paidAmount || 0));
-            }, 0);
-
-            // Stock value and potential profit
-            const totalStockValue = products.reduce((sum, p) => sum + ((p.costPrice || 0) * p.stock), 0);
-            const potentialProfit = products.reduce((sum, p) =>
-                sum + (((p.sellingPrice || 0) - (p.costPrice || 0)) * p.stock), 0
-            );
-
-            // Get low stock items (stock <= 5)
-            const lowStock = products.filter(p => p.stock <= 5);
-
-            setStats({
-                totalParties: customers.length,
-                totalItems: products.length,
-                totalSales,
-                totalInvoices: invoices.length,
-                cashCollection,
-                onlineCollection,
-                todaySales,
-                creditUdhaar,
-                totalStockValue,
-                potentialProfit,
-                recentInvoices: invoices.slice(0, 5) // Most recent 5 (assuming sorted by backend or insert order)
-            });
-
-            setLowStockProducts(lowStock.slice(0, 10));
             setLoading(false);
         } catch (error) {
             console.error('Failed to load dashboard data:', error);
@@ -140,133 +85,246 @@ const Dashboard = () => {
 
     return (
         <Layout>
-            <div className="p-6">
+            <div className="p-8">
                 {/* Header */}
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">
-                        Welcome back, {user?.name}! Here's what's happening today.
+                <div className="mb-8 relative">
+                    <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight">Dashboard</h1>
+                    <p className="text-gray-600 dark:text-brand-300 mt-2 font-light">
+                        Welcome back, <span className="font-semibold text-brand-600 dark:text-brand-400">{user?.name}</span>.
                     </p>
+                    {/* Decorative Dash */}
+                    <div className="w-24 h-1 bg-gradient-to-r from-brand-500 to-transparent mt-4 rounded-full"></div>
                 </div>
 
-                {/* Top 4 Stat Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    {/* Total Parties */}
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-sm">
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-sm font-medium opacity-90">Total Parties</p>
-                                <p className="text-3xl font-bold mt-2">{stats.totalParties}</p>
+                {/* Top 4 Stat Cards - Premium Industrial Style */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    {/* Total Parties (Blue) */}
+                    <div className="bg-blue-50/40 dark:bg-gradient-to-br dark:from-blue-950 dark:via-black dark:to-black rounded-2xl p-6 border-4 border-blue-200 dark:border-blue-500/30 shadow-sm dark:shadow-[0_0_20px_rgba(59,130,246,0.15)] relative overflow-hidden group transition-all duration-300">
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
+                        <div className="relative z-10 w-full">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-blue-800/60 dark:text-blue-200 uppercase tracking-widest">Total Parties</p>
+                                    <p className="text-3xl lg:text-4xl font-bold mt-2 text-blue-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-blue-100 dark:via-blue-300 dark:to-blue-500 font-mono">
+                                        {stats.totalParties}
+                                    </p>
+                                </div>
+                                <div className="p-3 bg-white/80 dark:bg-blue-500/20 rounded-xl border border-blue-100 dark:border-blue-500/30 text-blue-500 dark:text-blue-300 group-hover:text-white group-hover:bg-blue-600 dark:group-hover:bg-blue-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                                    <Users className="w-6 h-6" />
+                                </div>
                             </div>
-                            <div className="p-3 bg-white bg-opacity-20 rounded-lg">
-                                <Users className="w-8 h-8" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Total Items */}
-                    <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-sm">
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-sm font-medium opacity-90">Total Items</p>
-                                <p className="text-3xl font-bold mt-2">{stats.totalItems}</p>
-                            </div>
-                            <div className="p-3 bg-white bg-opacity-20 rounded-lg">
-                                <Package className="w-8 h-8" />
+                            <div className="mt-4 h-1 w-full bg-blue-50 dark:bg-blue-900/30 rounded-full overflow-hidden">
+                                <div className="h-full bg-blue-500 w-3/4 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Total Sales */}
-                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-sm">
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-sm font-medium opacity-90">Total Sales</p>
-                                <p className="text-3xl font-bold mt-2 rupee">
-                                    {formatINR(stats.totalSales)}
-                                </p>
+                    {/* Total Items (Green) */}
+                    <div className="bg-emerald-50/40 dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black rounded-2xl p-6 border-4 border-emerald-200 dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_20px_rgba(16,185,129,0.15)] relative overflow-hidden group transition-all duration-300">
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
+                        <div className="relative z-10 w-full">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-emerald-800/60 dark:text-emerald-200 uppercase tracking-widest">Total Items</p>
+                                    <p className="text-3xl lg:text-4xl font-bold mt-2 text-emerald-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-emerald-100 dark:via-emerald-300 dark:to-emerald-500 font-mono">
+                                        {stats.totalItems}
+                                    </p>
+                                </div>
+                                <div className="p-3 bg-white/80 dark:bg-emerald-500/20 rounded-xl border border-emerald-100 dark:border-emerald-500/30 text-emerald-500 dark:text-emerald-300 group-hover:text-white group-hover:bg-emerald-600 dark:group-hover:bg-emerald-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                                    <Package className="w-6 h-6" />
+                                </div>
                             </div>
-                            <div className="p-3 bg-white bg-opacity-20 rounded-lg">
-                                <TrendingUp className="w-8 h-8" />
+                            <div className="mt-4 h-1 w-full bg-emerald-50 dark:bg-emerald-900/30 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-500 w-1/2 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Total Invoices */}
-                    <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white shadow-sm">
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-sm font-medium opacity-90">Total Invoices</p>
-                                <p className="text-3xl font-bold mt-2">{stats.totalInvoices}</p>
+                    {/* Total Invoices (Orange) */}
+                    <div className="bg-orange-50/40 dark:bg-gradient-to-br dark:from-orange-950 dark:via-black dark:to-black rounded-2xl p-6 border-4 border-orange-200 dark:border-orange-500/30 shadow-sm dark:shadow-[0_0_20px_rgba(249,115,22,0.15)] relative overflow-hidden group transition-all duration-300">
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
+                        <div className="relative z-10 w-full">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-orange-800/60 dark:text-orange-200 uppercase tracking-widest">Total Invoices</p>
+                                    <p className="text-3xl lg:text-4xl font-bold mt-2 text-orange-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-orange-100 dark:via-orange-300 dark:to-orange-500 font-mono">
+                                        {stats.totalInvoices}
+                                    </p>
+                                </div>
+                                <div className="p-3 bg-white/80 dark:bg-orange-500/20 rounded-xl border border-orange-100 dark:border-orange-500/30 text-orange-500 dark:text-orange-300 group-hover:text-white group-hover:bg-orange-600 dark:group-hover:bg-orange-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+                                    <FileText className="w-6 h-6" />
+                                </div>
                             </div>
-                            <div className="p-3 bg-white bg-opacity-20 rounded-lg">
-                                <FileText className="w-8 h-8" />
+                            <div className="mt-4 h-1 w-full bg-orange-50 dark:bg-orange-900/30 rounded-full overflow-hidden">
+                                <div className="h-full bg-orange-500 w-2/3 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.5)]"></div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Total Sales (Indigo) */}
+                    <div className="bg-indigo-50/40 dark:bg-gradient-to-br dark:from-indigo-950 dark:via-black dark:to-black rounded-2xl p-6 border-4 border-indigo-200 dark:border-indigo-500/30 shadow-sm dark:shadow-[0_0_20px_rgba(99,102,241,0.15)] relative overflow-hidden group transition-all duration-300">
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
+                        <div className="relative z-10">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-sm font-bold text-indigo-800/60 dark:text-indigo-200 uppercase tracking-widest">Total Sales</p>
+                                    <p className="text-3xl lg:text-4xl font-bold mt-2 text-indigo-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-indigo-100 dark:via-indigo-300 dark:to-indigo-500 rupee font-mono">
+                                        {formatINR(stats.totalSales)}
+                                    </p>
+                                </div>
+                                <div className="p-3 bg-white/80 dark:bg-indigo-500/20 rounded-xl border border-indigo-100 dark:border-indigo-500/30 text-indigo-500 dark:text-indigo-300 group-hover:text-white group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                                    <TrendingUp className="w-6 h-6" />
+                                </div>
+                            </div>
+                            {(() => {
+                                const growth = stats.yesterdaySales > 0
+                                    ? ((stats.todaySales - stats.yesterdaySales) / stats.yesterdaySales) * 100
+                                    : (stats.todaySales > 0 ? 100 : 0);
+                                const isPositive = growth >= 0;
+
+                                return (
+                                    <div className="mt-6 flex items-center text-xs">
+                                        <span className={`${isPositive ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'} px-2 py-1 rounded mr-2 font-bold`}>
+                                            {isPositive ? '+' : ''}{growth.toFixed(1)}%
+                                        </span>
+                                        <span className="font-bold uppercase tracking-tight text-indigo-600 dark:text-indigo-400">
+                                            {isPositive ? 'Growth vs Yesterday' : 'Decrease vs Yesterday'}
+                                        </span>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
 
                 {/* Today's Collection Breakdown */}
-                <div className="mb-6">
-                    <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4 flex items-center">
-                        <span className="mr-2">📊</span> Today's Collection Breakdown
+                <div className="mb-8">
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+                        <span className="w-1 h-6 bg-brand-500 rounded-full mr-3"></span>
+                        Today's Overview
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {/* Cash Collection */}
-                        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-900/10 rounded-lg p-4 border border-emerald-200 dark:border-emerald-800">
-                            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">💵 Cash Collection</p>
-                            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-300 mt-2 rupee">
-                                {formatINR(stats.cashCollection)}
-                            </p>
+                        {/* Cash Collection (Green) */}
+                        <div className="bg-gradient-to-r from-emerald-50 via-white to-white dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black rounded-xl p-5 border-4 border-emerald-200 dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_15px_rgba(16,185,129,0.15)] relative overflow-hidden group transition-all duration-300">
+                            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
+                            <div className="relative z-10">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <p className="text-xs font-bold text-emerald-800/60 dark:text-emerald-200 uppercase tracking-wider">Cash In Hand</p>
+                                        <p className="text-2xl font-bold text-emerald-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-emerald-100 dark:via-emerald-300 dark:to-emerald-500 mt-1 rupee font-mono">
+                                            {formatINR(stats.cashCollection)}
+                                        </p>
+                                    </div>
+                                    <div className="p-2 bg-white/80 dark:bg-emerald-500/20 rounded-lg border border-emerald-100 dark:border-emerald-500/30 text-emerald-500 dark:text-emerald-300 group-hover:text-white group-hover:bg-emerald-600 dark:group-hover:bg-emerald-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                                        <Wallet className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <div className="mt-4 absolute bottom-0 left-0 w-full h-1 bg-emerald-200/30 dark:bg-emerald-500/10">
+                                    <div className="h-full bg-emerald-500/50 w-2/3 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Online (UPI) */}
-                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                            <p className="text-sm font-medium text-blue-700 dark:text-blue-400">💳 Online(UPI)</p>
-                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-300 mt-2 rupee">
-                                {formatINR(stats.onlineCollection)}
-                            </p>
+                        {/* Online (UPI) (Yellow) */}
+                        <div className="bg-gradient-to-r from-amber-50 via-white to-white dark:bg-gradient-to-br dark:from-yellow-950 dark:via-black dark:to-black rounded-xl p-5 border-4 border-amber-200 dark:border-yellow-500/30 shadow-sm dark:shadow-[0_0_15px_rgba(234,179,8,0.15)] relative overflow-hidden group transition-all duration-300">
+                            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
+                            <div className="relative z-10">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <p className="text-xs font-bold text-amber-800/60 dark:text-yellow-200 uppercase tracking-wider">Online (UPI)</p>
+                                        <p className="text-2xl font-bold text-amber-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-yellow-100 dark:via-yellow-300 dark:to-yellow-500 mt-1 rupee font-mono">
+                                            {formatINR(stats.onlineCollection)}
+                                        </p>
+                                    </div>
+                                    <div className="p-2 bg-white/80 dark:bg-yellow-500/20 rounded-lg border border-amber-100 dark:border-yellow-500/30 text-amber-600 dark:text-yellow-300 group-hover:text-white group-hover:bg-yellow-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_10px_rgba(234,179,8,0.3)]">
+                                        <CreditCard className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <div className="mt-4 absolute bottom-0 left-0 w-full h-1 bg-amber-200/30 dark:bg-yellow-50 dark:bg-yellow-500/10">
+                                    <div className="h-full bg-yellow-500/50 w-3/4 shadow-[0_0_10px_rgba(234,179,8,0.5)]"></div>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Total Sale */}
-                        <div className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-900/10 rounded-lg p-4 border border-pink-200 dark:border-pink-800">
-                            <p className="text-sm font-medium text-pink-700 dark:text-pink-400">📈 Total Sale</p>
-                            <p className="text-2xl font-bold text-pink-600 dark:text-pink-300 mt-2 rupee">
-                                {formatINR(stats.todaySales)}
-                            </p>
+                        {/* Total Sale (Indigo) */}
+                        <div className="bg-gradient-to-r from-indigo-50 via-white to-white dark:bg-gradient-to-br dark:from-indigo-950 dark:via-black dark:to-black rounded-xl p-5 border-4 border-indigo-200 dark:border-indigo-500/30 shadow-sm dark:shadow-[0_0_15px_rgba(99,102,241,0.15)] relative overflow-hidden group transition-all duration-300">
+                            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
+                            <div className="relative z-10">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <p className="text-xs font-bold text-indigo-800/60 dark:text-indigo-200 uppercase tracking-wider">Total Sales Today</p>
+                                        <p className="text-2xl font-bold text-indigo-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-indigo-100 dark:via-indigo-300 dark:to-indigo-500 mt-1 rupee font-mono">
+                                            {formatINR(stats.todaySales)}
+                                        </p>
+                                    </div>
+                                    <div className="p-2 bg-white/80 dark:bg-indigo-500/20 rounded-lg border border-indigo-100 dark:border-indigo-500/30 text-indigo-500 dark:text-indigo-300 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300 shadow-sm dark:shadow-[0_0_10px_rgba(99,102,241,0.3)]">
+                                        <ShoppingCart className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <div className="mt-4 absolute bottom-0 left-0 w-full h-1 bg-indigo-200/30 dark:bg-indigo-50 dark:bg-indigo-500/10">
+                                    <div className="h-full bg-indigo-500/50 w-1/2 shadow-[0_0_10px_rgba(99,102,241,0.3)]"></div>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Credit (Udhaar) */}
-                        <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-900/10 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
-                            <p className="text-sm font-medium text-amber-700 dark:text-amber-400">💰 Credit (Udhaar)</p>
-                            <p className="text-2xl font-bold text-amber-600 dark:text-amber-300 mt-2 rupee">
-                                {formatINR(stats.creditUdhaar)}
-                            </p>
+                        {/* Credit (Udhaar) (Red) */}
+                        <div className="bg-gradient-to-r from-red-50 via-white to-white dark:bg-gradient-to-br dark:from-red-950 dark:via-black dark:to-black rounded-xl p-5 border-4 border-red-200 dark:border-red-500/30 shadow-sm dark:shadow-[0_0_15px_rgba(239,68,68,0.15)] relative overflow-hidden group transition-all duration-300">
+                            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
+                            <div className="relative z-10">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <p className="text-xs font-bold text-red-800/60 dark:text-red-200 uppercase tracking-wider">Pending (Udhaar)</p>
+                                        <p className="text-2xl font-bold text-red-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-red-100 dark:via-red-300 dark:to-red-500 mt-1 rupee font-mono">
+                                            {formatINR(stats.totalReceivables)}
+                                        </p>
+                                    </div>
+                                    <div className="p-2 bg-white/80 dark:bg-red-500/20 rounded-lg border border-red-100 dark:border-red-500/30 text-red-500 dark:text-red-300 group-hover:text-white group-hover:bg-red-600 dark:group-hover:bg-red-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_10px_rgba(239,68,68,0.5)]">
+                                        <AlertCircle className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <div className="mt-4 absolute bottom-0 left-0 w-full h-1 bg-red-200/30 dark:bg-red-50 dark:bg-red-500/10">
+                                    <div className="h-full bg-red-500/50 w-4/5 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Stock Value and Potential Profit */}
+                {/* Stock Widgets */}
                 {!isClientView && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                        {/* Total Stock Value */}
-                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-lg font-semibold">Total Stock Value</h3>
-                                <Wallet className="w-6 h-6 opacity-80" />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        {/* Stock Value Widget */}
+                        <div className="bg-sky-50/40 dark:bg-gradient-to-br dark:from-sky-950 dark:via-black dark:to-black p-6 rounded-2xl border-4 border-sky-200 dark:border-sky-500/30 shadow-sm relative overflow-hidden group transition-all duration-300">
+                            <div className="absolute -right-10 -top-10 w-40 h-40 bg-sky-500/10 rounded-full blur-3xl"></div>
+                            <h3 className="text-sky-800/60 dark:text-sky-400 text-sm font-bold uppercase tracking-wider relative z-10">Total Stock Value</h3>
+                            <div className="mt-4 flex items-baseline relative z-10">
+                                <span className="text-4xl font-bold text-sky-600 dark:text-white rupee font-mono">{formatINR(stats.totalStockValue)}</span>
+                                <span className="ml-2 text-sm text-sky-600 dark:text-sky-400 font-medium opacity-60">asset value</span>
                             </div>
-                            <p className="text-xs opacity-80 mb-4">In current inventory</p>
-                            <p className="text-4xl font-bold rupee">{formatINR(stats.totalStockValue)}</p>
+                            {/* Progress Bar (Visual only) */}
+                            <div className="mt-6 flex space-x-1">
+                                {[...Array(10)].map((_, i) => (
+                                    <div key={i} className={`h-2 flex-1 rounded-full ${i < 7 ? 'bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.4)]' : 'bg-sky-200/30 dark:bg-white/5'}`}></div>
+                                ))}
+                            </div>
                         </div>
 
-                        {/* Potential Profit */}
-                        <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-lg font-semibold">Potential Profit</h3>
-                                <TrendingUp className="w-6 h-6 opacity-80" />
+                        {/* Profit Widget */}
+                        <div className="bg-emerald-50/40 dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black p-6 rounded-2xl border-4 border-emerald-200 dark:border-emerald-500/30 shadow-sm relative overflow-hidden group transition-all duration-300">
+                            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl"></div>
+                            <h3 className="text-emerald-800/60 dark:text-emerald-400 text-sm font-bold uppercase tracking-wider relative z-10">Projected Profit</h3>
+                            <div className="mt-4 flex items-baseline relative z-10">
+                                <span className="text-4xl font-bold text-emerald-600 dark:text-white rupee font-mono">{formatINR(stats.potentialProfit)}</span>
+                                <span className="ml-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium opacity-60">gross margin</span>
                             </div>
-                            <p className="text-xs opacity-80 mb-4">On current inventory</p>
-                            <p className="text-4xl font-bold rupee">{formatINR(stats.potentialProfit)}</p>
+                            {/* Glow Line */}
+                            <div className="mt-6 flex items-center justify-between text-xs">
+                                <span className="text-emerald-800/60 dark:text-gray-400 uppercase tracking-tighter font-bold">Profit Efficiency</span>
+                                <span className="text-emerald-600 dark:text-emerald-400 font-bold">84%</span>
+                            </div>
+                            <div className="mt-2 h-1 bg-emerald-200/30 dark:bg-emerald-900/30 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-500 w-[84%] rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -274,41 +332,60 @@ const Dashboard = () => {
                 {/* Recent Invoices and Low Stock Items */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Recent Invoices */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Recent Invoices</h2>
+                    <div className="bg-white dark:bg-black/40 backdrop-blur-xl rounded-2xl border-4 border-gray-200 dark:border-white/10 shadow-sm overflow-hidden transition-all duration-300">
+                        <div className="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-violet-50/30 dark:bg-violet-950/10">
+                            <div className="flex items-center space-x-3">
+                                <div className="p-2 bg-violet-500/10 rounded-lg">
+                                    <TrendingUp className="w-5 h-5 text-violet-500" />
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Live Transactions</h2>
+                            </div>
                             <button
                                 onClick={() => navigate('/invoices')}
-                                className="text-sm text-blue-500 hover:text-blue-600 font-medium"
+                                className="text-xs font-bold text-violet-600 dark:text-violet-400 hover:text-violet-500 uppercase tracking-widest border border-violet-500/20 px-4 py-2 rounded-lg hover:bg-violet-500/10 transition-all duration-300"
                             >
                                 View All
                             </button>
                         </div>
-                        <div className="p-6">
+                        <div className="p-4">
                             {recentInvoices.length === 0 ? (
-                                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                                    <p>No invoices yet</p>
+                                <div className="text-center py-20 text-gray-400 dark:text-gray-500 relative group">
+                                    <div className="relative inline-block mb-6">
+                                        <div className="absolute inset-0 bg-violet-500/20 blur-2xl rounded-full scale-150 group-hover:bg-violet-500/30 transition-all duration-700"></div>
+                                        <div className="relative z-10 w-24 h-24 bg-white dark:bg-violet-950/20 rounded-full flex items-center justify-center border border-violet-100 dark:border-violet-500/20 shadow-lg group-hover:scale-110 transition-transform duration-500">
+                                            <History className="w-12 h-12 text-violet-500/40 group-hover:text-violet-500 transition-colors duration-500" />
+                                        </div>
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">System Ready</h3>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-2">Waiting for new transactions</p>
                                 </div>
                             ) : (
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                     {recentInvoices.map((invoice) => (
                                         <div
                                             key={invoice._id}
-                                            className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                                            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 hover:bg-white dark:hover:bg-violet-500/5 rounded-xl transition-all duration-300 cursor-pointer border border-transparent hover:border-violet-500/20 hover:shadow-md group"
                                             onClick={() => navigate(`/invoices`)}
                                         >
-                                            <div>
-                                                <p className="font-semibold text-gray-900 dark:text-white">{invoice.invoiceNo}</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                    {invoice.customer?.name || 'Walk-in'}
-                                                </p>
+                                            <div className="flex items-center space-x-4">
+                                                <div className="w-12 h-12 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-center text-gray-400 group-hover:text-violet-500 transition-colors shadow-sm">
+                                                    <FileText className="w-6 h-6" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-gray-900 dark:text-white font-mono text-sm tracking-tight">{invoice.invoiceNo}</p>
+                                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                                        {invoice.customer?.name || 'Walk-in Customer'}
+                                                    </p>
+                                                </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className="font-bold text-gray-900 dark:text-white rupee text-sm">
+                                                <p className="font-black text-gray-900 dark:text-white rupee text-base font-mono tracking-tighter">
                                                     {formatINR(invoice.grandTotal)}
                                                 </p>
-                                                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(invoice.status)}`}>
+                                                <span className={`mt-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${invoice.status === 'Paid' ? 'border-emerald-500/20 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' :
+                                                    invoice.status === 'Partial' ? 'border-amber-500/20 text-amber-600 dark:text-amber-400 bg-amber-500/10' :
+                                                        'border-red-500/20 text-red-600 dark:text-red-400 bg-red-500/10'
+                                                    }`}>
                                                     {invoice.status}
                                                 </span>
                                             </div>
@@ -320,45 +397,59 @@ const Dashboard = () => {
                     </div>
 
                     {/* Low Stock Items */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-                                <AlertCircle className="w-5 h-5 mr-2 text-orange-500" />
-                                Low Stock Items
-                            </h2>
+                    <div className="bg-white dark:bg-black/40 backdrop-blur-xl rounded-2xl border-4 border-gray-200 dark:border-white/10 shadow-sm overflow-hidden transition-all duration-300">
+                        <div className="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-red-50/20 dark:bg-red-950/20">
+                            <div className="flex items-center space-x-3">
+                                <div className={`p-2 rounded-lg ${lowStockProducts.length > 0 ? 'bg-red-500/20 text-red-500 animate-pulse' : 'bg-emerald-500/20 text-emerald-500'}`}>
+                                    <AlertCircle className="w-5 h-5" />
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Stock Alerts</h2>
+                            </div>
+                            {lowStockProducts.length > 0 && (
+                                <span className="bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded-full animate-bounce">
+                                    {lowStockProducts.length} CRITICAL
+                                </span>
+                            )}
                         </div>
-                        <div className="p-6">
+                        <div className="p-4">
                             {lowStockProducts.length === 0 ? (
-                                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                                    <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                                    <p className="text-green-600 dark:text-green-400 font-medium">All items are well stocked!</p>
+                                <div className="py-12 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl border border-emerald-100 dark:border-emerald-500/10 flex flex-col items-center justify-center relative overflow-hidden group">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                                    <div className="relative z-10 w-20 h-20 bg-white dark:bg-emerald-500/20 rounded-full flex items-center justify-center shadow-lg border border-emerald-100 dark:border-emerald-500/30 mb-4 transition-transform duration-500 group-hover:scale-110">
+                                        <Package className="w-10 h-10 text-emerald-500" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-emerald-700 dark:text-emerald-400 tracking-tight relative z-10">All Systems Optimal</h3>
+                                    <p className="text-emerald-600/60 dark:text-emerald-400/40 text-xs mt-1 font-medium uppercase tracking-widest relative z-10">Inventory secure</p>
                                 </div>
                             ) : (
-                                <div className="space-y-3">
-                                    <p className="text-xs text-orange-600 dark:text-orange-400 mb-3">Items below minimum stock level</p>
+                                <div className="space-y-2">
                                     {lowStockProducts.map((product) => (
                                         <div
                                             key={product._id}
-                                            className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/10 rounded-lg border border-orange-200 dark:border-orange-900/30"
+                                            className="flex items-center justify-between p-4 bg-red-50/30 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl border border-transparent hover:border-red-500/20 transition-all duration-300 group"
                                         >
-                                            <div className="flex items-center space-x-3">
-                                                {product.image && (
+                                            <div className="flex items-center space-x-4">
+                                                {product.image ? (
                                                     <img
                                                         src={product.image}
                                                         alt={product.name}
-                                                        className="w-10 h-10 rounded object-cover"
+                                                        className="w-12 h-12 rounded-xl bg-gray-900 object-cover shadow-sm group-hover:scale-110 transition-transform duration-300"
                                                     />
+                                                ) : (
+                                                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-white/10 flex items-center justify-center shadow-sm">
+                                                        <Package className="w-6 h-6 text-red-500/50" />
+                                                    </div>
                                                 )}
                                                 <div>
-                                                    <p className="font-medium text-gray-900 dark:text-white text-sm">{product.name}</p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{product.category}</p>
+                                                    <p className="font-bold text-gray-900 dark:text-white text-sm tracking-tight">{product.name}</p>
+                                                    <p className="text-[10px] font-bold text-red-500/60 dark:text-red-400/40 uppercase tracking-widest">{product.category}</p>
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                                                <p className="text-xl font-black text-red-600 dark:text-red-500 font-mono tracking-tighter">
                                                     {product.stock}
                                                 </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">in stock</p>
+                                                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tighter">remaining</p>
                                             </div>
                                         </div>
                                     ))}

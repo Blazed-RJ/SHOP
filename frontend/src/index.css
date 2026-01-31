@@ -2,44 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    font-family: 'Inter', sans-serif;
+  }
+}
+
 body {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.3s, color 0.3s;
 }
 
-:root,
-[data-theme='light'] {
-  --brand-color: #3b82f6;
+:root {
+  /* Common Brand Colors - Gold/Copper */
+  --brand-color: #D4AF37;
+  /* Metallic Gold */
+  --brand-secondary: #B8860B;
+  /* Dark Goldenrod */
+  --brand-glow: rgba(212, 175, 55, 0.5);
 
-  /* Light Theme */
+  /* Light Theme (Preserved but muted) */
   --bg-primary: #ffffff;
   --bg-secondary: #f9fafb;
-  /* gray-50 */
   --bg-tertiary: #f3f4f6;
-  /* gray-100 */
   --text-primary: #111827;
-  /* gray-900 */
   --text-secondary: #4b5563;
-  /* gray-600 */
   --border-color: #e5e7eb;
-  /* gray-200 */
 }
 
 [data-theme='dark'] {
-  /* Dark Theme */
-  --bg-primary: #1f2937;
-  /* gray-800 */
-  --bg-secondary: #111827;
-  /* gray-900 */
-  --bg-tertiary: #374151;
-  /* gray-700 */
-  --text-primary: #f9fafb;
-  /* gray-50 */
-  --text-secondary: #9ca3af;
-  /* gray-400 */
-  --border-color: #374151;
-  /* gray-700 */
+  /* High-Contrast Premium Dark Theme */
+  --bg-primary: #050505;
+  /* Deepest Black */
+  --bg-secondary: #121212;
+  /* Material Dark */
+  --bg-tertiary: #1E1E1E;
+  /* Card Background */
+
+  --text-primary: #EAEAEA;
+  /* Off-white for readability */
+  --text-secondary: #A0A0A0;
+  /* Muted sliver */
+
+  --border-color: #333333;
+  /* Dark Gray Border */
+  --border-highlight: #D4AF37;
+  /* Gold Border for accents */
 }
 
 /* Glassmorphism utilities */
@@ -50,9 +59,18 @@ body {
 }
 
 .glass-dark {
-  background: rgba(31, 41, 55, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 18, 18, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Premium Gold Gradient Text */
+.text-gradient-gold {
+  background: linear-gradient(135deg, #D4AF37 0%, #F7E7CE 50%, #B8860B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Number alignment */
@@ -65,26 +83,26 @@ body {
 * {
   transition-property: background-color, border-color, color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+  transition-duration: 200ms;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--bg-primary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
+  background: #333;
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--brand-secondary);
 }
 
 /* Print styles for invoices */

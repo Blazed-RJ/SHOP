@@ -11,34 +11,45 @@ export default {
         extend: {
             colors: {
                 brand: {
-                    50: 'rgba(var(--brand-color-rgb, 59, 130, 246), 0.05)',
-                    100: 'rgba(var(--brand-color-rgb, 59, 130, 246), 0.1)',
-                    200: 'rgba(var(--brand-color-rgb, 59, 130, 246), 0.2)',
-                    300: 'rgba(var(--brand-color-rgb, 59, 130, 246), 0.3)',
-                    400: 'rgba(var(--brand-color-rgb, 59, 130, 246), 0.6)',
-                    500: 'var(--brand-color, #3b82f6)',
-                    600: 'var(--brand-color, #2563eb)',
-                    700: 'var(--brand-color, #1d4ed8)',
-                    800: 'var(--brand-color, #1e40af)',
-                    900: 'var(--brand-color, #1e3a8a)',
+                    50: '#F9F4E0',
+                    100: '#F0E6C2',
+                    200: '#E1CC87',
+                    300: '#D2B24C',
+                    400: '#C39A20', // Gold/Copper
+                    500: 'var(--brand-color, #D4AF37)', // Primary Gold
+                    600: 'var(--brand-secondary, #B8860B)', // Dark Goldenrod
+                    700: '#8A6508',
+                    800: '#5C4305',
+                    900: '#2E2202',
+                    glow: 'var(--brand-glow)',
                 },
-                // Build dynamic theme system by overriding blue
+                // Override blue to be gold/copper for instant theme switch
                 blue: {
-                    50: 'rgba(var(--theme-color-rgb, 37, 99, 235), 0.05)',
-                    100: 'rgba(var(--theme-color-rgb, 37, 99, 235), 0.1)',
-                    200: 'rgba(var(--theme-color-rgb, 37, 99, 235), 0.2)',
-                    300: 'rgba(var(--theme-color-rgb, 37, 99, 235), 0.3)',
-                    400: 'rgba(var(--theme-color-rgb, 37, 99, 235), 0.6)',
-                    500: 'var(--theme-color, #3b82f6)',
-                    600: 'var(--theme-color, #2563eb)',
-                    700: 'var(--theme-color, #1d4ed8)',
-                    800: 'var(--theme-color, #1e40af)',
-                    900: 'var(--theme-color, #1e3a8a)',
+                    50: '#F9F4E0',
+                    100: '#F0E6C2',
+                    200: '#E1CC87',
+                    300: '#D2B24C',
+                    400: '#C39A20',
+                    500: 'var(--brand-color, #D4AF37)',
+                    600: 'var(--brand-secondary, #B8860B)',
+                    700: '#8A6508',
+                    800: '#5C4305',
+                    900: '#2E2202',
                 },
+                gray: {
+                    850: '#1A1A1A',
+                    900: '#121212', // Material Dark
+                    950: '#050505', // Deep Black
+                }
             },
             fontFamily: {
-                mono: ['Courier New', 'monospace'], // For numbers/prices
+                sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+                mono: ['Courier New', 'monospace'],
             },
+            boxShadow: {
+                'gold': '0 4px 14px 0 rgba(212, 175, 55, 0.39)',
+                'gold-lg': '0 10px 30px -3px rgba(212, 175, 55, 0.4)',
+            }
         },
     },
     plugins: [

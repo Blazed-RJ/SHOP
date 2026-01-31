@@ -19,7 +19,8 @@ const protect = async (req, res, next) => {
                     _id: '64e622f46258907f1418b765',
                     name: 'Demo Admin',
                     username: 'demo',
-                    role: 'Admin'
+                    role: 'Admin',
+                    ownerId: '64e622f46258907f1418b765'
                 };
                 return next();
             }
@@ -30,23 +31,26 @@ const protect = async (req, res, next) => {
             // Get user from the token
             req.user = await User.findById(decoded.id).select('-password');
 
+            if (!req.user) {
+                console.error(`AUTH ERROR: User not found for ID ${decoded.id}`);
+                return res.status(401).json({ message: 'Not authorized, user not found' });
+            }
+
             // TEAM LOGIC: Ensure ownerId is set.
             // If legacy user or Admin/Owner without explicit ownerId, default to self.
-            if (req.user && !req.user.ownerId) {
+            if (!req.user.ownerId) {
                 req.user.ownerId = req.user._id;
             }
 
             next();
         } catch (error) {
-            console.error(error);
-            res.status(401);
-            throw new Error('Not authorized, token failed');
+            console.error('AUTH ERROR:', error.message);
+            return res.status(401).json({ message: 'Not authorized, token failed' });
         }
     }
 
     if (!token) {
-        res.status(401);
-        throw new Error('Not authorized, no token');
+        return res.status(401).json({ message: 'Not authorized, no token' });
     }
 };
 

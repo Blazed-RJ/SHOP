@@ -117,59 +117,88 @@ const Daybook = () => {
                 ) : (
                     <>
                         {/* Summary Cards - Kept vibrant but could add dark shadows/borders if needed */}
+                        {/* Summary Cards - Premium Dashboard Style */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                            <div className="bg-blue-500 rounded-xl p-6 text-white shadow-sm">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium opacity-90">Opening Balance</p>
-                                        <p className="text-2xl font-bold mt-2 rupee">
-                                            {formatINR(daybookData?.openingBalance || 0)}
-                                        </p>
+                            {/* Opening Balance (Blue) */}
+                            <div className="bg-gradient-to-r from-blue-50 via-white to-white dark:bg-gradient-to-br dark:from-blue-950 dark:via-black dark:to-black rounded-2xl p-6 border-4 border-blue-200 dark:border-blue-500/30 shadow-sm dark:shadow-[0_0_20px_rgba(59,130,246,0.15)] relative overflow-hidden group transition-all duration-300">
+                                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
+                                <div className="relative z-10 w-full">
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-blue-800/60 dark:text-blue-200 uppercase tracking-widest">Opening Balance</p>
+                                            <p className="text-2xl lg:text-3xl font-bold mt-2 text-blue-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-blue-100 dark:via-blue-300 dark:to-blue-500 font-mono">
+                                                {formatINR(daybookData?.openingBalance || 0)}
+                                            </p>
+                                        </div>
+                                        <div className="p-3 bg-white/80 dark:bg-blue-500/20 rounded-xl border border-blue-100 dark:border-blue-500/30 text-blue-500 dark:text-blue-300 group-hover:text-white group-hover:bg-blue-600 dark:group-hover:bg-blue-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                                            <IndianRupee className="w-6 h-6" />
+                                        </div>
                                     </div>
-                                    <div className="p-3 bg-white bg-opacity-20 rounded-lg">
-                                        <IndianRupee className="w-6 h-6" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-green-500 rounded-xl p-6 text-white shadow-sm">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium opacity-90">Total Cash In</p>
-                                        <p className="text-2xl font-bold mt-2 rupee">
-                                            {formatINR(getTotalCashIn())}
-                                        </p>
-                                    </div>
-                                    <div className="p-3 bg-white bg-opacity-20 rounded-lg">
-                                        <ArrowDownCircle className="w-6 h-6" />
+                                    <div className="mt-4 h-1 w-full bg-blue-50 dark:bg-blue-900/30 rounded-full overflow-hidden">
+                                        <div className="h-full bg-blue-500 w-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-red-500 rounded-xl p-6 text-white shadow-sm">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium opacity-90">Total Cash Out</p>
-                                        <p className="text-2xl font-bold mt-2 rupee">
-                                            {formatINR(getTotalCashOut())}
-                                        </p>
+                            {/* Total Cash In (Green) */}
+                            <div className="bg-gradient-to-r from-emerald-50 via-white to-white dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black rounded-2xl p-6 border-4 border-emerald-200 dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_20px_rgba(16,185,129,0.15)] relative overflow-hidden group transition-all duration-300">
+                                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
+                                <div className="relative z-10 w-full">
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-emerald-800/60 dark:text-emerald-200 uppercase tracking-widest">Total Cash In</p>
+                                            <p className="text-2xl lg:text-3xl font-bold mt-2 text-emerald-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-emerald-100 dark:via-emerald-300 dark:to-emerald-500 font-mono">
+                                                {formatINR(getTotalCashIn())}
+                                            </p>
+                                        </div>
+                                        <div className="p-3 bg-white/80 dark:bg-emerald-500/20 rounded-xl border border-emerald-100 dark:border-emerald-500/30 text-emerald-500 dark:text-emerald-300 group-hover:text-white group-hover:bg-emerald-600 dark:group-hover:bg-emerald-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                                            <ArrowDownCircle className="w-6 h-6" />
+                                        </div>
                                     </div>
-                                    <div className="p-3 bg-white bg-opacity-20 rounded-lg">
-                                        <ArrowUpCircle className="w-6 h-6" />
+                                    <div className="mt-4 h-1 w-full bg-emerald-50 dark:bg-emerald-900/30 rounded-full overflow-hidden">
+                                        <div className="h-full bg-emerald-500 w-3/4 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-purple-500 rounded-xl p-6 text-white shadow-sm">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium opacity-90">Closing Balance</p>
-                                        <p className="text-2xl font-bold mt-2 rupee">
-                                            {formatINR(getClosingBalance())}
-                                        </p>
+                            {/* Total Cash Out (Red) */}
+                            <div className="bg-gradient-to-r from-red-50 via-white to-white dark:bg-gradient-to-br dark:from-red-950 dark:via-black dark:to-black rounded-2xl p-6 border-4 border-red-200 dark:border-red-500/30 shadow-sm dark:shadow-[0_0_20px_rgba(239,68,68,0.15)] relative overflow-hidden group transition-all duration-300">
+                                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
+                                <div className="relative z-10 w-full">
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-red-800/60 dark:text-red-200 uppercase tracking-widest">Total Cash Out</p>
+                                            <p className="text-2xl lg:text-3xl font-bold mt-2 text-red-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-red-100 dark:via-red-300 dark:to-red-500 font-mono">
+                                                {formatINR(getTotalCashOut())}
+                                            </p>
+                                        </div>
+                                        <div className="p-3 bg-white/80 dark:bg-red-500/20 rounded-xl border border-red-100 dark:border-red-500/30 text-red-500 dark:text-red-300 group-hover:text-white group-hover:bg-red-600 dark:group-hover:bg-red-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                                            <ArrowUpCircle className="w-6 h-6" />
+                                        </div>
                                     </div>
-                                    <div className="p-3 bg-white bg-opacity-20 rounded-lg">
-                                        <TrendingUp className="w-6 h-6" />
+                                    <div className="mt-4 h-1 w-full bg-red-50 dark:bg-red-900/30 rounded-full overflow-hidden">
+                                        <div className="h-full bg-red-500 w-3/4 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Closing Balance (Purple) */}
+                            <div className="bg-gradient-to-r from-purple-50 via-white to-white dark:bg-gradient-to-br dark:from-purple-950 dark:via-black dark:to-black rounded-2xl p-6 border-4 border-purple-200 dark:border-purple-500/30 shadow-sm dark:shadow-[0_0_20px_rgba(168,85,247,0.15)] relative overflow-hidden group transition-all duration-300">
+                                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
+                                <div className="relative z-10 w-full">
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-purple-800/60 dark:text-purple-200 uppercase tracking-widest">Closing Balance</p>
+                                            <p className="text-2xl lg:text-3xl font-bold mt-2 text-purple-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-purple-100 dark:via-purple-300 dark:to-purple-500 font-mono">
+                                                {formatINR(getClosingBalance())}
+                                            </p>
+                                        </div>
+                                        <div className="p-3 bg-white/80 dark:bg-purple-500/20 rounded-xl border border-purple-100 dark:border-purple-500/30 text-purple-500 dark:text-purple-300 group-hover:text-white group-hover:bg-purple-600 dark:group-hover:bg-purple-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                                            <TrendingUp className="w-6 h-6" />
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 h-1 w-full bg-purple-50 dark:bg-purple-900/30 rounded-full overflow-hidden">
+                                        <div className="h-full bg-purple-500 w-full rounded-full shadow-[0_0_10px_rgba(168,85,247,0.5)]"></div>
                                     </div>
                                 </div>
                             </div>

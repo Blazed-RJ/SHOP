@@ -11,10 +11,9 @@ router.get('/', protect, async (req, res) => {
     try {
         const { parent } = req.query;
 
-        // Filter by user
-        const filter = {
-            $or: [{ user: req.user._id }, { createdBy: req.user._id }]
-        };
+        // Filter by user's shop
+        const filter = { user: req.user.ownerId };
+
         if (parent === 'null' || parent === '') {
             filter.parentCategory = null; // Top-level categories only
         } else if (parent) {
@@ -37,7 +36,7 @@ router.get('/', protect, async (req, res) => {
 // @access  Private
 router.get('/:id', protect, async (req, res) => {
     try {
-        const category = await Category.findById(req.params.id)
+        const category = await Category.findOne({ _id: req.params.id, user: req.user.ownerId })
             .populate('parentCategory', 'name');
 
         if (!category) {
@@ -45,10 +44,9 @@ router.get('/:id', protect, async (req, res) => {
         }
 
         // Get sub-categories
-        // Get sub-categories
         const subCategories = await Category.find({
             parentCategory: req.params.id,
-            $or: [{ user: req.user._id }, { createdBy: req.user._id }]
+            user: req.user.ownerId
         })
             .sort({ name: 1 });
 
@@ -66,12 +64,11 @@ router.post('/', protect, admin, async (req, res) => {
     try {
         const { name, description, parentCategory } = req.body;
 
-        // Check if category with same name exists at same level
-        // Check if category with same name exists at same level for this user
+        // Check if category with same name exists at same level for this shop
         const existingCategory = await Category.findOne({
             name,
             parentCategory: parentCategory || null,
-            $or: [{ user: req.user._id }, { createdBy: req.user._id }]
+            user: req.user.ownerId
         });
 
         if (existingCategory) {
@@ -87,7 +84,7 @@ router.post('/', protect, admin, async (req, res) => {
             description,
             parentCategory: parentCategory || null,
             createdBy: req.user._id,
-            user: req.user._id
+            user: req.user.ownerId
         });
 
         await category.save();
@@ -95,7 +92,6 @@ router.post('/', protect, admin, async (req, res) => {
         res.status(201).json(category);
     } catch (error) {
         console.error('Error creating category:', error);
-        console.error('Error stack:', error.stack);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
@@ -107,17 +103,18 @@ router.put('/:id', protect, admin, async (req, res) => {
     try {
         const { name, description, parentCategory } = req.body;
 
-        const category = await Category.findById(req.params.id);
+        const category = await Category.findOne({ _id: req.params.id, user: req.user.ownerId });
 
         if (!category) {
             return res.status(404).json({ message: 'Category not found' });
         }
 
-        // Check if new name conflicts with existing category at same level
-        if (name !== category.name) {
+        // Check if new name conflicts with existing category at same level in this shop
+        if (name && name !== category.name) {
             const existingCategory = await Category.findOne({
                 name,
                 parentCategory: parentCategory !== undefined ? parentCategory : category.parentCategory,
+                user: req.user.ownerId,
                 _id: { $ne: req.params.id },
             });
 
@@ -149,39 +146,33 @@ router.put('/:id', protect, admin, async (req, res) => {
 // @access  Private (Admin)
 router.delete('/:id', protect, admin, async (req, res) => {
     try {
-        const category = await Category.findById(req.params.id);
+        const category = await Category.findOne({ _id: req.params.id, user: req.user.ownerId });
 
         if (!category) {
             return res.status(404).json({ message: 'Category not found' });
         }
 
-        // Get all sub-categories recursively
-        const getAllSubCategories = async (parentId) => {
-            const subs = await Category.find({ parentCategory: parentId });
-            let allSubs = [...subs];
+        // Helper to collect all subcategory IDs recursively
+        const getSubCategoryIds = async (parentId) => {
+            const subs = await Category.find({ parentCategory: parentId, user: req.user.ownerId });
+            let ids = subs.map(s => s._id);
 
             for (const sub of subs) {
-                const nestedSubs = await getAllSubCategories(sub._id);
-                allSubs = [...allSubs, ...nestedSubs];
+                const nestedIds = await getSubCategoryIds(sub._id);
+                ids = [...ids, ...nestedIds];
             }
-
-            return allSubs;
+            return ids;
         };
 
-        const subCategories = await getAllSubCategories(req.params.id);
+        const subCategoryIds = await getSubCategoryIds(req.params.id);
+        const allToDelete = [req.params.id, ...subCategoryIds];
 
-        // Delete all sub-categories first
-        for (const sub of subCategories) {
-            await sub.deleteOne();
-        }
-
-        // Delete the parent category
-        await category.deleteOne();
+        // Bulk delete
+        const result = await Category.deleteMany({ _id: { $in: allToDelete }, user: req.user.ownerId });
 
         res.json({
-            message: 'Category deleted successfully',
-            deletedCount: subCategories.length + 1,
-            subCategoriesDeleted: subCategories.length
+            message: 'Category and all sub-categories deleted successfully',
+            deletedCount: result.deletedCount
         });
     } catch (error) {
         console.error('Error deleting category:', error);
