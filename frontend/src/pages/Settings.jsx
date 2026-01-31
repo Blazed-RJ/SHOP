@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import Layout from '../components/Layout/Layout';
-import api from '../utils/api';
+import api, { BACKEND_URL } from '../utils/api';
 import {
     Store, CreditCard, FileText, Smartphone,
     Save, Upload, Info, X, Image, Layout as LayoutIcon, Users
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
+import SettingsInvoicePreview from '../components/Settings/SettingsInvoicePreview';
 
 const Settings = () => {
     const navigate = useNavigate();
@@ -19,6 +20,7 @@ const Settings = () => {
     const [activeTab, setActiveTab] = useState('general');
     const [staffList, setStaffList] = useState([]);
     const [newStaff, setNewStaff] = useState({ name: '', email: '', username: '', password: '' });
+    const [previewScale, setPreviewScale] = useState(0.55); // Default scale for A4 preview
 
     const [formData, setFormData] = useState({
         shopName: '',
@@ -41,7 +43,20 @@ const Settings = () => {
         footerFontSize: 12,
         footerFontFamily: 'sans-serif',
         footerAlignment: 'center',
-        invoiceFooterText: ''
+        invoiceFooterText: '',
+        invoiceTemplate: {
+            templateId: 'modern',
+            fieldVisibility: {
+                shippingAddress: false,
+                taxBreakdown: true,
+                signature: true,
+                footer: true,
+                bankDetails: true,
+                qrCode: true,
+                terms: true
+            },
+            fieldOrder: ['header', 'billTo', 'items', 'payment', 'signature', 'footer']
+        }
     });
 
     useEffect(() => {
@@ -72,7 +87,21 @@ const Settings = () => {
                 footerFontSize: currentSettings.footerFontSize || 12,
                 footerFontFamily: currentSettings.footerFontFamily || 'sans-serif',
                 footerAlignment: currentSettings.footerAlignment || 'center',
-                invoiceFooterText: currentSettings.invoiceFooterText || ''
+                invoiceFooterText: currentSettings.invoiceFooterText || '',
+                invoiceTemplate: currentSettings.invoiceTemplate || {
+                    templateId: 'modern',
+                    fieldVisibility: {
+                        shippingAddress: false,
+                        taxBreakdown: true,
+                        signature: true,
+                        footer: true,
+                        bankDetails: true,
+                        qrCode: true,
+                        qrText: true,
+                        terms: true
+                    },
+                    fieldOrder: ['header', 'billTo', 'items', 'payment', 'signature', 'footer']
+                }
             });
         }
     }, [currentSettings]);
@@ -141,14 +170,27 @@ const Settings = () => {
         }
     };
 
-    const handleRemoveFile = async (field) => {
+    const handleRemoveFile = async (field, event) => {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
         if (!window.confirm('Are you sure you want to remove this image?')) return;
 
         try {
-            await api.put('/settings', { [field]: null });
-            toast.success('Image removed successfully');
-            refreshSettings();
+            // Update via Context (handles API and Context State)
+            const result = await updateSettings({ [field]: null });
+
+            if (result.success) {
+                toast.success('Image removed successfully');
+                // Update local form state immediately to reflect change in UI
+                setFormData(prev => ({ ...prev, [field]: null }));
+            } else {
+                toast.error(result.error || 'Failed to remove image');
+            }
         } catch (error) {
+            console.error('Error removing image:', error);
             toast.error('Failed to remove image');
         }
     };
@@ -199,7 +241,7 @@ const Settings = () => {
                             className={`flex items-center space-x-2 px-8 py-4 ${loading ? 'bg-gray-400' : 'bg-slate-800 dark:bg-slate-700'} hover:bg-slate-900 text-white rounded-2xl shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group`}
                         >
                             <Save className={`${loading ? 'animate-pulse' : 'group-hover:scale-110'} w-6 h-6 transition-transform`} />
-                            <span className="font-black tracking-tight text-lg">{loading ? 'Syncing...' : 'Commit Configuration'}</span>
+                            <span className="font-black tracking-tight text-lg">{loading ? 'Syncing...' : 'Save All Changes'}</span>
                         </button>
                     </div>
                 </div>
@@ -229,7 +271,7 @@ const Settings = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
-                    {/* Left Side - Forms */}
+                    {/* Left Side - Forms - Adjusted for wider invoice tab */}
                     <div className={activeTab === 'letterheadTemplate' ? "lg:col-span-3" : "lg:col-span-2"}>
                         <form onSubmit={handleSubmit}>
                             <div className="bg-white/80 dark:bg-white/5 backdrop-blur-xl rounded-[32px] p-8 border border-white dark:border-white/5 shadow-2xl">
@@ -260,6 +302,52 @@ const Settings = () => {
                                                 className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 focus:border-slate-500 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
                                                 placeholder="e.g., Best Deals in Tech"
                                             />
+                                        </div>
+
+                                        {/* Logo Upload Section */}
+                                        <div className="p-4 bg-gradient-to-br from-slate-50 to-gray-50 dark:from-gray-800/50 dark:to-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">
+                                                Shop Logo
+                                            </label>
+                                            <div className="flex items-center space-x-4">
+                                                <div className="h-24 w-24 bg-white dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden relative group">
+                                                    {currentSettings?.logo ? (
+                                                        <>
+                                                            <img
+                                                                src={currentSettings.logo.startsWith('http') ? currentSettings.logo : `${BACKEND_URL}${currentSettings.logo}`}
+                                                                alt="Logo"
+                                                                className="h-full w-full object-contain p-2"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => handleRemoveFile('logo', e)}
+                                                                className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold"
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-gray-400 text-xs text-center p-2">No Logo</span>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <label className="cursor-pointer bg-slate-900 dark:bg-slate-700 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition shadow-lg flex items-center gap-2">
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            onChange={(e) => handleFileUpload(e, 'logo')}
+                                                        />
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                                        </svg>
+                                                        Upload Logo
+                                                    </label>
+                                                    <p className="text-[10px] text-gray-500 mt-2 max-w-[200px]">
+                                                        Recommended: PNG/JPG, square format, max 500KB.
+                                                    </p>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div>
@@ -411,275 +499,241 @@ const Settings = () => {
                                 {/* Invoice Design Tab */}
                                 {activeTab === 'invoice' && (
                                     <div className="space-y-6">
-                                        <div className="bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-400 dark:border-purple-500 p-4 rounded-lg">
-                                            <p className="text-sm text-purple-800 dark:text-purple-300">
-                                                <strong>Customize Your Invoice Design</strong>
-                                                <br />
-                                                Control colors and branding that appear on all invoices
-                                            </p>
-                                        </div>
-
-                                        {/* Brand Color */}
+                                        {/* Template Selection */}
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Brand Color (Invoice Theme)
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                                                Choose Template
                                             </label>
-                                            <div className="flex items-center space-x-3">
-                                                <input
-                                                    type="color"
-                                                    value={formData.brandColor}
-                                                    onChange={(e) => setFormData({ ...formData, brandColor: e.target.value })}
-                                                    className="w-16 h-10 rounded cursor-pointer"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={formData.brandColor}
-                                                    onChange={(e) => setFormData({ ...formData, brandColor: e.target.value })}
-                                                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg w-32 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                                />
-                                            </div>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                                Used for invoice header, table headers, and GRAND TOTAL badge
-                                            </p>
-                                            <div className="flex flex-wrap gap-2 mt-3">
-                                                <p className="text-xs text-gray-600 dark:text-gray-400 w-full">Quick picks:</p>
-                                                {colorPresets.map((color) => (
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {['modern', 'classic', 'minimal', 'custom'].map((tpl) => (
                                                     <button
-                                                        key={color}
+                                                        key={tpl}
                                                         type="button"
-                                                        onClick={() => setFormData({ ...formData, brandColor: color })}
-                                                        className="w-8 h-8 rounded border-2 border-gray-300 dark:border-gray-600 hover:border-gray-500 dark:hover:border-gray-400 transition"
-                                                        style={{ backgroundColor: color }}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Company Logo */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Company Logo
-                                            </label>
-                                            <div className="flex items-center space-x-4">
-                                                {currentSettings?.logo && (
-                                                    <img
-                                                        src={currentSettings.logo.startsWith('http') ? currentSettings.logo : `http://localhost:5000${currentSettings.logo}`}
-                                                        alt="Logo"
-                                                        className="w-16 h-16 object-contain border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
-                                                    />
-                                                )}
-                                                <label className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 cursor-pointer transition-colors">
-                                                    <Upload className="w-5 h-5" />
-                                                    <span>Upload Logo</span>
-                                                    <input
-                                                        type="file"
-                                                        onChange={(e) => handleFileUpload(e, 'logo')}
-                                                        accept="image/*"
-                                                        className="hidden"
-                                                    />
-                                                </label>
-                                                {currentSettings?.logo && (
-                                                    <button
-                                                        onClick={() => handleRemoveFile('logo')}
-                                                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-red-200 dark:border-red-800"
-                                                        title="Remove Logo"
+                                                        onClick={() => setFormData({
+                                                            ...formData,
+                                                            invoiceTemplate: { ...formData.invoiceTemplate, templateId: tpl }
+                                                        })}
+                                                        className={`p-3 rounded-xl border-2 text-left transition-all ${formData.invoiceTemplate?.templateId === tpl
+                                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-800'
+                                                            : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
+                                                            }`}
                                                     >
-                                                        <X className="w-5 h-5" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                                PNG, JPG, WEBP (max 2MB). Appears in invoice header.
-                                            </p>
-                                        </div>
-
-                                        {/* Letterhead Upload */}
-
-
-                                        {/* Primary Text Color */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Primary Text Color (for Invoice)
-                                            </label>
-                                            <div className="flex items-center space-x-3">
-                                                <input
-                                                    type="color"
-                                                    value={formData.primaryTextColor}
-                                                    onChange={(e) => setFormData({ ...formData, primaryTextColor: e.target.value })}
-                                                    className="w-16 h-10 rounded cursor-pointer"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={formData.primaryTextColor}
-                                                    onChange={(e) => setFormData({ ...formData, primaryTextColor: e.target.value })}
-                                                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg w-32 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                                />
-                                            </div>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                                Applied to invoice text elements. Choose dark colors for better readability.
-                                            </p>
-                                            <div className="flex flex-wrap gap-2 mt-3">
-                                                <p className="text-xs text-gray-600 dark:text-gray-400 w-full">Quick picks:</p>
-                                                {darkColorPresets.map((color) => (
-                                                    <button
-                                                        key={color}
-                                                        type="button"
-                                                        onClick={() => setFormData({ ...formData, primaryTextColor: color })}
-                                                        className="w-8 h-8 rounded border-2 border-gray-300 dark:border-gray-600 hover:border-gray-500 dark:hover:border-gray-400 transition"
-                                                        style={{ backgroundColor: color }}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Digital Signature */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Digital Signature / Stamp
-                                            </label>
-                                            <div className="flex items-center space-x-4">
-                                                {currentSettings?.digitalSignature ? (
-                                                    <img
-                                                        src={currentSettings.digitalSignature.startsWith('http') ? currentSettings.digitalSignature : `http://localhost:5000${currentSettings.digitalSignature}`}
-                                                        alt="Signature"
-                                                        className="w-24 h-16 object-contain border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
-                                                    />
-                                                ) : (
-                                                    <div className="w-24 h-16 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-center bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500">
-                                                        <span className="font-serif italic text-lg">Signed</span>
-                                                    </div>
-                                                )}
-                                                <label className="flex items-center space-x-2 px-6 py-2.5 bg-slate-800 dark:bg-slate-700 text-white rounded-xl hover:bg-slate-900 cursor-pointer transition-all duration-300 transform hover:-translate-y-0.5">
-                                                    <Upload className="w-5 h-5" />
-                                                    <span>Upload Signature</span>
-                                                    <input
-                                                        type="file"
-                                                        onChange={(e) => handleFileUpload(e, 'digitalSignature')}
-                                                        accept="image/*"
-                                                        className="hidden"
-                                                    />
-                                                </label>
-                                                {currentSettings?.digitalSignature && (
-                                                    <button
-                                                        onClick={() => handleRemoveFile('digitalSignature')}
-                                                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-red-200 dark:border-red-800"
-                                                        title="Remove Signature"
-                                                    >
-                                                        <X className="w-5 h-5" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                                PNG with transparency recommended. Appears in invoice footer.
-                                            </p>
-                                        </div>
-
-                                        {/* Invoice Text Configuration */}
-                                        <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
-                                            <h4 className="text-md font-medium text-gray-800 dark:text-gray-100 mb-4">Invoice Text & Labels</h4>
-
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                        Terms & Conditions
-                                                    </label>
-                                                    <textarea
-                                                        value={formData.termsAndConditions || ''}
-                                                        onChange={(e) => setFormData({ ...formData, termsAndConditions: e.target.value })}
-                                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
-                                                        rows={3}
-                                                        placeholder="e.g. Goods once sold will not be taken back."
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                        Footer Note
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={formData.invoiceFooterText || ''}
-                                                        onChange={(e) => setFormData({ ...formData, invoiceFooterText: e.target.value })}
-                                                        className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
-                                                        placeholder="e.g. Thank you for your business!"
-                                                    />
-                                                </div>
-
-                                                {/* Footer Styling Controls */}
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-100 dark:border-gray-600">
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                            Footer Font Size: <span className="text-blue-600 font-mono">{formData.footerFontSize}px</span>
-                                                        </label>
-                                                        <input
-                                                            type="range"
-                                                            min="8"
-                                                            max="24"
-                                                            value={formData.footerFontSize}
-                                                            onChange={(e) => setFormData({ ...formData, footerFontSize: parseInt(e.target.value) })}
-                                                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                                                        />
-                                                    </div>
-
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                            Footer Alignment
-                                                        </label>
-                                                        <div className="flex bg-white dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-600">
-                                                            {['left', 'center', 'right'].map((align) => (
-                                                                <button
-                                                                    key={align}
-                                                                    type="button"
-                                                                    onClick={() => setFormData({ ...formData, footerAlignment: align })}
-                                                                    className={`flex-1 py-1 text-xs font-medium capitalize rounded-md transition-all ${formData.footerAlignment === align
-                                                                        ? 'bg-blue-600 text-white shadow-sm'
-                                                                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-200'
-                                                                        }`}
-                                                                >
-                                                                    {align}
-                                                                </button>
-                                                            ))}
+                                                        <div className="font-bold text-sm capitalize text-gray-900 dark:text-white mb-1">{tpl}</div>
+                                                        <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                            {tpl === 'modern' && 'Clean, colorful, detailed'}
+                                                            {tpl === 'classic' && 'Serif fonts, traditional'}
+                                                            {tpl === 'minimal' && 'Monospace, ink-saver'}
                                                         </div>
-                                                    </div>
+                                                    </button>
+                                                ))}
+                                            </div>
 
-                                                    <div className="md:col-span-2">
-                                                        <label className="flex items-center cursor-pointer group">
-                                                            <div className="relative">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="sr-only"
-                                                                    checked={formData.footerFontFamily === 'handwritten'}
-                                                                    onChange={(e) => setFormData({
-                                                                        ...formData,
-                                                                        footerFontFamily: e.target.checked ? 'handwritten' : 'sans-serif'
-                                                                    })}
-                                                                />
-                                                                <div className={`block w-10 h-6 rounded-full transition-colors ${formData.footerFontFamily === 'handwritten' ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                                                                <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${formData.footerFontFamily === 'handwritten' ? 'translate-x-4' : ''}`}></div>
-                                                            </div>
-                                                            <div className="ml-3 text-gray-700 dark:text-gray-300 font-medium">
-                                                                Use Handwritten Font Style
-                                                                <span className="ml-2 text-xs text-gray-500 italic font-handwritten">(Thank you for your business!)</span>
-                                                            </div>
+
+                                            {/* Custom Template Editor */}
+                                            {formData.invoiceTemplate?.templateId === 'custom' && (
+                                                <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30 rounded-xl">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <label className="block text-sm font-bold text-gray-800 dark:text-gray-200">
+                                                            Custom HTML Content
+                                                        </label>
+                                                        <label className="cursor-pointer bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-xs px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center gap-2">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                                            </svg>
+                                                            Upload HTML File
+                                                            <input
+                                                                type="file"
+                                                                accept=".html,.txt"
+                                                                className="hidden"
+                                                                onChange={(e) => {
+                                                                    const file = e.target.files[0];
+                                                                    if (!file) return;
+                                                                    const reader = new FileReader();
+                                                                    reader.onload = (event) => {
+                                                                        setFormData({
+                                                                            ...formData,
+                                                                            invoiceTemplate: {
+                                                                                ...formData.invoiceTemplate,
+                                                                                customTemplateContent: event.target.result
+                                                                            }
+                                                                        });
+                                                                        toast.success('Template loaded from file');
+                                                                    };
+                                                                    reader.readAsText(file);
+                                                                }}
+                                                            />
                                                         </label>
                                                     </div>
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                        Authorized Signatory Label
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={formData.authSignLabel || ''}
-                                                        onChange={(e) => setFormData({ ...formData, authSignLabel: e.target.value })}
-                                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
-                                                        placeholder="e.g. Authorized Signatory"
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                                                        Enter your HTML code. Use placeholders: <code className="bg-white px-1 rounded border">{'{{shopName}}'}</code>,
+                                                        <code className="bg-white px-1 rounded border">{'{{invoiceNo}}'}</code>,
+                                                        <code className="bg-white px-1 rounded border">{'{{itemsRows}}'}</code>, etc.
+                                                    </p>
+                                                    <textarea
+                                                        value={formData.invoiceTemplate?.customTemplateContent || ''}
+                                                        onChange={(e) => setFormData({
+                                                            ...formData,
+                                                            invoiceTemplate: {
+                                                                ...formData.invoiceTemplate,
+                                                                customTemplateContent: e.target.value
+                                                            }
+                                                        })}
+                                                        rows={12}
+                                                        className="w-full font-mono text-xs border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
+                                                        placeholder="<html><body><h1>{{shopName}}</h1>...</body></html>"
                                                     />
                                                 </div>
+                                            )}
+                                        </div>
+
+                                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4"></div>
+
+                                        {/* Field Visibility Toggles */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                                                Section Visibility
+                                            </label>
+                                            <div className="space-y-2">
+                                                {[
+                                                    { key: 'taxBreakdown', label: 'Show Tax Breakdown Table' },
+                                                    { key: 'terms', label: 'Show Terms & Conditions' },
+                                                    { key: 'footer', label: 'Show Footer Note' },
+                                                    { key: 'bankDetails', label: 'Show Bank Details' },
+                                                    { key: 'qrCode', label: 'Show UPI QR Code' },
+                                                    { key: 'qrText', label: 'Show QR Code Text' },
+                                                    { key: 'signature', label: 'Show Authorized Signatory' },
+                                                ].map((field) => (
+                                                    <label key={field.key} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={formData.invoiceTemplate?.fieldVisibility?.[field.key] ?? true}
+                                                            onChange={(e) => setFormData({
+                                                                ...formData,
+                                                                invoiceTemplate: {
+                                                                    ...formData.invoiceTemplate,
+                                                                    fieldVisibility: {
+                                                                        ...formData.invoiceTemplate.fieldVisibility,
+                                                                        [field.key]: e.target.checked
+                                                                    }
+                                                                }
+                                                            })}
+                                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300 dark:border-gray-600"
+                                                        />
+                                                        <span className="text-sm text-gray-700 dark:text-gray-300">{field.label}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Digital Signature Upload (Conditional) */}
+                                        {formData.invoiceTemplate?.fieldVisibility?.signature && (
+                                            <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 animate-fadeIn">
+                                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">
+                                                    Authorized Signatory Image
+                                                </label>
+                                                <div className="flex items-center space-x-4">
+                                                    <div className="h-20 w-40 bg-white dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden relative group">
+                                                        {currentSettings?.digitalSignature ? (
+                                                            <>
+                                                                <img
+                                                                    src={currentSettings.digitalSignature.startsWith('http') ? currentSettings.digitalSignature : `${BACKEND_URL}${currentSettings.digitalSignature}`}
+                                                                    alt="Signature"
+                                                                    className="h-full w-full object-contain p-2"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => handleRemoveFile('digitalSignature', e)}
+                                                                    className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold"
+                                                                >
+                                                                    Remove
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-gray-400 text-xs text-center p-2">No Signature Uploaded</span>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <label className="cursor-pointer bg-slate-900 dark:bg-slate-700 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition shadow-lg flex items-center gap-2">
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                className="hidden"
+                                                                onChange={(e) => handleFileUpload(e, 'digitalSignature')}
+                                                            />
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                                            </svg>
+                                                            Upload Image
+                                                        </label>
+                                                        <p className="text-[10px] text-gray-500 mt-2 max-w-[200px]">
+                                                            Recommended: Transparent PNG, approx 200x100px.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4"></div>
+
+                                        {/* Existing Brand Color & Fonts (Reused) */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Brand Color
+                                            </label>
+                                            <div className="flex items-center space-x-3 mb-2">
+                                                <input
+                                                    type="color"
+                                                    value={formData.brandColor}
+                                                    onChange={(e) => setFormData({ ...formData, brandColor: e.target.value })}
+                                                    className="w-10 h-10 rounded cursor-pointer"
+                                                />
+                                                <span className="text-sm text-gray-600 dark:text-gray-400">{formData.brandColor}</span>
+                                            </div>
+
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 mt-4">
+                                                Primary Text Color
+                                            </label>
+                                            <div className="flex items-center space-x-3 mb-2">
+                                                <input
+                                                    type="color"
+                                                    value={formData.primaryTextColor || '#1F2937'}
+                                                    onChange={(e) => setFormData({ ...formData, primaryTextColor: e.target.value })}
+                                                    className="w-10 h-10 rounded cursor-pointer"
+                                                />
+                                                <span className="text-sm text-gray-600 dark:text-gray-400">{formData.primaryTextColor}</span>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    Footer Note
+                                                </label>
+                                                <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                                                    Size: {formData.footerFontSize}px
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-4 items-center">
+                                                <input
+                                                    type="text"
+                                                    value={formData.invoiceFooterText || ''}
+                                                    onChange={(e) => setFormData({ ...formData, invoiceFooterText: e.target.value })}
+                                                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                    placeholder="Thank you for your business!"
+                                                />
+                                                <input
+                                                    type="range"
+                                                    min="8"
+                                                    max="24"
+                                                    step="1"
+                                                    value={formData.footerFontSize || 12}
+                                                    onChange={(e) => setFormData({ ...formData, footerFontSize: parseInt(e.target.value) })}
+                                                    className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                                                />
                                             </div>
                                         </div>
                                     </div>
+
                                 )}
 
 
@@ -747,7 +801,7 @@ const Settings = () => {
                                                     <div className="flex items-center space-x-4">
                                                         {currentSettings?.profilePicture ? (
                                                             <img
-                                                                src={currentSettings.profilePicture.startsWith('http') ? currentSettings.profilePicture : `http://localhost:5000${currentSettings.profilePicture}`}
+                                                                src={currentSettings.profilePicture.startsWith('http') ? currentSettings.profilePicture : `${BACKEND_URL}${currentSettings.profilePicture}`}
                                                                 alt="Profile"
                                                                 className="w-16 h-16 rounded-full object-cover border-2 border-gray-300 dark:border-gray-600"
                                                             />
@@ -768,7 +822,7 @@ const Settings = () => {
                                                         </label>
                                                         {currentSettings?.profilePicture && (
                                                             <button
-                                                                onClick={() => handleRemoveFile('profilePicture')}
+                                                                onClick={(e) => handleRemoveFile('profilePicture', e)}
                                                                 className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-red-200 dark:border-red-800"
                                                                 title="Remove Picture"
                                                             >
@@ -922,8 +976,52 @@ const Settings = () => {
                                 )}
 
                                 {activeTab === 'letterheadTemplate' && (
-                                    <div className="flex flex-col lg:flex-row gap-6">
-                                        <div className="lg:w-1/2 space-y-6">
+                                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start max-w-7xl mx-auto">
+                                        <div className="xl:col-span-3 space-y-6">
+                                            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                                                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Custom Letterhead Background</h3>
+                                                <p className="text-sm text-gray-500 mb-4">Upload a pre-designed A4 background image (PNG/JPG). This will replace the default header/footer with your full-page design.</p>
+
+                                                <div className="flex items-center space-x-4">
+                                                    {currentSettings?.letterhead ? (
+                                                        <div className="relative group">
+                                                            <img
+                                                                src={currentSettings.letterhead.startsWith('http') ? currentSettings.letterhead : `${BACKEND_URL}${currentSettings.letterhead}`}
+                                                                alt="Letterhead"
+                                                                className="w-24 h-32 object-cover border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-md"
+                                                            />
+                                                            <button
+                                                                onClick={(e) => handleRemoveFile('letterhead', e)}
+                                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600 transition-colors"
+                                                                title="Remove Letterhead"
+                                                            >
+                                                                <X className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-24 h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center bg-gray-50 dark:bg-gray-700/50">
+                                                            <span className="text-xs text-gray-400 text-center px-1">No Image</span>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex-1">
+                                                        <label className="flex items-center justify-center space-x-2 px-4 py-3 border-2 border-dashed border-blue-500/30 rounded-xl bg-blue-50/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors group">
+                                                            <Upload className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
+                                                            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Upload A4 Image</span>
+                                                            <input
+                                                                type="file"
+                                                                onChange={(e) => handleFileUpload(e, 'letterhead')}
+                                                                accept="image/*"
+                                                                className="hidden"
+                                                            />
+                                                        </label>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 ml-1">
+                                                            Recommended: 210mm x 297mm (2480x3508 px for high quality).
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                                                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">A4 Page Layout (Global Template)</h3>
                                                 <div className="grid grid-cols-2 gap-4">
@@ -1026,22 +1124,59 @@ const Settings = () => {
                                             </div>
                                         </div>
 
-                                        <div className="lg:w-1/2">
+                                        <div className="xl:col-span-9">
                                             <div className="sticky top-6">
-                                                <div className="flex items-center space-x-2 mb-2">
-                                                    <LayoutIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Live A4 Preview</h3>
+                                                <div className="flex items-center justify-between mb-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-xl bg-opacity-80">
+                                                    <div className="flex items-center space-x-2">
+                                                        <LayoutIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">Live A4 Preview</h3>
+                                                    </div>
+                                                    <div className="flex items-center space-x-4">
+                                                        <div className="hidden md:flex items-center space-x-2">
+                                                            <span className="text-[10px] uppercase font-bold text-gray-500">Zoom</span>
+                                                            <input
+                                                                type="range"
+                                                                min="0.3"
+                                                                max="1.0"
+                                                                step="0.05"
+                                                                value={previewScale}
+                                                                onChange={(e) => setPreviewScale(parseFloat(e.target.value))}
+                                                                className="w-24 accent-blue-600 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                                            />
+                                                        </div>
+                                                        <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+                                                            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded font-mono font-bold">A4</span>
+                                                            <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono w-12 text-center">{Math.round(previewScale * 100)}%</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="bg-gray-200 dark:bg-gray-900 p-4 rounded-xl overflow-auto flex justify-center h-[600px] border border-gray-200 dark:border-gray-700">
+
+                                                <div className="bg-slate-200/50 dark:bg-black/40 p-4 rounded-xl overflow-hidden flex justify-center items-start min-h-[600px] border-2 border-dashed border-gray-300 dark:border-gray-700 relative">
+                                                    {/* Background Grid Pattern */}
+                                                    <div className="absolute inset-0 opacity-10 pointer-events-none"
+                                                        style={{ backgroundImage: 'radial-gradient(#64748b 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
+                                                    </div>
+
                                                     <div
-                                                        className="bg-white shadow-lg relative transition-all duration-300 origin-top"
+                                                        className="bg-white shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] relative transition-all duration-300 ease-out origin-top border-t border-gray-100"
                                                         style={{
                                                             width: '210mm',
                                                             minHeight: '297mm',
-                                                            transform: 'scale(0.5)',
-                                                            border: formData.letterheadConfig?.showBorder ? `1px solid ${formData.letterheadConfig?.borderColor}` : 'none'
+                                                            transform: `scale(${previewScale})`,
+                                                            marginBottom: `-${(1 - previewScale) * 297}mm`, // Compensate for scale white space
+                                                            border: formData.letterheadConfig?.showBorder ? `2px solid ${formData.letterheadConfig?.borderColor}` : 'none',
                                                         }}
                                                     >
+                                                        {currentSettings?.letterhead && (
+                                                            <div className="absolute inset-0 z-0 overflow-hidden">
+                                                                <img
+                                                                    src={currentSettings.letterhead.startsWith('http') ? currentSettings.letterhead : `${BACKEND_URL}${currentSettings.letterhead}`}
+                                                                    alt="Letterhead Background"
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            </div>
+                                                        )}
+
                                                         {formData.letterheadConfig?.watermarkText && (
                                                             <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none overflow-hidden">
                                                                 <div
@@ -1067,71 +1202,94 @@ const Settings = () => {
                                                             {/* Liceria Header */}
                                                             <div className="flex justify-between items-start mb-4">
                                                                 {/* Branding (Left) */}
-                                                                <div className="flex flex-col items-start">
-                                                                    <div className="flex items-center gap-3 mb-2">
+                                                                <div className="flex flex-col items-start" style={{
+                                                                    width: formData.letterheadConfig?.logoPosition === 'center' ? '100%' : 'auto',
+                                                                    alignItems: formData.letterheadConfig?.logoPosition === 'center' ? 'center' : (formData.letterheadConfig?.logoPosition === 'right' ? 'flex-end' : 'flex-start'),
+                                                                    order: formData.letterheadConfig?.logoPosition === 'right' ? 2 : 1
+                                                                }}>
+                                                                    <div className={`flex ${formData.letterheadConfig?.logoPosition === 'center' ? 'flex-col text-center' : 'items-center'} gap-4 mb-2`}>
                                                                         {/* Logo Icon (Reused from Invoice Preview if no real logo) */}
                                                                         {currentSettings?.logo && (
-                                                                            <img src={currentSettings.logo} className="h-12 w-auto object-contain" alt="Logo" />
+                                                                            <img src={currentSettings.logo} className="h-16 w-auto object-contain" alt="Logo" />
                                                                         )}
                                                                         <div>
-                                                                            <h1 className="text-2xl font-bold text-gray-800 uppercase tracking-wide leading-none">{formData.shopName || ''}</h1>
-                                                                            <p className="text-xs text-gray-500 tracking-[0.2em]">{formData.tagline || ''}</p>
+                                                                            <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight leading-none" style={{ color: formData.brandColor }}>{formData.shopName || 'SHOP NAME'}</h1>
+                                                                            <p className="text-sm text-gray-500 font-medium tracking-[0.3em] mt-1">{formData.tagline || 'PREMIUM TAGLINE'}</p>
                                                                         </div>
                                                                     </div>
                                                                 </div>
 
                                                                 {/* Contact Info (Right) */}
-                                                                <div className="text-right text-[10px] text-gray-600 leading-tight">
-                                                                    <div className="font-semibold text-gray-800">
-                                                                        {formData.address ? (
-                                                                            <>
-                                                                                <p>{formData.address.split('\n')[0]}</p>
-                                                                                <p>{formData.address.split('\n')[1]}</p>
-                                                                            </>
-                                                                        ) : null}
+                                                                {formData.letterheadConfig?.logoPosition !== 'center' && (
+                                                                    <div className="text-right text-[10px] text-gray-600 leading-tight" style={{ order: formData.letterheadConfig?.logoPosition === 'right' ? 1 : 2 }}>
+                                                                        <div className="font-semibold text-gray-900 text-sm mb-1">
+                                                                            {formData.address ? (
+                                                                                <>
+                                                                                    <p>{formData.address.split('\n')[0]}</p>
+                                                                                    <p>{formData.address.split('\n')[1]}</p>
+                                                                                </>
+                                                                            ) : <p>123 Business Road, Suite 400<br />Innovation City, ST 12345</p>}
+                                                                        </div>
+                                                                        <div className="space-y-0.5 opacity-80">
+                                                                            {formData.phone ? (
+                                                                                <p className="flex items-center justify-end gap-1.5">
+                                                                                    {formData.phone} <span className="text-[9px] bg-slate-900 text-white rounded-full p-0.5 w-4 h-4 flex items-center justify-center">P</span>
+                                                                                </p>
+                                                                            ) : <p>+91 98765 43210</p>}
+
+                                                                            {formData.email ? (
+                                                                                <p className="flex items-center justify-end gap-1.5">
+                                                                                    {formData.email} <span className="text-[9px] bg-slate-900 text-white rounded-full p-0.5 w-4 h-4 flex items-center justify-center">E</span>
+                                                                                </p>
+                                                                            ) : <p>contact@business.com</p>}
+
+                                                                            {formData.website && (
+                                                                                <p className="flex items-center justify-end gap-1.5">
+                                                                                    {formData.website} <span className="text-[9px] bg-slate-900 text-white rounded-full p-0.5 w-4 h-4 flex items-center justify-center">W</span>
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
-                                                                    {formData.phone && (
-                                                                        <p className="mt-1 flex items-center justify-end gap-1">
-                                                                            {formData.phone} <span className="text-[8px] bg-red-500 text-white rounded-full p-0.5">📞</span>
-                                                                        </p>
-                                                                    )}
-                                                                    {formData.email && (
-                                                                        <p className="flex items-center justify-end gap-1">
-                                                                            {formData.email} <span className="text-[8px] bg-red-500 text-white rounded-full p-0.5">✉️</span>
-                                                                        </p>
-                                                                    )}
-                                                                    {formData.website && (
-                                                                        <p className="flex items-center justify-end gap-1">
-                                                                            {formData.website} <span className="text-[8px] bg-red-500 text-white rounded-full p-0.5">🌐</span>
-                                                                        </p>
-                                                                    )}
-                                                                    {formData.gstNumber && (
-                                                                        <p className="flex items-center justify-end gap-1 mt-1">
-                                                                            GSTIN: {formData.gstNumber}
-                                                                        </p>
-                                                                    )}
-                                                                </div>
+                                                                )}
                                                             </div>
 
                                                             {/* Graphical Separator - Red/Black Line */}
-                                                            <div className="w-full flex h-1.5 mb-8">
+                                                            <div className="w-full flex h-1.5 mb-12">
                                                                 <div className="w-1/3" style={{ backgroundColor: formData.brandColor || '#EF4444' }}></div>
                                                                 <div className="flex-1 bg-gray-900"></div>
                                                             </div>
 
                                                             {/* Content Placeholder */}
-                                                            <div className="space-y-4 flex-1">
-                                                                <div className="h-4 bg-gray-100 w-1/3 mb-8"></div>
-                                                                <div className="space-y-2">
-                                                                    <div className="h-4 bg-gray-100 w-full"></div>
-                                                                    <div className="h-4 bg-gray-100 w-full"></div>
-                                                                    <div className="h-4 bg-gray-100 w-5/6"></div>
-                                                                    <div className="h-4 bg-gray-100 w-full"></div>
+                                                            <div className="space-y-6 flex-1 px-2">
+                                                                <div className="flex justify-between items-end mb-10">
+                                                                    <div className="space-y-1">
+                                                                        <div className="h-2.5 bg-gray-200 rounded w-24"></div>
+                                                                        <div className="h-3 bg-gray-800 rounded w-48"></div>
+                                                                    </div>
+                                                                    <div className="h-2.5 bg-gray-200 rounded w-24"></div>
+                                                                </div>
+
+                                                                <div className="pt-4 space-y-3">
+                                                                    <div className="h-2 bg-gray-100 rounded w-full"></div>
+                                                                    <div className="h-2 bg-gray-100 rounded w-full"></div>
+                                                                    <div className="h-2 bg-gray-100 rounded w-11/12"></div>
+                                                                    <div className="h-2 bg-gray-100 rounded w-full"></div>
+                                                                </div>
+
+                                                                <div className="pt-2 space-y-3">
+                                                                    <div className="h-2 bg-gray-100 rounded w-10/12"></div>
+                                                                    <div className="h-2 bg-gray-100 rounded w-full"></div>
+                                                                    <div className="h-2 bg-gray-100 rounded w-9/12"></div>
+                                                                </div>
+
+                                                                <div className="pt-8">
+                                                                    <div className="h-2 bg-gray-100 rounded w-1/4 mb-1"></div>
+                                                                    <div className="h-2 bg-gray-100 rounded w-1/5"></div>
                                                                 </div>
                                                             </div>
 
                                                             {/* Footer - 4 Color Blocks */}
-                                                            <div className="absolute bottom-0 left-0 right-0 h-8 flex">
+                                                            <div className="absolute bottom-0 left-0 right-0 h-4 flex">
                                                                 <div className="flex-1" style={{ backgroundColor: formData.brandColor || '#EF4444' }}></div>
                                                                 <div className="flex-1" style={{ backgroundColor: formData.brandColor || '#EF4444', filter: 'brightness(0.9)' }}></div>
                                                                 <div className="flex-1" style={{ backgroundColor: formData.brandColor || '#EF4444', filter: 'brightness(0.8)' }}></div>
@@ -1150,251 +1308,41 @@ const Settings = () => {
                         </form>
                     </div>
 
-                    {/* Right Side - Live Invoice Preview */}
-                    {activeTab !== 'letterheadTemplate' && (
-                        <div className="lg:col-span-1">
+                    <div className={activeTab === 'letterheadTemplate' ? "hidden" : "lg:col-span-1"}>
+                        {/* Dynamic Invoice Preview */}
+                        {activeTab === 'invoice' && (
+                            <div className="sticky top-6">
+                                <div className="bg-gray-800 rounded-[28px] p-2 shadow-2xl border-4 border-gray-700 backdrop-blur-md">
+                                    <div className="bg-gray-900 rounded-[24px] overflow-hidden aspect-[1/1.414] relative">
+                                        <div className="absolute inset-0 overflow-y-auto custom-scrollbar">
+                                            <SettingsInvoicePreview settings={currentSettings} formData={formData} />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-center mt-4">
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Live Preview</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Placeholder or Info for other tabs */}
+                        {activeTab !== 'invoice' && activeTab !== 'letterheadTemplate' && (
                             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 sticky top-6 border border-gray-100 dark:border-gray-700">
                                 <div className="flex items-center space-x-2 mb-2">
                                     <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Live Invoice Preview</h3>
+                                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Workspace Settings</h3>
                                 </div>
-                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">See your design changes in real-time</p>
-
-                                {/* Mini Invoice Preview */}
-                                <div className="bg-white shadow-lg rounded-lg overflow-hidden border text-xs">
-                                    {/* Header - Modern Design */}
-                                    {false ? (
-                                        <div className="w-full">
-                                            <img
-                                                src={currentSettings.letterhead.startsWith('http') ? currentSettings.letterhead : `http://localhost:5000${currentSettings.letterhead}`}
-                                                alt="Letterhead"
-                                                className="w-full h-auto object-contain"
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="p-4 bg-white">
-                                            <div className="flex justify-between items-start mb-2">
-                                                {/* Left: Branding */}
-                                                <div className="flex items-center gap-3">
-                                                    {currentSettings?.logo && (
-                                                        <img src={currentSettings.logo.startsWith('http') ? currentSettings.logo : `http://localhost:5000${currentSettings.logo}`} className="h-10 w-auto object-contain" alt="Logo" />
-                                                    )}
-                                                    <div>
-                                                        <h4 className="text-sm font-bold uppercase tracking-wider text-gray-800 leading-tight">
-                                                            {formData.shopName || ''}
-                                                        </h4>
-                                                        <p className="text-[9px] text-gray-500 tracking-[0.2em]">
-                                                            {formData.tagline || ''}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                {/* Right: Contact Info */}
-                                                <div className="text-right">
-                                                    <div className="text-[9px] text-gray-600 space-y-0.5 font-medium">
-                                                        {formData.address ? (
-                                                            <>
-                                                                <p>{formData.address.split(',')[0]}</p>
-                                                                <p>{formData.address.split(',')[1]}</p>
-                                                            </>
-                                                        ) : null}
-
-                                                        {formData.phone && (
-                                                            <div className="flex items-center justify-end gap-1.5 mt-1">
-                                                                <span>{formData.phone}</span>
-                                                                <span className="text-[8px]" style={{ color: formData.brandColor || '#EF4444' }}>📞</span>
-                                                            </div>
-                                                        )}
-                                                        {formData.email && (
-                                                            <div className="flex items-center justify-end gap-1.5">
-                                                                <span>{formData.email}</span>
-                                                                <span className="text-[8px]" style={{ color: formData.brandColor || '#EF4444' }}>✉️</span>
-                                                            </div>
-                                                        )}
-                                                        {formData.website && (
-                                                            <div className="flex items-center justify-end gap-1.5">
-                                                                <span>{formData.website}</span>
-                                                                <span className="text-[8px]" style={{ color: formData.brandColor || '#EF4444' }}>🌐</span>
-                                                            </div>
-                                                        )}
-                                                        {formData.gstNumber && (
-                                                            <div className="flex items-center justify-end gap-1.5 mt-1">
-                                                                <span className="text-[8px] text-gray-600">GSTIN: {formData.gstNumber}</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Custom Divider Line */}
-                                            <div className="flex items-center mt-2 mb-1">
-                                                <div className="h-1.5 rounded-l-full w-1/3" style={{ backgroundColor: formData.brandColor || '#EF4444' }}></div>
-                                                <div className="h-0.5 bg-gray-800 w-2/3 rounded-r-full"></div>
-                                            </div>
-                                        </div>
-                                    )}
-
-
-                                    {/* From/To Section */}
-                                    <div className="p-3 grid grid-cols-2 gap-3 border-b">
-                                        <div>
-                                            <div className="text-[8px] font-semibold mb-1" style={{ color: formData.primaryTextColor || '#1F2937' }}>From:</div>
-                                            <p className="text-[10px] font-semibold" style={{ color: formData.primaryTextColor || '#1F2937' }}>{formData.shopName || 'Your Shop'}</p>
-                                            <p className="text-[9px] text-gray-700 leading-tight mt-0.5">
-                                                {formData.address || 'Shop Address'}
-                                            </p>
-                                            <p className="text-[9px] text-gray-700">{formData.phone || 'Phone Number'}</p>
-                                            {formData.gstin && (
-                                                <p className="text-[8px] text-gray-600 mt-0.5">GSTIN: {formData.gstin}</p>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <div className="text-[8px] font-semibold mb-1" style={{ color: formData.primaryTextColor || '#1F2937' }}>To:</div>
-                                            <p className="text-[10px] font-semibold" style={{ color: formData.primaryTextColor || '#1F2937' }}>Demo Customer</p>
-                                            <p className="text-[9px] text-gray-700">9876543210</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Items Table */}
-                                    <div className="p-3">
-                                        <table className="w-full text-[9px]">
-                                            <thead style={{ backgroundColor: formData.brandColor || '#3B82F6' }}>
-                                                <tr className="text-white">
-                                                    <th className="py-1.5 px-2 text-left font-semibold">#</th>
-                                                    <th className="py-1.5 px-2 text-left font-semibold">Item</th>
-                                                    <th className="py-1.5 px-2 text-center font-semibold">Qty</th>
-                                                    <th className="py-1.5 px-2 text-right font-semibold">Total</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-200">
-                                                <tr>
-                                                    <td className="py-2 px-2 text-gray-600">1</td>
-                                                    <td className="py-2 px-2 font-medium" style={{ color: formData.primaryTextColor || '#1F2937' }}>Sample Product 1</td>
-                                                    <td className="py-2 px-2 text-center text-gray-700">2</td>
-                                                    <td className="py-2 px-2 text-right font-medium" style={{ color: formData.primaryTextColor || '#1F2937' }}>₹2,000.00</td>
-                                                </tr>
-                                                <tr>
-                                                    <td className="py-2 px-2 text-gray-600">2</td>
-                                                    <td className="py-2 px-2 font-medium" style={{ color: formData.primaryTextColor || '#1F2937' }}>Sample Product 2</td>
-                                                    <td className="py-2 px-2 text-center text-gray-700">1</td>
-                                                    <td className="py-2 px-2 text-right font-medium" style={{ color: formData.primaryTextColor || '#1F2937' }}>₹500.00</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    {/* Totals Section - Right Aligned */}
-                                    <div className="p-3 border-t flex justify-end">
-                                        <div className="w-48 space-y-0.5 text-[9px]">
-                                            <div className="flex justify-between" style={{ color: formData.primaryTextColor || '#374151' }}>
-                                                <span>Subtotal:</span>
-                                                <span className="font-medium">₹2,500.00</span>
-                                            </div>
-                                            <div className="flex justify-between" style={{ color: formData.primaryTextColor || '#374151' }}>
-                                                <span>Total GST:</span>
-                                                <span className="font-medium">₹450.00</span>
-                                            </div>
-                                            <div className="flex justify-between font-bold text-white p-1.5 rounded mt-1.5"
-                                                style={{ backgroundColor: formData.brandColor || '#3B82F6' }}>
-                                                <span className="text-[10px] uppercase tracking-wide">GRAND TOTAL:</span>
-                                                <span className="text-[11px]">₹2,950.00</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Footer Section */}
-                                    <div className="p-3 border-t bg-gray-50">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {/* Left: QR Code, Notes, Bank Details */}
-                                            <div className="space-y-2">
-                                                {/* QR Code */}
-                                                {formData.upiId && (
-                                                    <div className="flex flex-col items-start">
-                                                        <QRCodeSVG
-                                                            value={`upi://pay?pa=${formData.upiId}&pn=${encodeURIComponent(formData.shopName || 'Store')}`}
-                                                            size={60}
-                                                            level="M"
-                                                        />
-                                                        <div className="text-[7px] text-gray-500 mt-0.5">Scan to Pay</div>
-                                                    </div>
-                                                )}
-
-                                                {/* Notes */}
-                                                <div className="text-[8px] text-gray-700 leading-relaxed whitespace-pre-line">
-                                                    <p className="font-semibold mb-0.5" style={{ color: formData.primaryTextColor || '#1F2937' }}>Notes:</p>
-                                                    {formData.termsAndConditions || '• Goods once sold will not be taken back\n• Payment due within 30 days'}
-                                                </div>
-                                                {formData.invoiceFooterText && (
-                                                    <div
-                                                        className={`mt-1 ${formData.footerFontFamily === 'handwritten' ? 'font-handwritten' : 'font-medium'} ${formData.footerAlignment === 'center' ? 'text-center' : formData.footerAlignment === 'right' ? 'text-right' : 'text-left'}`}
-                                                        style={{ fontSize: `${formData.footerFontSize * 0.7}px`, color: '#6B7280' }}
-                                                    >
-                                                        {formData.invoiceFooterText}
-                                                    </div>
-                                                )}
-
-                                                {/* Bank Details */}
-                                                {(formData.bankName || formData.accountNumber) && (
-                                                    <div className="text-[8px]">
-                                                        <p className="font-semibold mb-0.5" style={{ color: formData.primaryTextColor || '#1F2937' }}>Bank Details:</p>
-                                                        <div className="text-gray-700 leading-tight">
-                                                            {formData.bankName && <p>{formData.bankName}</p>}
-                                                            {formData.accountNumber && <p>A/C: {formData.accountNumber}</p>}
-                                                            {formData.ifscCode && <p>IFSC: {formData.ifscCode}</p>}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Right: Signature */}
-                                            <div className="flex flex-col items-end justify-end">
-                                                {currentSettings?.digitalSignature ? (
-                                                    <>
-                                                        <img
-                                                            src={currentSettings.digitalSignature.startsWith('http') ? currentSettings.digitalSignature : `http://localhost:5000${currentSettings.digitalSignature}`}
-                                                            alt="Signature"
-                                                            className="w-24 h-12 object-contain mb-1"
-                                                        />
-                                                        <div className="text-[8px] font-medium text-gray-800 border-t border-gray-400 pt-0.5">
-                                                            {formData.authSignLabel || 'Authorized Signatory'}
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <div className="flex flex-col items-end opacity-50">
-                                                        <div className="w-20 h-10 flex items-center justify-center border border-dashed border-gray-300 rounded mb-1 bg-gray-50">
-                                                            <span className="font-serif italic text-[10px] text-gray-500">Signed</span>
-                                                        </div>
-                                                        <div className="text-[8px] font-medium text-gray-800 border-t border-gray-400 pt-0.5 w-full text-right">
-                                                            {formData.authSignLabel || 'Authorized Signatory'}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-
-                                    {/* Decorative Footer Bar */}
-                                    <div className="flex h-3 border-t border-white">
-                                        <div className="w-1/4 h-full" style={{ backgroundColor: formData.brandColor || '#EF4444' }}></div>
-                                        <div className="w-1/4 h-full opacity-80" style={{ backgroundColor: formData.brandColor || '#EF4444' }}></div>
-                                        <div className="w-1/4 h-full opacity-60" style={{ backgroundColor: formData.brandColor || '#EF4444' }}></div>
-                                        <div className="w-1/4 h-full opacity-40" style={{ backgroundColor: formData.brandColor || '#EF4444' }}></div>
-                                    </div>
-                                </div>
-
-                                {/* Tip */}
-                                <div className="mt-4 text-xs text-blue-700 bg-blue-50 rounded p-2.5 border border-blue-200">
-                                    <span className="font-semibold">💡 Live Preview:</span> Changes to brand color and signature update instantly!
-                                </div>
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                    Configure your store details, branding, and billing preferences here.
+                                </p>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
+
                 </div>
-            </div >
+            </div>
         </Layout >
     );
 };
 
 export default Settings;
-

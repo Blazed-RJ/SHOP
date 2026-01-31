@@ -108,6 +108,33 @@ const settingsSchema = mongoose.Schema({
         type: String,
         default: 'ADMIN'
     },
+    // Invoice Layout & Template Settings
+    invoiceTemplate: {
+        templateId: {
+            type: String,
+            enum: ['modern', 'classic', 'minimal', 'custom'],
+            default: 'modern'
+        },
+        customTemplateContent: {
+            type: String,
+            default: '' // HTML content for custom templates
+        },
+        fieldVisibility: {
+            shippingAddress: { type: Boolean, default: false },
+            taxBreakdown: { type: Boolean, default: true },
+            signature: { type: Boolean, default: true },
+            footer: { type: Boolean, default: true },
+            bankDetails: { type: Boolean, default: true },
+            qrCode: { type: Boolean, default: true },
+            qrText: { type: Boolean, default: true },
+            terms: { type: Boolean, default: true }
+        },
+        fieldOrder: {
+            type: [String],
+            default: ['header', 'billTo', 'items', 'payment', 'signature', 'footer']
+        },
+        accentColorOverride: { type: String, default: null } // Optional override for template specific color
+    },
     // Footer Styling
     footerFontSize: {
         type: Number,

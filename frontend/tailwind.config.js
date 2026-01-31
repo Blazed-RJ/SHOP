@@ -16,7 +16,7 @@ export default {
                     200: '#E1CC87',
                     300: '#D2B24C',
                     400: '#C39A20', // Gold/Copper
-                    500: 'var(--brand-color, #D4AF37)', // Primary Gold
+                    500: 'var(--theme-color, var(--brand-color, #D4AF37))', // Primary Gold
                     600: 'var(--brand-secondary, #B8860B)', // Dark Goldenrod
                     700: '#8A6508',
                     800: '#5C4305',
@@ -30,7 +30,7 @@ export default {
                     200: '#E1CC87',
                     300: '#D2B24C',
                     400: '#C39A20',
-                    500: 'var(--brand-color, #D4AF37)',
+                    500: 'var(--theme-color, var(--brand-color, #D4AF37))',
                     600: 'var(--brand-secondary, #B8860B)',
                     700: '#8A6508',
                     800: '#5C4305',

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
+import { InvoiceRenderer } from '../components/Invoice/InvoiceTemplates';
 
 const InvoiceCreator = () => {
     const navigate = useNavigate();
@@ -893,207 +894,61 @@ const InvoiceCreator = () => {
 
                         {/* Live Preview - Premium Edition */}
                         <div className="space-y-4">
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 flex items-center gap-2 px-2">
-                                <Printer className="w-3 h-3 text-rose-500" />
-                                Live Invoice Preview
-                            </h3>
-
-                            <div className="bg-white rounded-[32px] shadow-2xl overflow-hidden border border-gray-100 text-[9px] text-gray-900">
-                                {/* Header */}
-                                <div className="p-4 bg-white">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex items-center gap-3">
-                                            {settings?.logo && (
-                                                <img
-                                                    src={settings.logo?.startsWith?.('http') ? settings.logo : `http://localhost:5000${settings.logo}`}
-                                                    className="h-10 w-auto object-contain"
-                                                    alt="Logo"
-                                                />
-                                            )}
-                                            <div>
-                                                <h1 className="text-sm font-bold uppercase tracking-wider text-gray-800 leading-tight">
-                                                    {sellerDetails.storeName || 'ESTABLISHMENT REDACTED'}
-                                                </h1>
-                                                <p className="text-[9px] text-gray-500 tracking-[0.2em]">
-                                                    {sellerDetails.tagline || 'NO SLOGAN ATTRIBUTED'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="mb-2">
-                                                <div className="font-bold text-[10px] uppercase tracking-wide text-gray-900">{invoiceSettings.title}</div>
-                                                <div className="text-[9px] text-gray-500">#{invoiceSettings.invoiceNo}</div>
-                                                <div className="text-[9px] text-gray-500">{invoiceSettings.date}</div>
-                                            </div>
-                                            <div className="text-[9px] text-gray-600 space-y-0.5 font-medium">
-                                                {sellerDetails.phone && (
-                                                    <div className="flex items-center justify-end gap-1.5">
-                                                        <span>{sellerDetails.phone}</span>
-                                                        <span className="text-[8px]" style={{ color: settings?.brandColor || '#EF4444' }}>📞</span>
-                                                    </div>
-                                                )}
-                                                {sellerDetails.email && (
-                                                    <div className="flex items-center justify-end gap-1.5">
-                                                        <span>{sellerDetails.email}</span>
-                                                        <span className="text-[8px]" style={{ color: settings?.brandColor || '#EF4444' }}>✉️</span>
-                                                    </div>
-                                                )}
-                                                {sellerDetails.gstin && (
-                                                    <div className="flex items-center justify-end gap-1.5 mt-1 font-semibold">
-                                                        <span>GSTIN: {sellerDetails.gstin}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Divider */}
-                                    <div className="flex items-center mt-2 mb-1">
-                                        <div className="h-1.5 rounded-l-full w-1/3" style={{ backgroundColor: settings?.brandColor || '#EF4444' }}></div>
-                                        <div className="h-0.5 bg-gray-800 w-2/3 rounded-r-full"></div>
-                                    </div>
+                            <div className="flex justify-between items-center px-2">
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 flex items-center gap-2">
+                                    <Printer className="w-3 h-3 text-rose-500" />
+                                    Live Invoice Preview
+                                </h3>
+                                <div className="text-[9px] uppercase font-bold text-gray-500 tracking-wider">
+                                    {settings?.invoiceTemplate?.templateId || 'MODERN'} LAYOUT
                                 </div>
+                            </div>
 
-                                {/* From/To Section */}
-                                <div className="p-3 grid grid-cols-2 gap-3 border-b border-gray-100">
-                                    <div>
-                                        <div className="text-[8px] font-semibold text-gray-600 mb-0.5">From:</div>
-                                        <p className="text-[10px] font-semibold text-gray-900">{sellerDetails.storeName || ''}</p>
-                                        <p className="text-[9px] text-gray-700">{sellerDetails.address || ''}</p>
-                                        <p className="text-[9px] text-gray-700">{sellerDetails.phone}</p>
+                            <div className="bg-gray-800 rounded-[28px] p-2 shadow-2xl border-4 border-gray-700 backdrop-blur-md print:shadow-none print:border-none print:bg-transparent print:p-0">
+                                <div className="bg-gray-900 rounded-[24px] overflow-hidden aspect-[1/1.414] relative print:overflow-visible print:aspect-auto print:bg-transparent print:rounded-none">
+                                    <div className="absolute inset-0 overflow-y-auto custom-scrollbar print:relative print:inset-auto print:overflow-visible">
+                                        <InvoiceRenderer
+                                            templateId={settings?.invoiceTemplate?.templateId || 'modern'}
+                                            data={{
+                                                invoiceNo: invoiceSettings.invoiceNo,
+                                                date: invoiceSettings.date,
+                                                customerName: customerInfo.name,
+                                                customerPhone: customerInfo.phone,
+                                                customerAddress: customerInfo.address,
+                                                customerGstin: customerInfo.gstin,
+                                                items: items.map(i => ({ ...i, price: i.pricePerUnit, total: i.totalAmount })),
+                                                subtotal: summary.totalTaxable,
+                                                tax: summary.totalGST,
+                                                total: summary.grandTotal,
+                                                terms: sellerDetails.termsAndConditions,
+                                                upiId: sellerDetails.upiId,
+                                                digitalSignature: settings?.digitalSignature,
+                                                authSignLabel: sellerDetails.authSignLabel
+                                            }}
+                                            settings={{
+                                                ...settings,
+                                                shopName: sellerDetails.storeName,
+                                                address: sellerDetails.address,
+                                                phone: sellerDetails.phone,
+                                                email: sellerDetails.email,
+                                                gstin: sellerDetails.gstin,
+                                                invoiceFooterText: sellerDetails.invoiceFooterText,
+                                                bankDetails: sellerDetails.bankDetails,
+                                                brandColor: settings?.brandColor,
+                                                primaryTextColor: settings?.primaryTextColor,
+                                                logo: settings?.logo,
+                                                fieldVisibility: settings?.invoiceTemplate?.fieldVisibility || {
+                                                    shippingAddress: false,
+                                                    taxBreakdown: true,
+                                                    signature: true,
+                                                    footer: true,
+                                                    bankDetails: true,
+                                                    qrCode: true,
+                                                    terms: true
+                                                }
+                                            }}
+                                        />
                                     </div>
-                                    <div>
-                                        <div className="text-[8px] font-semibold text-gray-600 mb-0.5">To:</div>
-                                        <p className="text-[10px] font-semibold text-gray-900">{customerInfo.name || 'Walk-in Customer'}</p>
-                                        <p className="text-[9px] text-gray-700">{customerInfo.phone || 'No Phone'}</p>
-                                        {customerInfo.address && <p className="text-[9px] text-gray-700">{customerInfo.address}</p>}
-                                        {customerInfo.gstin && <p className="text-[9px] text-gray-700 font-semibold">GSTIN: {customerInfo.gstin}</p>}
-                                    </div>
-                                </div>
-
-                                {/* Table */}
-                                <div className="p-6">
-                                    <table className="w-full text-[9px]">
-                                        <thead>
-                                            <tr className="text-white" style={{ backgroundColor: settings?.brandColor || '#1e3a8a' }}>
-                                                <th className="py-1.5 px-2 text-left w-10">#</th>
-                                                <th className="py-1.5 px-2 text-left">Item</th>
-                                                <th className="py-1.5 px-2 text-center w-16">Qty</th>
-                                                <th className="py-1.5 px-2 text-right w-24">Rate</th>
-                                                <th className="py-1.5 px-2 text-center w-20">GST %</th>
-                                                <th className="py-1.5 px-2 text-right w-24">Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100">
-                                            {items.map((item, idx) => (
-                                                <tr key={idx} className="hover:bg-gray-50 border-b border-gray-50 last:border-0">
-                                                    <td className="py-2 px-2 text-gray-500 align-top">{idx + 1}</td>
-                                                    <td className="py-2 px-2 align-top">
-                                                        <div className="font-medium text-gray-900">{item.name}</div>
-                                                        {(item.imei || item.imei2 || item.serialNumber) && (
-                                                            <div className="text-[7px] text-gray-500 mt-0.5 space-y-0.5">
-                                                                {item.imei && <span>IMEI 1: {item.imei} </span>}
-                                                                {item.imei2 && <span>IMEI 2: {item.imei2} </span>}
-                                                                {item.serialNumber && <span>SN: {item.serialNumber}</span>}
-                                                            </div>
-                                                        )}
-                                                        {item.isCustom && (
-                                                            <span className="inline-block mt-0.5 text-[7px] bg-blue-50 text-blue-600 px-1 py-0.2 rounded">Custom</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-2 px-2 text-center text-gray-700 align-top">{item.quantity}</td>
-                                                    <td className="py-2 px-2 text-right text-gray-700 align-top">{formatINR(item.pricePerUnit)}</td>
-                                                    <td className="py-2 px-2 text-center text-gray-500 align-top">
-                                                        {item.gstPercent > 0 ? `${item.gstPercent}%` : '-'}
-                                                    </td>
-                                                    <td className="py-2 px-2 text-right font-medium text-gray-900 align-top">
-                                                        {formatINR(item.totalAmount)}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* Totals Section */}
-                                <div className="p-3 flex justify-end border-t border-gray-100">
-                                    <div className="w-48 space-y-0.5">
-                                        <div className="flex justify-between text-[9px] text-gray-700">
-                                            <span>Subtotal:</span>
-                                            <span>{formatINR(summary.totalTaxable)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-[9px] text-gray-700">
-                                            <span>Total GST:</span>
-                                            <span>{formatINR(summary.totalGST)}</span>
-                                        </div>
-                                        <div className="flex justify-between font-bold text-white p-1.5 rounded mt-1 text-[10px]"
-                                            style={{ backgroundColor: settings?.brandColor || '#1e3a8a' }}>
-                                            <span className="uppercase">GRAND TOTAL:</span>
-                                            <span>{formatINR(summary.grandTotal)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Footer */}
-                                <div className="p-3 border-t border-gray-100">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            {sellerDetails.upiId && (
-                                                <div>
-                                                    <QRCodeSVG
-                                                        value={`upi://pay?pa=${sellerDetails.upiId}&pn=${encodeURIComponent(sellerDetails.storeName || 'Store')}`}
-                                                        size={60}
-                                                    />
-                                                    <div className="text-[7px] text-gray-500 mt-0.5">Scan to Pay</div>
-                                                </div>
-                                            )}
-
-                                            <div className="text-[8px] text-gray-600 whitespace-pre-line">
-                                                {sellerDetails.termsAndConditions || '• Goods once sold will not be taken back\n• Payment due within 30 days'}
-                                            </div>
-
-                                            {sellerDetails.invoiceFooterText && (
-                                                <div
-                                                    className={`mt-1 ${sellerDetails.footerFontFamily === 'handwritten' ? 'font-handwritten' : 'font-medium italic'} ${sellerDetails.footerAlignment === 'center' ? 'text-center' : sellerDetails.footerAlignment === 'right' ? 'text-right' : 'text-left'} text-gray-500`}
-                                                    style={{ fontSize: `${sellerDetails.footerFontSize * 0.7}px` }}
-                                                >
-                                                    {sellerDetails.invoiceFooterText}
-                                                </div>
-                                            )}
-
-                                            {sellerDetails.bankDetails && (
-                                                <div className="mt-2 whitespace-pre-line">
-                                                    <div className="font-semibold text-[8px] mb-0.5 text-gray-700">Bank Details:</div>
-                                                    <div className="text-[7px] text-gray-700 leading-tight">
-                                                        {sellerDetails.bankDetails}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="flex flex-col items-end justify-end">
-                                            {settings?.digitalSignature ? (
-                                                <img
-                                                    src={settings.digitalSignature.startsWith('http') ? settings.digitalSignature : `http://localhost:5000${settings.digitalSignature}`}
-                                                    alt="Signature"
-                                                    className="w-24 h-12 object-contain mb-1"
-                                                />
-                                            ) : (
-                                                <div className="w-20 h-10 flex items-center justify-center border border-dashed border-gray-300 rounded mb-1 bg-gray-50 opacity-50">
-                                                    <span className="font-serif italic text-[10px] text-gray-400">Signed</span>
-                                                </div>
-                                            )}
-                                            <div className="text-[8px] font-medium text-gray-900">{sellerDetails.authSignLabel || 'Authorized Signatory'}</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Decorative Footer Bar */}
-                                <div className="flex h-8 border-t border-white">
-                                    <div className="w-1/4 h-full" style={{ backgroundColor: settings?.brandColor || '#EF4444' }}></div>
-                                    <div className="w-1/4 h-full opacity-80" style={{ backgroundColor: settings?.brandColor || '#EF4444' }}></div>
-                                    <div className="w-1/4 h-full opacity-60" style={{ backgroundColor: settings?.brandColor || '#EF4444' }}></div>
-                                    <div className="w-1/4 h-full opacity-40" style={{ backgroundColor: settings?.brandColor || '#EF4444' }}></div>
                                 </div>
                             </div>
                         </div>

@@ -20,6 +20,7 @@ import {
     Monitor
 } from 'lucide-react';
 import { useClientView } from '../../context/ClientViewContext.jsx';
+import { BACKEND_URL } from '../../utils/api';
 
 const Sidebar = ({ isOpen, onClose }) => {
     const { user, logout, isAdmin } = useAuth();
@@ -61,7 +62,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <div className="flex items-center space-x-3 relative z-10">
                     {settings?.logo && (
                         <div className="p-1 rounded-xl bg-gradient-to-br from-brand-300 to-brand-600 shadow-gold">
-                            <img src={settings.logo.startsWith('http') ? settings.logo : `http://localhost:5000${settings.logo}`} alt="Logo" className="w-8 h-8 object-contain bg-black rounded-lg" />
+                            <img src={settings.logo.startsWith('http') ? settings.logo : `${BACKEND_URL}${settings.logo}`} alt="Logo" className="w-8 h-8 object-contain bg-black rounded-lg" />
                         </div>
                     )}
                     <div>
@@ -151,7 +152,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                     {(settings?.profilePicture || user?.avatar) ? (
                         <img
                             src={settings?.profilePicture
-                                ? (settings.profilePicture.startsWith('http') ? settings.profilePicture : `http://localhost:5000${settings.profilePicture}`)
+                                ? (settings.profilePicture.startsWith('http') ? settings.profilePicture : `${BACKEND_URL}${settings.profilePicture}`)
                                 : user?.avatar}
                             alt="Avatar"
                             className="w-9 h-9 rounded-lg object-cover ring-2 ring-transparent group-hover:ring-brand-500 transition-all"

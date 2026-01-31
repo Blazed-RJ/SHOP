@@ -13,6 +13,7 @@ const LetterheadCreator = () => {
     const isViewMode = location.pathname.includes('/view/');
     const { settings } = useSettings();
     const [loading, setLoading] = useState(false);
+    const [previewScale, setPreviewScale] = useState(0.65);
 
     // Document Content
     const [recipient, setRecipient] = useState({ name: '', address: '', email: '' });
@@ -173,123 +174,146 @@ const LetterheadCreator = () => {
                     </div>
 
                     {/* Preview Panel (A4) */}
-                    <div className="flex-1 bg-gray-200 dark:bg-gray-900 rounded-xl overflow-auto flex justify-center p-8 border border-gray-200 dark:border-gray-700">
-                        <div className="printable-content bg-white shadow-2xl relative transition-all duration-300"
-                            style={{
-                                width: '210mm',
-                                minHeight: '297mm',
-                                paddingTop: `${config.marginTop}mm`,
-                                paddingBottom: `${config.marginBottom}mm`,
-                                paddingLeft: `${config.marginLeft}mm`,
-                                paddingRight: `${config.marginRight}mm`,
-                                fontFamily: config.fontFamily || 'Inter',
-                                position: 'relative'
-                            }}
-                        >
-                            {/* Watermark */}
-                            {config.watermarkText && (
-                                <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none overflow-hidden">
-                                    <div
-                                        className="font-bold text-gray-900 transform -rotate-45 whitespace-nowrap select-none"
-                                        style={{
-                                            opacity: config.watermarkOpacity,
-                                            fontSize: `${config.watermarkSize || 100}px`
-                                        }}
-                                    >
-                                        {config.watermarkText}
-                                    </div>
-                                </div>
-                            )}
+                    <div className="flex-1 bg-slate-100 dark:bg-[#0F172A] rounded-2xl overflow-hidden flex flex-col border border-gray-200 dark:border-gray-800 relative shadow-inner">
+                        {/* Background Grid Pattern */}
+                        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+                            style={{ backgroundImage: 'radial-gradient(#64748b 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
+                        </div>
+                        {/* Zoom Control Overlay */}
+                        <div className="absolute top-4 right-4 z-50 flex items-center space-x-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-80 hover:opacity-100 transition-opacity">
+                            <span className="text-[10px] uppercase font-bold text-gray-500">Zoom</span>
+                            <input
+                                type="range"
+                                min="0.3"
+                                max="1.2"
+                                step="0.05"
+                                value={previewScale}
+                                onChange={(e) => setPreviewScale(parseFloat(e.target.value))}
+                                className="w-20 accent-blue-600 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            />
+                            <span className="w-8 text-center text-xs font-mono font-bold text-gray-600 dark:text-gray-300">{Math.round(previewScale * 100)}%</span>
+                        </div>
 
-                            {/* Header - Liceria Style */}
-                            <div className="relative z-10 flex justify-between items-start mb-4">
-                                {/* Branding (Left) */}
-                                <div className="flex flex-col items-start">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        {settings?.logo && (
-                                            <img src={settings.logo} className="h-16 w-auto object-contain" alt="Logo" />
-                                        )}
-                                        <div>
-                                            <h1 className="text-3xl font-bold text-gray-800 uppercase tracking-wide leading-none">{settings.shopName || ''}</h1>
-                                            <p className="text-sm text-gray-500 tracking-[0.2em]">{settings.tagline || ''}</p>
+                        <div className="overflow-auto flex-1 flex justify-center p-8 relative z-10">
+                            <div className="printable-content bg-white shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] relative transition-all duration-300 origin-top border-t border-gray-100"
+                                style={{
+                                    width: '210mm',
+                                    minHeight: '297mm',
+                                    transform: `scale(${previewScale})`,
+                                    marginBottom: `-${(1 - previewScale) * 297}mm`,
+                                    paddingTop: `${config.marginTop}mm`,
+                                    paddingBottom: `${config.marginBottom}mm`,
+                                    paddingLeft: `${config.marginLeft}mm`,
+                                    paddingRight: `${config.marginRight}mm`,
+                                    fontFamily: config.fontFamily || 'Inter',
+                                    position: 'relative'
+                                }}
+                            >
+                                {/* Watermark */}
+                                {config.watermarkText && (
+                                    <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none overflow-hidden">
+                                        <div
+                                            className="font-bold text-gray-900 transform -rotate-45 whitespace-nowrap select-none"
+                                            style={{
+                                                opacity: config.watermarkOpacity,
+                                                fontSize: `${config.watermarkSize || 100}px`
+                                            }}
+                                        >
+                                            {config.watermarkText}
                                         </div>
                                     </div>
-                                </div>
-
-                                {/* Contact Info (Right) */}
-                                <div className="text-right text-xs text-gray-600 leading-tight">
-                                    <p className="font-semibold text-gray-800">{settings.address?.split('\n')[0]}</p>
-                                    <p>{settings.address?.split('\n')[1]}</p>
-                                    {settings.phone && (
-                                        <p className="mt-2 flex items-center justify-end gap-2">
-                                            {settings.phone} <span className="text-[10px] bg-red-500 text-white rounded-full p-1 w-5 h-5 flex items-center justify-center">📞</span>
-                                        </p>
-                                    )}
-                                    {settings.email && (
-                                        <p className="flex items-center justify-end gap-2 mt-1">
-                                            {settings.email} <span className="text-[10px] bg-red-500 text-white rounded-full p-1 w-5 h-5 flex items-center justify-center">✉️</span>
-                                        </p>
-                                    )}
-                                    {settings.website && (
-                                        <p className="flex items-center justify-end gap-2 mt-1">
-                                            {settings.website} <span className="text-[10px] bg-red-500 text-white rounded-full p-1 w-5 h-5 flex items-center justify-center">🌐</span>
-                                        </p>
-                                    )}
-                                    {settings.gstNumber && (
-                                        <p className="flex items-center justify-end gap-2 mt-1 font-semibold">
-                                            GSTIN: {settings.gstNumber}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Graphical Separator - Red/Black Line */}
-                            <div className="relative z-10 w-full flex h-2 mb-10">
-                                <div className="w-1/3" style={{ backgroundColor: settings.brandColor || '#EF4444' }}></div>
-                                <div className="flex-1 bg-gray-900"></div>
-                            </div>
-
-                            {/* Letter Content */}
-                            <div className="relative z-10 text-gray-900 leading-relaxed whitespace-pre-wrap">
-                                {/* Date */}
-                                <div className="mb-8 text-right font-medium">
-                                    {new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                </div>
-
-                                {/* Recipient Block */}
-                                {(recipient.name || recipient.address) && (
-                                    <div className="mb-12">
-                                        <p className="font-bold text-lg">{recipient.name}</p>
-                                        <p className="whitespace-pre-line text-gray-600">{recipient.address}</p>
-                                    </div>
                                 )}
 
-                                {/* Subject */}
-                                {subject && (
-                                    <div className="mb-8 font-bold text-lg underline decoration-2 underline-offset-4 decoration-gray-400">
-                                        Subject: {subject}
+                                {/* Header - Liceria Style */}
+                                <div className="relative z-10 flex justify-between items-start mb-4">
+                                    {/* Branding (Left) */}
+                                    <div className="flex flex-col items-start">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            {settings?.logo && (
+                                                <img src={settings.logo} className="h-16 w-auto object-contain" alt="Logo" />
+                                            )}
+                                            <div>
+                                                <h1 className="text-3xl font-bold text-gray-800 uppercase tracking-wide leading-none">{settings.shopName || ''}</h1>
+                                                <p className="text-sm text-gray-500 tracking-[0.2em]">{settings.tagline || ''}</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                )}
 
-                                {/* Body */}
-                                <div className="min-h-[300px] text-justify text-base">
-                                    {content || <span className="text-gray-300 italic">Start typing content...</span>}
+                                    {/* Contact Info (Right) */}
+                                    <div className="text-right text-xs text-gray-600 leading-tight">
+                                        <p className="font-semibold text-gray-800">{settings.address?.split('\n')[0]}</p>
+                                        <p>{settings.address?.split('\n')[1]}</p>
+                                        {settings.phone && (
+                                            <p className="mt-2 flex items-center justify-end gap-2">
+                                                {settings.phone} <span className="text-[10px] bg-red-500 text-white rounded-full p-1 w-5 h-5 flex items-center justify-center">📞</span>
+                                            </p>
+                                        )}
+                                        {settings.email && (
+                                            <p className="flex items-center justify-end gap-2 mt-1">
+                                                {settings.email} <span className="text-[10px] bg-red-500 text-white rounded-full p-1 w-5 h-5 flex items-center justify-center">✉️</span>
+                                            </p>
+                                        )}
+                                        {settings.website && (
+                                            <p className="flex items-center justify-end gap-2 mt-1">
+                                                {settings.website} <span className="text-[10px] bg-red-500 text-white rounded-full p-1 w-5 h-5 flex items-center justify-center">🌐</span>
+                                            </p>
+                                        )}
+                                        {settings.gstNumber && (
+                                            <p className="flex items-center justify-end gap-2 mt-1 font-semibold">
+                                                GSTIN: {settings.gstNumber}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
 
-                                {/* Signature Block */}
-                                <div className="mt-20 text-right">
-                                    <p className="font-bold text-lg">{settings.shopName}</p>
-                                    <div className="h-24"></div>
-                                    <p className="text-sm text-gray-600 border-t inline-block pt-2 px-8 border-gray-400">Authorized Signatory</p>
+                                {/* Graphical Separator - Red/Black Line */}
+                                <div className="relative z-10 w-full flex h-2 mb-10">
+                                    <div className="w-1/3" style={{ backgroundColor: settings.brandColor || '#EF4444' }}></div>
+                                    <div className="flex-1 bg-gray-900"></div>
                                 </div>
-                            </div>
 
-                            {/* Footer - 4 Color Blocks */}
-                            <div className="absolute bottom-0 left-0 right-0 h-12 flex">
-                                <div className="flex-1" style={{ backgroundColor: settings.brandColor || '#EF4444' }}></div>
-                                <div className="flex-1" style={{ backgroundColor: settings.brandColor || '#EF4444', filter: 'brightness(0.9)' }}></div>
-                                <div className="flex-1" style={{ backgroundColor: settings.brandColor || '#EF4444', filter: 'brightness(0.8)' }}></div>
-                                <div className="flex-1" style={{ backgroundColor: settings.brandColor || '#EF4444', filter: 'brightness(0.7)' }}></div>
+                                {/* Letter Content */}
+                                <div className="relative z-10 text-gray-900 leading-relaxed whitespace-pre-wrap">
+                                    {/* Date */}
+                                    <div className="mb-8 text-right font-medium">
+                                        {new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                    </div>
+
+                                    {/* Recipient Block */}
+                                    {(recipient.name || recipient.address) && (
+                                        <div className="mb-12">
+                                            <p className="font-bold text-lg">{recipient.name}</p>
+                                            <p className="whitespace-pre-line text-gray-600">{recipient.address}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Subject */}
+                                    {subject && (
+                                        <div className="mb-8 font-bold text-lg underline decoration-2 underline-offset-4 decoration-gray-400">
+                                            Subject: {subject}
+                                        </div>
+                                    )}
+
+                                    {/* Body */}
+                                    <div className="min-h-[300px] text-justify text-base">
+                                        {content || <span className="text-gray-300 italic">Start typing content...</span>}
+                                    </div>
+
+                                    {/* Signature Block */}
+                                    <div className="mt-20 text-right">
+                                        <p className="font-bold text-lg">{settings.shopName}</p>
+                                        <div className="h-24"></div>
+                                        <p className="text-sm text-gray-600 border-t inline-block pt-2 px-8 border-gray-400">Authorized Signatory</p>
+                                    </div>
+                                </div>
+
+                                {/* Footer - 4 Color Blocks */}
+                                <div className="absolute bottom-0 left-0 right-0 h-12 flex">
+                                    <div className="flex-1" style={{ backgroundColor: settings.brandColor || '#EF4444' }}></div>
+                                    <div className="flex-1" style={{ backgroundColor: settings.brandColor || '#EF4444', filter: 'brightness(0.9)' }}></div>
+                                    <div className="flex-1" style={{ backgroundColor: settings.brandColor || '#EF4444', filter: 'brightness(0.8)' }}></div>
+                                    <div className="flex-1" style={{ backgroundColor: settings.brandColor || '#EF4444', filter: 'brightness(0.7)' }}></div>
+                                </div>
                             </div>
                         </div>
                     </div>

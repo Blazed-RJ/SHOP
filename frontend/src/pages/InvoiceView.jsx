@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import api, { BACKEND_URL } from '../utils/api';
 import { useSettings } from '../context/SettingsContext';
 import { formatINR } from '../utils/currency';
 import { formatDate } from '../utils/date';
@@ -140,7 +140,7 @@ const InvoiceView = ({ isPublic = false }) => {
                         <div className="flex items-center gap-3">
                             {settings?.logo && (
                                 <img
-                                    src={settings.logo?.startsWith?.('http') ? settings.logo : `http://localhost:5000${settings.logo}`}
+                                    src={settings.logo?.startsWith?.('http') ? settings.logo : `${BACKEND_URL}${settings.logo}`}
                                     className="h-10 w-auto object-contain"
                                     alt="Logo"
                                 />
@@ -340,7 +340,7 @@ const InvoiceView = ({ isPublic = false }) => {
                         <div className="flex flex-col items-end justify-end">
                             {settings?.digitalSignature ? (
                                 <img
-                                    src={settings.digitalSignature.startsWith('http') ? settings.digitalSignature : `http://localhost:5000${settings.digitalSignature}`}
+                                    src={settings.digitalSignature.startsWith('http') ? settings.digitalSignature : `${BACKEND_URL}${settings.digitalSignature}`}
                                     alt="Signature"
                                     className="w-24 h-12 object-contain mb-1"
                                 />

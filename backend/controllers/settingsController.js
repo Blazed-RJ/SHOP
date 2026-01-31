@@ -25,6 +25,9 @@ export const getSettings = async (req, res) => {
 // @access  Private/Admin
 export const updateSettings = async (req, res) => {
     try {
+        console.log('updateSettings called with body:', req.body);
+        console.log('updateSettings files:', req.files);
+
         // Admin only, so ownerId === _id usually
         let settings = await Settings.findOne({ user: req.user.ownerId });
 
