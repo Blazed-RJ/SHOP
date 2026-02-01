@@ -70,10 +70,20 @@ app.use('/api/supplier-ledger', supplierLedgerRoutes);
 app.use('/api/letterheads', letterheadRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Placeholder routes for later phases
-app.get('/', (req, res) => {
-    res.send('API is running in IST Timezone...');
-});
+// Serve Static Assets in Production
+if (process.env.NODE_ENV === 'production') {
+    // Set static folder
+    app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+    // Any route that is not an API route will be handled by the React app
+    app.get('*', (req, res) => {
+        res.sendFile(path.resolve(__dirname, '../frontend/dist', 'index.html'));
+    });
+} else {
+    app.get('/', (req, res) => {
+        res.send('API is running in Development mode... Use Frontend to access app.');
+    });
+}
 
 // Error Handling
 app.use((err, req, res, next) => {
