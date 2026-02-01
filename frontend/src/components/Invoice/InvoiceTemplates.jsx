@@ -8,6 +8,18 @@ const safelyGet = (obj, path, fallback = '') => {
     return path.split('.').reduce((acc, part) => acc && acc[part], obj) || fallback;
 };
 
+// Helper to format date as "DD MMMM YYYY"
+const formatInvoiceDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+        const [year, month, day] = dateString.split('-');
+        const date = new Date(year, month - 1, day);
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+    } catch (e) {
+        return dateString;
+    }
+};
+
 // --- MODERN TEMPLATE ---
 export const ModernTemplate = ({ data, settings }) => {
     const {
@@ -64,7 +76,7 @@ export const ModernTemplate = ({ data, settings }) => {
                             </div>
                             <div>
                                 <span className="block text-[10px] font-bold uppercase opacity-50 tracking-wider">Date</span>
-                                <span className="font-bold text-sm">{date}</span>
+                                <span className="font-bold text-sm">{formatInvoiceDate(date)}</span>
                             </div>
                         </div>
                     </div>
@@ -244,7 +256,7 @@ export const ClassicTemplate = ({ data, settings }) => {
                 <div className="text-right">
                     <span className="font-bold underline block mb-1">INVOICE DETAILS:</span>
                     <p><span className="font-semibold">NO:</span> {invoiceNo}</p>
-                    <p><span className="font-semibold">DATE:</span> {date}</p>
+                    <p><span className="font-semibold">DATE:</span> {formatInvoiceDate(date)}</p>
                 </div>
             </div>
 
@@ -336,7 +348,7 @@ export const MinimalTemplate = ({ data, settings }) => {
 
             <div className="mb-8 border-l-2 border-gray-800 pl-4">
                 <p>INV: {invoiceNo}</p>
-                <p>DAT: {date}</p>
+                <p>DAT: {formatInvoiceDate(date)}</p>
                 <p>CUS: {customerName}</p>
             </div>
 

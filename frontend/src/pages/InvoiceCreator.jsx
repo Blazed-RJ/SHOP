@@ -79,7 +79,10 @@ const InvoiceCreator = () => {
     const [invoiceSettings, setInvoiceSettings] = useState({
         title: 'Tax Invoice',
         invoiceNo: 'New',
-        date: new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local time
+        date: (() => {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        })()
     });
     const [customerInfo, setCustomerInfo] = useState({
         name: '',
@@ -874,7 +877,7 @@ const InvoiceCreator = () => {
                             <div className={`p-6 rounded-2xl ${balanceDue > 0.5 ? 'bg-rose-500/10 border border-rose-500/20' : 'bg-emerald-500/10 border border-emerald-500/20'} transition-all`}>
                                 <div className="flex justify-between items-center">
                                     <span className={`text-[10px] font-black uppercase tracking-widest ${balanceDue > 0.5 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                        {balanceDue > 0.5 ? 'Balance Due (Udhaar)' : 'Obligation Neutralized'}
+                                        Balance Due (Udhaar)
                                     </span>
                                     <span className={`font-black text-xl ${balanceDue > 0.5 ? 'text-rose-500' : 'text-emerald-500'}`}>
                                         {formatINR(balanceDue > 0 ? balanceDue : 0)}
