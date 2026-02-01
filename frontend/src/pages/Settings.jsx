@@ -11,6 +11,7 @@ import {
 import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
 import SettingsInvoicePreview from '../components/Settings/SettingsInvoicePreview';
+import LiquidBackground from '../components/UI/LiquidBackground';
 
 const Settings = () => {
     const navigate = useNavigate();
@@ -216,7 +217,8 @@ const Settings = () => {
 
     return (
         <Layout>
-            <div className="p-4 md:p-8 min-h-screen bg-gray-50/50 dark:bg-[#050505] transition-colors duration-500">
+            <div className="p-4 md:p-8 min-h-screen relative z-0 bg-white dark:bg-gray-900">
+                {/* <LiquidBackground /> Removed for white background preference */}
                 {/* Header Section */}
                 <div className="mb-10 relative">
                     <div className="absolute -top-24 -left-24 w-96 h-96 bg-slate-500/10 blur-[120px] rounded-full pointer-events-none"></div>
@@ -687,7 +689,14 @@ const Settings = () => {
                                                     onChange={(e) => setFormData({ ...formData, brandColor: e.target.value })}
                                                     className="w-10 h-10 rounded cursor-pointer"
                                                 />
-                                                <span className="text-sm text-gray-600 dark:text-gray-400">{formData.brandColor}</span>
+                                                <span className="text-sm text-gray-600 dark:text-gray-400 hidden">{formData.brandColor}</span>
+                                                <input
+                                                    type="text"
+                                                    value={formData.brandColor}
+                                                    onChange={(e) => setFormData({ ...formData, brandColor: e.target.value })}
+                                                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg w-32 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                    placeholder="#000000"
+                                                />
                                             </div>
 
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 mt-4">
@@ -700,7 +709,14 @@ const Settings = () => {
                                                     onChange={(e) => setFormData({ ...formData, primaryTextColor: e.target.value })}
                                                     className="w-10 h-10 rounded cursor-pointer"
                                                 />
-                                                <span className="text-sm text-gray-600 dark:text-gray-400">{formData.primaryTextColor}</span>
+                                                <span className="text-sm text-gray-600 dark:text-gray-400 hidden">{formData.primaryTextColor}</span>
+                                                <input
+                                                    type="text"
+                                                    value={formData.primaryTextColor || '#1F2937'}
+                                                    onChange={(e) => setFormData({ ...formData, primaryTextColor: e.target.value })}
+                                                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg w-32 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                    placeholder="#000000"
+                                                />
                                             </div>
                                         </div>
 

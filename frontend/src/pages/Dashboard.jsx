@@ -5,6 +5,7 @@ import { useClientView } from '../context/ClientViewContext.jsx';
 import Layout from '../components/Layout/Layout';
 import api from '../utils/api';
 import { formatINR } from '../utils/currency';
+import LiquidBackground from '../components/UI/LiquidBackground';
 import {
     ShoppingCart,
     Package,
@@ -16,7 +17,9 @@ import {
     Wallet,
     CreditCard,
     History,
-    Activity
+    Activity,
+    Box,
+    Sparkles
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -85,7 +88,8 @@ const Dashboard = () => {
 
     return (
         <Layout>
-            <div className="p-8">
+            <div className="p-8 relative">
+                <LiquidBackground />
                 {/* Header */}
                 <div className="mb-8 relative">
                     <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight">Dashboard</h1>
@@ -296,7 +300,12 @@ const Dashboard = () => {
                         {/* Stock Value Widget */}
                         <div className="bg-sky-50/40 dark:bg-gradient-to-br dark:from-sky-950 dark:via-black dark:to-black p-6 rounded-2xl border-4 border-sky-200 dark:border-sky-500/30 shadow-sm relative overflow-hidden group transition-all duration-300">
                             <div className="absolute -right-10 -top-10 w-40 h-40 bg-sky-500/10 rounded-full blur-3xl"></div>
-                            <h3 className="text-sky-800/60 dark:text-sky-400 text-sm font-bold uppercase tracking-wider relative z-10">Total Stock Value</h3>
+                            <div className="flex items-center space-x-2">
+                                <div className="p-2 bg-sky-500/20 rounded-lg">
+                                    <Box className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                                </div>
+                                <h3 className="text-sky-800/60 dark:text-sky-400 text-sm font-bold uppercase tracking-wider relative z-10">Total Stock Value</h3>
+                            </div>
                             <div className="mt-4 flex items-baseline relative z-10">
                                 <span className="text-4xl font-bold text-sky-600 dark:text-white rupee font-mono">{formatINR(stats.totalStockValue)}</span>
                                 <span className="ml-2 text-sm text-sky-600 dark:text-sky-400 font-medium opacity-60">asset value</span>
@@ -312,19 +321,34 @@ const Dashboard = () => {
                         {/* Profit Widget */}
                         <div className="bg-emerald-50/40 dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black p-6 rounded-2xl border-4 border-emerald-200 dark:border-emerald-500/30 shadow-sm relative overflow-hidden group transition-all duration-300">
                             <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl"></div>
-                            <h3 className="text-emerald-800/60 dark:text-emerald-400 text-sm font-bold uppercase tracking-wider relative z-10">Projected Profit</h3>
+                            <div className="flex items-center space-x-2">
+                                <div className="p-2 bg-emerald-500/20 rounded-lg">
+                                    <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                </div>
+                                <h3 className="text-emerald-800/60 dark:text-emerald-400 text-sm font-bold uppercase tracking-wider relative z-10">Projected Profit</h3>
+                            </div>
                             <div className="mt-4 flex items-baseline relative z-10">
                                 <span className="text-4xl font-bold text-emerald-600 dark:text-white rupee font-mono">{formatINR(stats.potentialProfit)}</span>
                                 <span className="ml-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium opacity-60">gross margin</span>
                             </div>
                             {/* Glow Line */}
-                            <div className="mt-6 flex items-center justify-between text-xs">
-                                <span className="text-emerald-800/60 dark:text-gray-400 uppercase tracking-tighter font-bold">Profit Efficiency</span>
-                                <span className="text-emerald-600 dark:text-emerald-400 font-bold">84%</span>
-                            </div>
-                            <div className="mt-2 h-1 bg-emerald-200/30 dark:bg-emerald-900/30 rounded-full overflow-hidden">
-                                <div className="h-full bg-emerald-500 w-[84%] rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                            </div>
+                            {(() => {
+                                const profitEfficiency = stats.totalSales > 0
+                                    ? Math.round((stats.potentialProfit / stats.totalSales) * 100)
+                                    : 0;
+
+                                return (
+                                    <>
+                                        <div className="mt-6 flex items-center justify-between text-xs">
+                                            <span className="text-emerald-800/60 dark:text-gray-400 uppercase tracking-tighter font-bold">Profit Efficiency</span>
+                                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">{profitEfficiency}%</span>
+                                        </div>
+                                        <div className="mt-2 h-1 bg-emerald-200/30 dark:bg-emerald-900/30 rounded-full overflow-hidden">
+                                            <div className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: `${Math.min(profitEfficiency, 100)}%` }}></div>
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
                 )}
