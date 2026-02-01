@@ -356,7 +356,7 @@ const Dashboard = () => {
                 {/* Recent Invoices and Low Stock Items */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Recent Invoices */}
-                    <div className="bg-white dark:bg-black/40 backdrop-blur-xl rounded-2xl border-4 border-gray-200 dark:border-white/10 shadow-sm overflow-hidden transition-all duration-300">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border-4 border-violet-200 dark:border-violet-800 shadow-sm overflow-hidden transition-all duration-300">
                         <div className="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-violet-50/30 dark:bg-violet-950/10">
                             <div className="flex items-center space-x-3">
                                 <div className="p-2 bg-violet-500/10 rounded-lg">
@@ -421,7 +421,7 @@ const Dashboard = () => {
                     </div>
 
                     {/* Low Stock Items */}
-                    <div className="bg-white dark:bg-black/40 backdrop-blur-xl rounded-2xl border-4 border-gray-200 dark:border-white/10 shadow-sm overflow-hidden transition-all duration-300">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border-4 border-emerald-200 dark:border-emerald-800 shadow-sm overflow-hidden transition-all duration-300">
                         <div className="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-red-50/20 dark:bg-red-950/20">
                             <div className="flex items-center space-x-3">
                                 <div className={`p-2 rounded-lg ${lowStockProducts.length > 0 ? 'bg-red-500/20 text-red-500 animate-pulse' : 'bg-emerald-500/20 text-emerald-500'}`}>
