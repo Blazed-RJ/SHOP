@@ -301,8 +301,8 @@ const Dashboard = () => {
                         <div className="bg-sky-50/40 dark:bg-gradient-to-br dark:from-sky-950 dark:via-black dark:to-black p-6 rounded-2xl border-4 border-sky-200 dark:border-sky-500/30 shadow-sm relative overflow-hidden group transition-all duration-300">
                             <div className="absolute -right-10 -top-10 w-40 h-40 bg-sky-500/10 rounded-full blur-3xl"></div>
                             <div className="flex items-center space-x-2">
-                                <div className="p-2 bg-sky-500/20 rounded-lg">
-                                    <Box className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                                <div className="p-2 bg-sky-500/20 rounded-lg text-sky-600 dark:text-sky-400 group-hover:text-white group-hover:bg-sky-600 dark:group-hover:bg-sky-500 transition-all duration-300 shadow-sm">
+                                    <Box className="w-4 h-4" />
                                 </div>
                                 <h3 className="text-sky-800/60 dark:text-sky-400 text-sm font-bold uppercase tracking-wider relative z-10">Total Stock Value</h3>
                             </div>
@@ -322,8 +322,8 @@ const Dashboard = () => {
                         <div className="bg-emerald-50/40 dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black p-6 rounded-2xl border-4 border-emerald-200 dark:border-emerald-500/30 shadow-sm relative overflow-hidden group transition-all duration-300">
                             <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl"></div>
                             <div className="flex items-center space-x-2">
-                                <div className="p-2 bg-emerald-500/20 rounded-lg">
-                                    <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                <div className="p-2 bg-emerald-500/20 rounded-lg text-emerald-600 dark:text-emerald-400 group-hover:text-white group-hover:bg-emerald-600 dark:group-hover:bg-emerald-500 transition-all duration-300 shadow-sm">
+                                    <Sparkles className="w-4 h-4" />
                                 </div>
                                 <h3 className="text-emerald-800/60 dark:text-emerald-400 text-sm font-bold uppercase tracking-wider relative z-10">Projected Profit</h3>
                             </div>

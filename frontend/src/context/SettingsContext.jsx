@@ -27,7 +27,10 @@ export const SettingsProvider = ({ children }) => {
 
             setLoading(false);
         } catch (error) {
-            console.error('Failed to load settings (Full Error):', error.response || error);
+            // If 401 (Unauthorized), just use defaults silently as user might be on login page
+            if (error.response?.status !== 401) {
+                console.error('Failed to load settings:', error.response || error);
+            }
             setLoading(false);
         }
     }, []);

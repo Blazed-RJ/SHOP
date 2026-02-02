@@ -11,7 +11,7 @@ const api = axios.create({
 });
 
 // Backend URL for static file serving (images)
-export const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+export const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
@@ -31,8 +31,11 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
-            // Token expired or invalid
+        const isAuthError = error.response?.status === 401;
+        const currentPath = window.location.pathname;
+
+        // Redirect to login only if not already there and if it's a genuine auth failure
+        if (isAuthError && !currentPath.includes('/login') && !currentPath.includes('/register')) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/login';

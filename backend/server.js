@@ -29,7 +29,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Security Middleware
-app.use(helmet());
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            useDefaults: true,
+            directives: {
+                "default-src": ["'self'"],
+                "script-src": ["'self'", "https://accounts.google.com", "https://apis.google.com"],
+                "frame-src": ["'self'", "https://accounts.google.com"],
+                "connect-src": ["'self'", "https://accounts.google.com", "https://oauth2.googleapis.com"],
+                "img-src": ["'self'", "data:", "https://lh3.googleusercontent.com"], // For Google avatars
+            },
+        },
+        crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+    })
+);
 
 // Rate Limiting
 const limiter = rateLimit({
