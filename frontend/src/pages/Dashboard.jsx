@@ -47,10 +47,8 @@ const Dashboard = () => {
             const statsRes = await api.get('/dashboard/stats');
             setStats(statsRes.data);
 
-            // For low stock, we can still fetch products with a small limit if needed
-            // but for now, let's just use the products we can get
-            const productsRes = await api.get('/products?limit=10');
-            setLowStockProducts(productsRes.data.products?.filter(p => p.stock <= 5) || []);
+            setStats(statsRes.data);
+            setLowStockProducts(statsRes.data.lowStockProducts || []);
 
             setLoading(false);
         } catch (error) {

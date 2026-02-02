@@ -73,6 +73,23 @@ export const getDashboardStats = async (req, res) => {
             }
         ]);
 
+        // Low Stock Products (Stock <= Min Stock)
+        const lowStockProducts = await Product.aggregate([
+            { $match: { user: ownerId, isActive: true } },
+            { $match: { $expr: { $lte: ["$stock", "$minStockAlert"] } } },
+            { $sort: { stock: 1 } },
+            { $limit: 10 },
+            {
+                $project: {
+                    name: 1,
+                    stock: 1,
+                    minStock: "$minStockAlert",
+                    category: 1,
+                    image: 1
+                }
+            }
+        ]);
+
         // Collection breakdown (Cash vs Online for today)
         const collections = await Payment.aggregate([
             {
@@ -108,7 +125,8 @@ export const getDashboardStats = async (req, res) => {
             potentialProfit: productStats[0]?.potentialProfit || 0,
             cashCollection,
             onlineCollection,
-            todayCollections: cashCollection + onlineCollection
+            todayCollections: cashCollection + onlineCollection,
+            lowStockProducts
         };
 
         res.json(result);
