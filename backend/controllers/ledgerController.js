@@ -86,6 +86,24 @@ export const recalculateCustomerBalance = async (customerId, session = null, use
     return runningBalance;
 };
 
+/**
+ * Optimized Incremental Balance Update (O(1))
+ * Replaces full recalculation for daily operations
+ */
+export const incrementCustomerBalance = async (customerId, amount, session = null) => {
+    const options = { new: true };
+    if (session) options.session = session;
+
+    // Use atomic $inc
+    const updatedCustomer = await Customer.findByIdAndUpdate(
+        customerId,
+        { $inc: { balance: amount } },
+        options
+    );
+
+    return updatedCustomer ? updatedCustomer.balance : 0;
+};
+
 // @desc    Get daybook for a specific date
 // @route   GET /api/ledger/daybook?date=YYYY-MM-DD
 // @access  Private

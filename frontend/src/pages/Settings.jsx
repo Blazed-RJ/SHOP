@@ -506,28 +506,115 @@ const Settings = () => {
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                                                 Choose Template
                                             </label>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                {['modern', 'classic', 'minimal', 'custom'].map((tpl) => (
-                                                    <button
-                                                        key={tpl}
-                                                        type="button"
-                                                        onClick={() => setFormData({
-                                                            ...formData,
-                                                            invoiceTemplate: { ...formData.invoiceTemplate, templateId: tpl }
-                                                        })}
-                                                        className={`p-3 rounded-xl border-2 text-left transition-all ${formData.invoiceTemplate?.templateId === tpl
-                                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-800'
-                                                            : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
-                                                            }`}
-                                                    >
-                                                        <div className="font-bold text-sm capitalize text-gray-900 dark:text-white mb-1">{tpl}</div>
-                                                        <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                                                            {tpl === 'modern' && 'Clean, colorful, detailed'}
-                                                            {tpl === 'classic' && 'Serif fonts, traditional'}
-                                                            {tpl === 'minimal' && 'Monospace, ink-saver'}
-                                                        </div>
-                                                    </button>
-                                                ))}
+                                            <div className="space-y-6">
+                                                {/* Modern Collection */}
+                                                <div>
+                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Modern Collection</h3>
+                                                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                                                        {[
+                                                            { id: 'modern', name: 'Modern Standard', desc: 'Clean & Balanced' },
+                                                            { id: 'modern-v2', name: 'Modern Sidebar', desc: 'Bold Left Bar' },
+                                                            { id: 'modern-v3', name: 'Modern Banner', desc: 'Full Header Color' },
+                                                            { id: 'modern-v4', name: 'Modern Tech', desc: 'Geometric & Crisp' },
+                                                            { id: 'modern-v5', name: 'Modern Corp', desc: 'Professional Blue' },
+                                                        ].map((t) => (
+                                                            <button
+                                                                key={t.id}
+                                                                type="button"
+                                                                onClick={() => setFormData({ ...formData, invoiceTemplate: { ...formData.invoiceTemplate, templateId: t.id } })}
+                                                                className={`p-3 rounded-xl border-2 text-left transition-all relative overflow-hidden group ${formData.invoiceTemplate?.templateId === t.id
+                                                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-800'
+                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
+                                                                    }`}
+                                                            >
+                                                                <div className="font-bold text-xs text-gray-900 dark:text-white mb-1">{t.name}</div>
+                                                                <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">{t.desc}</div>
+                                                                {formData.invoiceTemplate?.templateId === t.id && (
+                                                                    <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-500"></div>
+                                                                )}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Classic Collection */}
+                                                <div>
+                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Classic Collection</h3>
+                                                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                                                        {[
+                                                            { id: 'classic', name: 'Classic Standard', desc: 'Timeless Serif' },
+                                                            { id: 'classic-v2', name: 'Classic Boxed', desc: 'Double Border' },
+                                                            { id: 'classic-v3', name: 'Classic Formal', desc: 'Letter Layout' },
+                                                            { id: 'classic-v4', name: 'Classic Grid', desc: 'Structured Lines' },
+                                                            { id: 'classic-v5', name: 'Classic Times', desc: 'Minimal Serif' },
+                                                        ].map((t) => (
+                                                            <button
+                                                                key={t.id}
+                                                                type="button"
+                                                                onClick={() => setFormData({ ...formData, invoiceTemplate: { ...formData.invoiceTemplate, templateId: t.id } })}
+                                                                className={`p-3 rounded-xl border-2 text-left transition-all relative overflow-hidden group ${formData.invoiceTemplate?.templateId === t.id
+                                                                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 ring-2 ring-amber-200 dark:ring-amber-800'
+                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-700'
+                                                                    }`}
+                                                            >
+                                                                <div className="font-bold text-xs text-gray-900 dark:text-white mb-1">{t.name}</div>
+                                                                <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">{t.desc}</div>
+                                                                {formData.invoiceTemplate?.templateId === t.id && (
+                                                                    <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-amber-500"></div>
+                                                                )}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Minimal Collection */}
+                                                <div>
+                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Minimal Collection</h3>
+                                                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                                                        {[
+                                                            { id: 'minimal', name: 'Minimal Mono', desc: 'Receipt Style' },
+                                                            { id: 'minimal-v2', name: 'Minimal Clean', desc: 'Whitespace Focus' },
+                                                            { id: 'minimal-v3', name: 'Minimal Right', desc: 'Right Aligned' },
+                                                            { id: 'minimal-v4', name: 'Minimal Divider', desc: 'Central Focus' },
+                                                            { id: 'minimal-v5', name: 'Minimal Swiss', desc: 'Grid Layout' },
+                                                        ].map((t) => (
+                                                            <button
+                                                                key={t.id}
+                                                                type="button"
+                                                                onClick={() => setFormData({ ...formData, invoiceTemplate: { ...formData.invoiceTemplate, templateId: t.id } })}
+                                                                className={`p-3 rounded-xl border-2 text-left transition-all relative overflow-hidden group ${formData.invoiceTemplate?.templateId === t.id
+                                                                    ? 'border-gray-900 bg-gray-50 dark:bg-gray-800 ring-2 ring-gray-200 dark:ring-gray-600'
+                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'
+                                                                    }`}
+                                                            >
+                                                                <div className="font-bold text-xs text-gray-900 dark:text-white mb-1">{t.name}</div>
+                                                                <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">{t.desc}</div>
+                                                                {formData.invoiceTemplate?.templateId === t.id && (
+                                                                    <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-gray-900 dark:bg-white"></div>
+                                                                )}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Custom */}
+                                                <div>
+                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Custom</h3>
+                                                    <div className="grid grid-cols-1">
+                                                        <button
+                                                            key="custom"
+                                                            type="button"
+                                                            onClick={() => setFormData({ ...formData, invoiceTemplate: { ...formData.invoiceTemplate, templateId: 'custom' } })}
+                                                            className={`p-3 rounded-xl border-2 text-left transition-all ${formData.invoiceTemplate?.templateId === 'custom'
+                                                                ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 ring-2 ring-yellow-200 dark:ring-yellow-800'
+                                                                : 'border-gray-200 dark:border-gray-700 hover:border-yellow-300 dark:hover:border-yellow-700'
+                                                                }`}
+                                                        >
+                                                            <div className="font-bold text-xs text-gray-900 dark:text-white mb-1">Custom Template</div>
+                                                            <div className="text-[10px] text-gray-500 dark:text-gray-400">Design your own with HTML</div>
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
 
 

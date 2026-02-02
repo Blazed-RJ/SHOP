@@ -339,15 +339,17 @@ const Inventory = () => {
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-gray-100 dark:border-white/5">
-                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Visual</th>
-                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Product Intelligence</th>
-                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Category</th>
-                                            <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Selling Index</th>
+                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">IMAGE</th>
+                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">PRODUCT NAME</th>
+                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">SKU</th>
+                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">CATEGORY</th>
+                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">SUB-CATEGORY</th>
+                                            <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">SELLING PRICE</th>
                                             {isAdmin() && !isClientView && (
-                                                <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Acquisition</th>
+                                                <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">COST PRICE</th>
                                             )}
-                                            <th className="px-8 py-6 text-center text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Stock Level</th>
-                                            <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Actions</th>
+                                            <th className="px-8 py-6 text-center text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">STOCK</th>
+                                            <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">ACTIONS</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -370,46 +372,46 @@ const Inventory = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-5">
-                                                    <div>
-                                                        <p className="text-base font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                                                            {product.name}
-                                                        </p>
-                                                        <div className="flex items-center mt-1 space-x-3">
-                                                            <span className="text-[10px] font-mono font-black text-gray-400 dark:text-gray-500 uppercase tracking-tighter">
-                                                                SKU: {product.sku || 'N/A'}
-                                                            </span>
-                                                            {product.imei1 && (
-                                                                <span className="text-[10px] font-mono font-black text-emerald-600/60 dark:text-emerald-400/40 uppercase tracking-tighter bg-emerald-500/5 px-2 rounded">
-                                                                    IMEI SECURED
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
+                                                    <p className="text-base font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                                                        {product.name}
+                                                    </p>
                                                 </td>
                                                 <td className="px-8 py-5">
                                                     <div className="flex flex-col items-start gap-1">
-                                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100/50 dark:bg-emerald-500/10 border border-emerald-500/20 uppercase tracking-widest">
-                                                            {product.category}
+                                                        <span className="text-[10px] font-mono font-black text-gray-400 dark:text-gray-500 uppercase tracking-tighter">
+                                                            {product.sku || 'N/A'}
                                                         </span>
-                                                        {product.subCategory && (
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 uppercase tracking-wider ml-1">
-                                                                {product.subCategory}
+                                                        {product.imei1 && (
+                                                            <span className="text-[9px] font-mono font-black text-emerald-600/60 dark:text-emerald-400/40 uppercase tracking-tighter bg-emerald-500/5 px-2 rounded">
+                                                                IMEI SECURED
                                                             </span>
                                                         )}
                                                     </div>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100/50 dark:bg-emerald-500/10 border border-emerald-500/20 uppercase tracking-widest">
+                                                        {product.category}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    {product.subCategory ? (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 uppercase tracking-wider">
+                                                            {product.subCategory}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-gray-400 dark:text-gray-600 text-[10px]">-</span>
+                                                    )}
                                                 </td>
                                                 <td className="px-8 py-5 text-right">
                                                     <p className="text-lg font-black text-gray-900 dark:text-white rupee font-mono tracking-tighter">
                                                         {formatINR(product.sellingPrice)}
                                                     </p>
-                                                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tighter">retail value</p>
                                                 </td>
                                                 {isAdmin() && !isClientView && (
                                                     <td className="px-8 py-5 text-right">
                                                         <p className="text-base font-bold text-gray-500 dark:text-gray-400 rupee font-mono opacity-60">
                                                             {formatINR(product.costPrice)}
                                                         </p>
-                                                        <p className="text-[10px] font-bold text-gray-400/50 dark:text-gray-500/30 uppercase tracking-tighter">cost basis</p>
                                                     </td>
                                                 )}
                                                 <td className="px-8 py-5">
@@ -512,7 +514,7 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
         margin: product?.margin || '',
         sellingPrice: product?.sellingPrice || '',
         stock: product?.stock || '',
-        minStockAlert: product?.minStockAlert || 5, // Default 5
+        minStockAlert: product?.minStockAlert ?? 5, // Default 5, allow 0
         gstPercent: product?.gstPercent || 18,
         imei1: product?.imei1 || '',
         imei2: product?.imei2 || '',
@@ -542,6 +544,7 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
         const fetchSubCategories = async () => {
             if (!formData.category) {
                 setSubCategories([]);
+                setFormData(prev => ({ ...prev, subCategory: '' })); // Clear sub-category when main category is cleared
                 return;
             }
 
@@ -553,7 +556,8 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
                 const { data } = await api.get(`/categories/${selectedCat._id}`);
                 setSubCategories(data.subCategories || []);
             } catch (error) {
-                console.error('Failed to load sub-categories');
+                console.error('Failed to load sub-categories', error);
+                setSubCategories([]);
             }
         };
         fetchSubCategories();
@@ -604,9 +608,9 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Check file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error('Image size should be less than 5MB');
+        // Check file size (max 50MB)
+        if (file.size > 50 * 1024 * 1024) {
+            toast.error('Image size should be less than 50MB');
             return;
         }
 

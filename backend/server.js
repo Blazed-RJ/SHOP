@@ -66,7 +66,7 @@ const corsOptions = {
     optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 
 // Static Folder for Images - Add CORS headers for cross-origin access
 app.use('/uploads', (req, res, next) => {

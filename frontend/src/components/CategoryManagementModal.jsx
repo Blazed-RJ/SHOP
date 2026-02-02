@@ -32,39 +32,78 @@ const CategoryManagementModal = ({ onClose }) => {
     });
     const [subInputs, setSubInputs] = useState({});
 
-    const loadCategories = useCallback(async () => {
+    const [categoryPath, setCategoryPath] = useState([]); // Array of {id, name} for breadcrumbs
+
+    // Load root categories (sidebar)
+    const loadRootCategories = useCallback(async () => {
         try {
             setLoading(true);
             const { data } = await api.get('/categories?parent=null');
-
+            // Fetch sub-counts for roots
             const categoriesWithSubs = await Promise.all(
                 data.map(async (cat) => {
                     const { data: details } = await api.get(`/categories/${cat._id}`);
                     return details;
                 })
             );
-
             setCategories(categoriesWithSubs);
-
-            // Sync selectedParent if it exists
-            if (selectedParent) {
-                const updatedParent = categoriesWithSubs.find(c => c._id === selectedParent._id);
-                if (updatedParent) {
-                    setSelectedParent(updatedParent);
-                }
-            }
-
             setLoading(false);
         } catch (error) {
             console.error('Failed to load categories:', error);
-            toast.error('Failed to load categories');
             setLoading(false);
         }
-    }, [selectedParent]);
+    }, []);
 
+    // Load specific category details (for right panel)
+    const loadSelectedCategory = useCallback(async (catId) => {
+        if (!catId) return;
+        try {
+            setLoading(true);
+            const { data } = await api.get(`/categories/${catId}`);
+            setSelectedParent(data);
+            setLoading(false);
+        } catch (error) {
+            console.error('Failed to load category details:', error);
+            toast.error('Failed to load category details');
+            setLoading(false);
+        }
+    }, []);
+
+    // Initial load
     useEffect(() => {
-        loadCategories();
-    }, [loadCategories]);
+        loadRootCategories();
+    }, [loadRootCategories]);
+
+    // Handle Breadcrumb Navigation
+    const handleBreadcrumbClick = (index) => {
+        if (index === -1) {
+            // Home clicked
+            setCategoryPath([]);
+            setSelectedParent(null);
+            loadRootCategories(); // Refresh roots
+        } else {
+            // Navigate to specific ancestor
+            const newPath = categoryPath.slice(0, index + 1);
+            const targetCat = newPath[newPath.length - 1];
+            setCategoryPath(newPath);
+            loadSelectedCategory(targetCat.id);
+        }
+    };
+
+    // Handle Drill Down
+    const handleDrillDown = (cat) => {
+        const newPath = [...categoryPath, { id: cat._id, name: cat.name }];
+        setCategoryPath(newPath);
+        loadSelectedCategory(cat._id);
+    };
+
+    // Sync Logic: Refresh current view content after changes
+    const refreshCurrentView = () => {
+        if (selectedParent) {
+            loadSelectedCategory(selectedParent._id);
+        }
+        loadRootCategories(); // Always refresh sidebar to show correct counts/structure if root changed
+    };
 
     const handleSaveCategory = async (e) => {
         if (e) e.preventDefault();
@@ -99,7 +138,11 @@ const CategoryManagementModal = ({ onClose }) => {
             setEditingCategory(null);
             setIsCreatingNew(false);
             // We keep selectedParent if we just added a sub-category under it
-            loadCategories();
+            setNewCategory({ name: '', description: '' });
+            setEditingCategory(null);
+            setIsCreatingNew(false);
+
+            refreshCurrentView();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to save category');
         }
@@ -116,7 +159,8 @@ const CategoryManagementModal = ({ onClose }) => {
             });
             toast.success('Sub-category added');
             setSubInputs({ ...subInputs, [parentId]: '' });
-            loadCategories();
+            setSubInputs({ ...subInputs, [parentId]: '' });
+            refreshCurrentView();
         } catch (error) {
             toast.error('Failed to add sub-category');
         }
@@ -164,9 +208,15 @@ const CategoryManagementModal = ({ onClose }) => {
             }
 
             if (selectedParent?._id === categoryId) {
-                setSelectedParent(null);
+                // If we deleted the current view, go up one level
+                if (categoryPath.length > 0) {
+                    handleBreadcrumbClick(categoryPath.length - 2);
+                } else {
+                    setSelectedParent(null);
+                }
+            } else {
+                refreshCurrentView();
             }
-            loadCategories();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to delete category');
         } finally {
@@ -183,8 +233,9 @@ const CategoryManagementModal = ({ onClose }) => {
         }
         setExpandedCategories(newExpanded);
 
-        // Select it for management
+        // Select it for management (Root level)
         setSelectedParent(cat);
+        setCategoryPath([{ id: cat._id, name: cat.name }]);
         setIsCreatingNew(false);
         setEditingCategory(null);
     };
@@ -316,6 +367,26 @@ const CategoryManagementModal = ({ onClose }) => {
                             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                                 <div className="flex justify-between items-start mb-6">
                                     <div>
+                                        {/* Breadcrumbs */}
+                                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                                            <button
+                                                onClick={() => handleBreadcrumbClick(-1)}
+                                                className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline flex items-center gap-1"
+                                            >
+                                                Home
+                                            </button>
+                                            {categoryPath.map((item, idx) => (
+                                                <React.Fragment key={item.id}>
+                                                    <ChevronRight className="w-3 h-3 text-gray-400" />
+                                                    <button
+                                                        onClick={() => handleBreadcrumbClick(idx)}
+                                                        className={`hover:text-blue-600 dark:hover:text-blue-400 hover:underline ${idx === categoryPath.length - 1 ? 'font-semibold text-gray-800 dark:text-gray-200' : ''}`}
+                                                    >
+                                                        {item.name}
+                                                    </button>
+                                                </React.Fragment>
+                                            ))}
+                                        </div>
                                         <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{selectedParent.name}</h3>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Manage sub-categories</p>
                                     </div>
@@ -374,8 +445,23 @@ const CategoryManagementModal = ({ onClose }) => {
                                                 <div key={idx} className="group flex items-center justify-between p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-500 transition-all">
                                                     <span className="text-gray-700 dark:text-gray-200 font-medium">{subCat.name}</span>
                                                     <button
+                                                        onClick={() => handleDrillDown(subCat)}
+                                                        className="text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded mr-1"
+                                                        title="Open Sub-Category"
+                                                    >
+                                                        <ChevronRight className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleEditClick(subCat, selectedParent._id)}
+                                                        className="text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded mr-1"
+                                                        title="Edit Sub-Category"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
                                                         onClick={() => initiateDelete(subCat, true)}
                                                         className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                                                        title="Delete Sub-Category"
                                                     >
                                                         <X className="w-4 h-4" />
                                                     </button>

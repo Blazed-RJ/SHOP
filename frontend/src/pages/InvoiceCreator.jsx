@@ -131,17 +131,17 @@ const InvoiceCreator = () => {
     // Product Search Logic (Debounced Server-side)
     useEffect(() => {
         const fetchProducts = async () => {
-            if (!searchQuery) {
-                setFilteredProducts([]);
-                setShowProductSearch(false);
-                return;
-            }
-
+            // Allow fetch even if empty (default listing)
             try {
-                const res = await api.get(`/api/products?search=${encodeURIComponent(searchQuery)}&limit=10`);
+                const url = searchQuery
+                    ? `/products?search=${encodeURIComponent(searchQuery)}&limit=10`
+                    : `/products?limit=10`;
+
+                const res = await api.get(url);
                 // Backend returns { products, total, ... }
                 setFilteredProducts(res.data.products || []);
-                setShowProductSearch(true);
+                // If we have a query, ensure we show results. If empty, rely on onFocus.
+                if (searchQuery) setShowProductSearch(true);
             } catch (error) {
                 console.error('Product search error:', error);
             }
@@ -642,12 +642,14 @@ const InvoiceCreator = () => {
                                             type="text"
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
+                                            onFocus={() => setShowProductSearch(true)}
+                                            onBlur={() => setTimeout(() => setShowProductSearch(false), 200)}
                                             placeholder="Choose a product..."
                                             className="w-full px-6 py-4 border border-rose-100 dark:border-white/10 rounded-[22px] focus:ring-4 focus:ring-rose-500/10 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all font-bold"
                                         />
                                         <Search className="w-5 h-5 text-rose-400 absolute right-6 top-4 group-focus-within:scale-110 transition-transform" />
 
-                                        {showProductSearch && searchQuery && filteredProducts.length > 0 && (
+                                        {showProductSearch && filteredProducts.length > 0 && (
                                             <div className="absolute z-50 w-full mt-3 bg-white/95 dark:bg-[#0A0A0A]/95 backdrop-blur-2xl border border-gray-100 dark:border-white/5 rounded-[28px] shadow-[0_32px_96px_-16px_rgba(0,0,0,0.5)] max-h-[400px] overflow-y-auto overflow-x-hidden p-2 no-scrollbar">
                                                 {filteredProducts.map(p => (
                                                     <div

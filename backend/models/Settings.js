@@ -112,7 +112,12 @@ const settingsSchema = mongoose.Schema({
     invoiceTemplate: {
         templateId: {
             type: String,
-            enum: ['modern', 'classic', 'minimal', 'custom'],
+            enum: [
+                'modern', 'modern-v2', 'modern-v3', 'modern-v4', 'modern-v5',
+                'classic', 'classic-v2', 'classic-v3', 'classic-v4', 'classic-v5',
+                'minimal', 'minimal-v2', 'minimal-v3', 'minimal-v4', 'minimal-v5',
+                'custom'
+            ],
             default: 'modern'
         },
         customTemplateContent: {

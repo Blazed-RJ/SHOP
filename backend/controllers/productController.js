@@ -80,26 +80,32 @@ export const createProduct = async (req, res) => {
             category,
             costPrice,
             sellingPrice,
+            margin,
             gstPercent,
             isTaxInclusive,
             stock,
             imei1,
             imei2,
             serialNo,
-            description
+            description,
+            subCategory,
+            minStockAlert
         } = req.body;
 
         // Image path will be set if uploaded
-        const image = req.file ? `/uploads/${req.file.filename}` : null;
+        const image = req.file ? `/uploads/${req.file.filename}` : req.body.image || null;
 
         const product = await Product.create({
             name,
             category,
+            subCategory,
             costPrice,
             sellingPrice,
+            margin,
             gstPercent,
             isTaxInclusive,
             stock,
+            minStockAlert,
             image,
             imei1,
             imei2,

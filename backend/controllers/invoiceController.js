@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 import { generateInvoiceNumber } from '../utils/invoiceNumber.js';
 import { calculateFromInclusive, calculateFromExclusive, calculateInvoiceSummary } from '../utils/gstCalculator.js';
 import LedgerEntry from '../models/LedgerEntry.js';
-import { recalculateCustomerBalance } from './ledgerController.js';
+import { recalculateCustomerBalance, incrementCustomerBalance } from './ledgerController.js';
 import { validateInvoice } from '../utils/validation.js';
 import moment from 'moment-timezone';
 import { sendEmail } from '../utils/email.js';
@@ -123,7 +123,8 @@ export const createInvoice = async (req, res) => {
             // Ledger Operations
             if (customerId) {
                 log('Checkpoint: Ledger Create');
-                // 1. Debit (Sale) - Full Invoice Amount
+                const newBalance = await incrementCustomerBalance(customerId, createdInvoice.grandTotal, session);
+
                 const ledgerEntryData = [{
                     customer: customerId,
                     date: new Date(),
@@ -133,7 +134,7 @@ export const createInvoice = async (req, res) => {
                     description: `Invoice ${invoiceNo} Generated`,
                     debit: createdInvoice.grandTotal,
                     credit: 0,
-                    balance: 0, // Will recalc
+                    balance: newBalance, // Used optimized balance
                     user: req.user.ownerId
                 }];
 
@@ -182,16 +183,38 @@ export const createInvoice = async (req, res) => {
                     }));
 
                     // Insert Ledger Credits (bulk operation)
+                    // Insert Ledger Credits (bulk operation)
+                    // Note: We need to update balance incrementally for EACH payment if we want perfect ledger history,
+                    // OR we can just update the final balance once and set the ledger entry balance.
+                    // For performance, we'll debit the total payment from customer balance once.
+
+                    const paymentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+                    const balanceAfterPayment = await incrementCustomerBalance(customerId, -paymentTotal, session);
+
+                    // We need to set the balance on the ledger entries. 
+                    // Since it's bulk, this is tricky for intermediate balances.
+                    // Approximation: valid final balance is what matters most.
+                    // For exact sequential balance, we'd need loop.
+                    // Let's assume the bulk entries share the same timestamp/order approx.
+
+                    // Update entries with final balance (simplification) or calculate manually
+                    let currentBal = balanceAfterPayment + paymentTotal; // Backtrack to start
+
+                    const enrichedLedgerCredits = ledgerCreditEntries.map(entry => {
+                        currentBal -= entry.credit;
+                        return { ...entry, balance: currentBal };
+                    });
+
                     if (session) {
-                        await LedgerEntry.create(ledgerCreditEntries, { session });
+                        await LedgerEntry.create(enrichedLedgerCredits, { session });
                     } else {
-                        await LedgerEntry.create(ledgerCreditEntries);
+                        await LedgerEntry.create(enrichedLedgerCredits);
                     }
                 }
 
-                // Recalculate to ensure accuracy
-                log('Checkpoint: Recalc');
-                await recalculateCustomerBalance(customerId, session, req.user.ownerId);
+                // Recalculate to ensure accuracy (REMOVED for optimization)
+                // log('Checkpoint: Recalc');
+                // await recalculateCustomerBalance(customerId, session, req.user.ownerId);
             }
             log('Checkpoint: Success Final');
 
@@ -348,6 +371,8 @@ export const updateInvoicePayment = async (req, res) => {
                 }], { session });
 
                 // Ledger Entry: Credit (Payment)
+                const newBalance = await incrementCustomerBalance(invoice.customer, -paymentTotal, session);
+
                 await LedgerEntry.create([{
                     customer: invoice.customer,
                     date: new Date(),
@@ -357,10 +382,10 @@ export const updateInvoicePayment = async (req, res) => {
                     description: `Payment for Invoice ${invoice.invoiceNo}`,
                     debit: 0,
                     credit: paymentTotal,
-                    balance: 0,
+                    balance: newBalance,
                     user: req.user.ownerId
                 }], { session });
-                await recalculateCustomerBalance(invoice.customer, session, req.user.ownerId);
+                // await recalculateCustomerBalance(invoice.customer, session, req.user.ownerId);
             }
             return invoice;
         });
@@ -413,6 +438,9 @@ export const voidInvoice = async (req, res) => {
 
             // 4. Record in Ledger (if customer exists)
             if (invoice.customer) {
+                // Reverse Sale = Credit Customer
+                const newBalance = await incrementCustomerBalance(invoice.customer, -invoice.grandTotal, session);
+
                 await LedgerEntry.create([{
                     customer: invoice.customer,
                     date: new Date(),
@@ -422,10 +450,10 @@ export const voidInvoice = async (req, res) => {
                     description: `Invoice ${invoice.invoiceNo} Voided: ${reason || 'Cancelled'}`,
                     debit: 0,
                     credit: invoice.grandTotal, // Reverse the Full Sale Amount
-                    balance: 0,
+                    balance: newBalance,
                     user: req.user.ownerId
                 }], { session });
-                await recalculateCustomerBalance(invoice.customer, session, req.user.ownerId);
+                // await recalculateCustomerBalance(invoice.customer, session, req.user.ownerId);
             }
 
             return invoice;
@@ -466,6 +494,8 @@ export const deleteInvoice = async (req, res) => {
 
             // Ledger Entry: Reversal (Credit)
             if (invoice.customer) {
+                const newBalance = await incrementCustomerBalance(invoice.customer, -invoice.grandTotal, session);
+
                 await LedgerEntry.create([{
                     customer: invoice.customer,
                     date: new Date(),
@@ -475,10 +505,10 @@ export const deleteInvoice = async (req, res) => {
                     description: `Invoice ${invoice.invoiceNo} Deleted (Reversal)`,
                     debit: 0,
                     credit: invoice.grandTotal, // Reverse the Full Sale Amount
-                    balance: 0,
+                    balance: newBalance,
                     user: req.user.ownerId
                 }], { session });
-                await recalculateCustomerBalance(invoice.customer, session, req.user.ownerId);
+                // await recalculateCustomerBalance(invoice.customer, session, req.user.ownerId);
             }
         });
 

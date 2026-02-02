@@ -3,7 +3,7 @@ import Customer from '../models/Customer.js';
 import Supplier from '../models/Supplier.js';
 import LedgerEntry from '../models/LedgerEntry.js';
 import SupplierLedgerEntry from '../models/SupplierLedgerEntry.js';
-import { recalculateCustomerBalance } from './ledgerController.js';
+import { recalculateCustomerBalance, incrementCustomerBalance } from './ledgerController.js';
 import { recalculateSupplierBalance } from './supplierLedgerController.js';
 import Invoice from '../models/Invoice.js';
 import moment from 'moment-timezone';
@@ -36,12 +36,17 @@ export const recordPayment = async (req, res) => {
             user: req.user.ownerId
         });
 
-        // Update customer balance
-        await Customer.findByIdAndUpdate(customerId, {
-            $inc: { balance: -amount }
-        });
-
         // Create ledger entry (Credit - reduces customer's debt)
+        // Optimization: Use incremental balance from recordPayment logic if feasible, or just fetch new balance.
+        // Since we did $inc above, we can just get the new balance. This is slightly different from Invoice which tracks running balance more explicitly in logic.
+        // Actually, we can use incrementCustomerBalance directly instead of the manual $inc above + recalculate.
+        // Let's refactor to standard pattern.
+
+        // Revert manual update above (or assume we replace it) -> Wait, let's keep it simple.
+        // We will replace lines 40-42 with incrementCustomerBalance
+
+        const newBalance = await incrementCustomerBalance(customerId, -amount); // Credit reduces balance
+
         await LedgerEntry.create({
             customer: customerId,
             date: moment().tz("Asia/Kolkata").toDate(),
@@ -51,13 +56,12 @@ export const recordPayment = async (req, res) => {
             description: notes || 'Direct payment received',
             debit: 0,
             credit: amount,
-            balance: 0, // Will be recalculated
+            balance: newBalance,
             user: req.user.ownerId
         });
 
-        // Recalculate ledger balance
-        // Recalculate ledger balance
-        await recalculateCustomerBalance(customerId, null, req.user.ownerId);
+        // Recalculate ledger balance (REMOVED)
+        // await recalculateCustomerBalance(customerId, null, req.user.ownerId);
 
         res.status(201).json({
             message: 'Payment recorded successfully',
@@ -183,10 +187,11 @@ export const deletePayment = async (req, res) => {
         // 1. Revert Customer Balance
         if (payment.customer) {
             const reversalAmount = payment.type === 'Debit' ? payment.amount : -payment.amount;
-            await Customer.findOneAndUpdate(
-                { _id: payment.customer, user: req.user.ownerId },
-                { $inc: { balance: reversalAmount } }
-            );
+            await incrementCustomerBalance(payment.customer, reversalAmount);
+            // await Customer.findOneAndUpdate(
+            //     { _id: payment.customer, user: req.user.ownerId },
+            //     { $inc: { balance: reversalAmount } }
+            // );
             await LedgerEntry.deleteMany({ refId: payment._id });
         }
 
@@ -218,8 +223,8 @@ export const deletePayment = async (req, res) => {
         // 4. Delete Payment
         await Payment.deleteOne({ _id: payment._id });
 
-        // 5. Recalculate Ledgers
-        if (payment.customer) await recalculateCustomerBalance(payment.customer, null, req.user.ownerId);
+        // 5. Recalculate Ledgers (Optimized: Removed for customer, kept for supplier as not optimized yet)
+        // if (payment.customer) await recalculateCustomerBalance(payment.customer, null, req.user.ownerId);
         if (payment.supplier) await recalculateSupplierBalance(payment.supplier, req.user.ownerId);
 
         res.json({ message: 'Payment deleted successfully' });
