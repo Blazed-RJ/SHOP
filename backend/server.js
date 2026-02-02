@@ -51,6 +51,11 @@ const limiter = rateLimit({
     max: 10000, // Increased limit for dev
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+        // Skip rate limiting for localhost
+        const ip = req.ip || req.socket.remoteAddress;
+        return ip === '::1' || ip === '127.0.0.1' || ip === '::ffff:127.0.0.1';
+    },
 });
 app.use(limiter);
 

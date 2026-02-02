@@ -86,7 +86,7 @@ const CategoryManagementModal = ({ onClose }) => {
                 await api.post('/categories', {
                     name: newCategory.name,
                     description: newCategory.description,
-                    parentCategory: selectedParent?._id,
+                    parentCategory: isCreatingNew ? null : selectedParent?._id,
                 });
                 toast.success(
                     selectedParent
