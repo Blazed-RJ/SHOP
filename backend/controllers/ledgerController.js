@@ -235,3 +235,73 @@ export const getDaybook = async (req, res) => {
     }
 };
 
+// @desc    Update ledger entry
+// @route   PUT /api/ledger/:id
+// @access  Private
+export const updateLedgerEntry = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { date, description, refNo, debit, credit } = req.body;
+
+        const entry = await LedgerEntry.findById(id);
+
+        if (!entry) {
+            return res.status(404).json({ message: 'Entry not found' });
+        }
+
+        // Verify ownership
+        if (entry.user.toString() !== req.user.ownerId.toString()) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        // Update fields
+        if (date) entry.date = date;
+        if (description) entry.description = description;
+        if (refNo) entry.refNo = refNo;
+
+        // Handle Debit/Credit changes securely
+        if (debit !== undefined) entry.debit = parseFloat(debit) || 0;
+        if (credit !== undefined) entry.credit = parseFloat(credit) || 0;
+
+        await entry.save();
+
+        // Trigger Recalculation
+        await recalculateCustomerBalance(entry.customer, null, req.user.ownerId);
+
+        res.json(entry);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Delete ledger entry
+// @route   DELETE /api/ledger/:id
+// @access  Private
+export const deleteLedgerEntry = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const entry = await LedgerEntry.findById(id);
+
+        if (!entry) {
+            return res.status(404).json({ message: 'Entry not found' });
+        }
+
+        // Verify ownership
+        if (entry.user.toString() !== req.user.ownerId.toString()) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        const customerId = entry.customer;
+
+        await LedgerEntry.deleteOne({ _id: id });
+
+        // Recalculate balance
+        await recalculateCustomerBalance(customerId, null, req.user.ownerId);
+
+        res.json({ message: 'Entry deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+

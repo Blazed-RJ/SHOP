@@ -4,7 +4,7 @@ import Layout from '../components/Layout/Layout';
 import api from '../utils/api';
 import { formatINR } from '../utils/currency';
 import { formatDate } from '../utils/date';
-import { ArrowLeft, Download, RefreshCw, Printer, Plus } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Printer, Plus, Edit2, Trash2, Paperclip, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const CustomerLedger = () => {
@@ -20,6 +20,12 @@ const CustomerLedger = () => {
         notes: ''
     });
 
+    // Edit/Delete State
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingEntry, setEditingEntry] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [entryToDelete, setEntryToDelete] = useState(null);
+
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
@@ -28,7 +34,7 @@ const CustomerLedger = () => {
                 api.get(`/ledger/${id}`)
             ]);
             setCustomer(customerRes.data);
-            setLedger(ledgerRes.data);
+            setLedger(ledgerRes.data.ledger);
             setLoading(false);
         } catch (error) {
             console.error('Error loading ledger:', error);
@@ -72,6 +78,44 @@ const CustomerLedger = () => {
         } catch (error) {
             console.error('Payment error:', error);
             toast.error(error.response?.data?.message || 'Failed to record payment');
+        }
+    };
+
+    const handleEditClick = (entry) => {
+        setEditingEntry(entry);
+        setShowEditModal(true);
+    };
+
+    const handleUpdateEntry = async (e) => {
+        e.preventDefault();
+        try {
+            await api.put(`/ledger/${editingEntry._id}`, {
+                date: editingEntry.date,
+                description: editingEntry.description,
+                refNo: editingEntry.refNo,
+                debit: editingEntry.debit,
+                credit: editingEntry.credit
+            });
+            toast.success('Entry updated successfully');
+            setShowEditModal(false);
+            setEditingEntry(null);
+            loadData();
+        } catch (error) {
+            console.error('Update error:', error);
+            toast.error('Failed to update entry');
+        }
+    };
+
+    const handleDeleteClick = async (entry) => {
+        if (window.confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
+            try {
+                await api.delete(`/ledger/${entry._id}`);
+                toast.success('Entry deleted successfully');
+                loadData();
+            } catch (error) {
+                console.error('Delete error:', error);
+                toast.error('Failed to delete entry');
+            }
         }
     };
 
@@ -150,19 +194,21 @@ const CustomerLedger = () => {
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Particulars</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ref No</th>
+                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bill</th>
                                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-red-600 dark:text-red-400">Debit (Dr)</th>
                                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-green-600 dark:text-green-400">Credit (Cr)</th>
                                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Balance</th>
+                                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="6" className="text-center py-8">Loading ledger...</td>
+                                        <td colSpan="8" className="text-center py-8">Loading ledger...</td>
                                     </tr>
                                 ) : ledger.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="text-center py-8 text-gray-500">No transactions found</td>
+                                        <td colSpan="8" className="text-center py-8 text-gray-500">No transactions found</td>
                                     </tr>
                                 ) : (
                                     ledger.map((entry) => (
@@ -177,6 +223,9 @@ const CustomerLedger = () => {
                                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 font-mono">
                                                 {entry.refNo || '-'}
                                             </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className="text-gray-300">-</span>
+                                            </td>
                                             <td className="px-6 py-4 text-sm text-right font-medium text-red-600 dark:text-red-400">
                                                 {entry.debit > 0 ? formatINR(entry.debit) : '-'}
                                             </td>
@@ -185,6 +234,22 @@ const CustomerLedger = () => {
                                             </td>
                                             <td className="px-6 py-4 text-sm text-right font-bold text-gray-900 dark:text-white rupee bg-gray-50 dark:bg-gray-700/30">
                                                 {formatINR(entry.balance)}
+                                            </td>
+                                            <td className="px-6 py-4 text-right text-sm font-medium space-x-2">
+                                                <button
+                                                    onClick={() => handleEditClick(entry)}
+                                                    className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                    title="Edit Entry"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClick(entry)}
+                                                    className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                    title="Delete Entry"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </td>
                                         </tr>
                                     ))
@@ -262,6 +327,86 @@ const CustomerLedger = () => {
                                 Record Payment
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Entry Modal */}
+            {showEditModal && editingEntry && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 shadow-2xl transition-colors">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Edit Entry</h3>
+                            <button onClick={() => setShowEditModal(false)} className="text-gray-500 hover:text-gray-700">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleUpdateEntry} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
+                                <input
+                                    type="date"
+                                    value={editingEntry.date ? new Date(editingEntry.date).toISOString().split('T')[0] : ''}
+                                    onChange={(e) => setEditingEntry({ ...editingEntry, date: e.target.value })}
+                                    className="mt-1 w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+                                <input
+                                    type="text"
+                                    value={editingEntry.description}
+                                    onChange={(e) => setEditingEntry({ ...editingEntry, description: e.target.value })}
+                                    className="mt-1 w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ref No</label>
+                                <input
+                                    type="text"
+                                    value={editingEntry.refNo || ''}
+                                    onChange={(e) => setEditingEntry({ ...editingEntry, refNo: e.target.value })}
+                                    className="mt-1 w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 text-red-600">Debit</label>
+                                    <input
+                                        type="number"
+                                        value={editingEntry.debit}
+                                        onChange={(e) => setEditingEntry({ ...editingEntry, debit: e.target.value })}
+                                        className="mt-1 w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        step="0.01"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 text-green-600">Credit</label>
+                                    <input
+                                        type="number"
+                                        value={editingEntry.credit}
+                                        onChange={(e) => setEditingEntry({ ...editingEntry, credit: e.target.value })}
+                                        className="mt-1 w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        step="0.01"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-end space-x-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEditModal(false)}
+                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-700"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                >
+                                    Update Entry
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

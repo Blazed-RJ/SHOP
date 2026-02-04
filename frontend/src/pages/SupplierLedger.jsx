@@ -4,7 +4,8 @@ import Layout from '../components/Layout/Layout';
 import api from '../utils/api';
 import { formatINR } from '../utils/currency';
 import { formatDate } from '../utils/date';
-import { ArrowLeft, RefreshCw, Printer, Plus, X } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Printer, Plus, X, Edit2, Paperclip, Trash2 } from 'lucide-react';
+import ConfirmationModal from '../components/ConfirmationModal';
 import toast from 'react-hot-toast';
 
 const SupplierLedger = () => {
@@ -26,6 +27,10 @@ const SupplierLedger = () => {
         notes: '',
         billFile: null
     });
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingEntry, setEditingEntry] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [entryToDelete, setEntryToDelete] = useState(null);
 
     useEffect(() => {
         loadData();
@@ -112,6 +117,53 @@ const SupplierLedger = () => {
         }
     };
 
+    const handleEditClick = (entry) => {
+        setEditingEntry(entry);
+        setShowEditModal(true);
+    };
+
+    const handleUpdateEntry = async (e) => {
+        e.preventDefault();
+        try {
+            await api.put(`/supplier-ledger/${editingEntry._id}`, {
+                date: editingEntry.date,
+                description: editingEntry.description,
+                refNo: editingEntry.refNo,
+                debit: editingEntry.debit,
+                credit: editingEntry.credit
+            });
+            toast.success('Entry updated successfully');
+            setShowEditModal(false);
+            setEditingEntry(null);
+            loadData();
+        } catch (error) {
+            console.error('Update error:', error);
+            toast.error('Failed to update entry');
+        }
+    };
+
+
+
+    const handleDeleteClick = (entry) => {
+        setEntryToDelete(entry);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!entryToDelete) return;
+
+        try {
+            await api.delete(`/supplier-ledger/${entryToDelete._id}`);
+            toast.success('Entry deleted successfully');
+            setShowDeleteModal(false);
+            setEntryToDelete(null);
+            loadData();
+        } catch (error) {
+            console.error('Delete error:', error);
+            toast.error('Failed to delete entry');
+        }
+    };
+
     return (
         <Layout>
             <div className="p-6">
@@ -194,9 +246,11 @@ const SupplierLedger = () => {
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Particulars</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ref No</th>
+                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bill</th>
                                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-green-600 dark:text-green-400">Debit (Dr)</th>
                                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-red-600 dark:text-red-400">Credit (Cr)</th>
                                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Balance</th>
+                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -221,6 +275,21 @@ const SupplierLedger = () => {
                                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 font-mono">
                                                 {entry.refNo || '-'}
                                             </td>
+                                            <td className="px-6 py-4 text-sm text-center">
+                                                {entry.billAttachment ? (
+                                                    <a
+                                                        href={`${api.defaults.baseURL}${entry.billAttachment}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center justify-center p-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                                                        title="View Attachment"
+                                                    >
+                                                        <Paperclip className="w-4 h-4" />
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-gray-300 dark:text-gray-600">-</span>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4 text-sm text-right font-medium text-green-600 dark:text-green-400">
                                                 {entry.debit > 0 ? formatINR(entry.debit) : '-'}
                                             </td>
@@ -229,6 +298,22 @@ const SupplierLedger = () => {
                                             </td>
                                             <td className="px-6 py-4 text-sm text-right font-bold text-gray-900 dark:text-white rupee bg-gray-50 dark:bg-gray-700/30">
                                                 {formatINR(entry.balance)}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-center">
+                                                <button
+                                                    onClick={() => handleEditClick(entry)}
+                                                    className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition-colors text-gray-500 hover:text-blue-600"
+                                                    title="Edit Entry"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClick(entry)}
+                                                    className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition-colors text-red-500 hover:text-red-700 ml-1"
+                                                    title="Delete Entry"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </td>
                                         </tr>
                                     ))
@@ -408,7 +493,104 @@ const SupplierLedger = () => {
                     </div>
                 </div>
             )}
-        </Layout>
+
+
+            {/* Edit Entry Modal */}
+            {showEditModal && editingEntry && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 shadow-2xl transition-colors">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Edit Ledger Entry</h3>
+
+                        <form onSubmit={handleUpdateEntry} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                                <input
+                                    type="date"
+                                    value={editingEntry.date ? new Date(editingEntry.date).toISOString().split('T')[0] : ''}
+                                    onChange={(e) => setEditingEntry({ ...editingEntry, date: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                                <input
+                                    type="text"
+                                    value={editingEntry.description || ''}
+                                    onChange={(e) => setEditingEntry({ ...editingEntry, description: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reference No</label>
+                                <input
+                                    type="text"
+                                    value={editingEntry.refNo || ''}
+                                    onChange={(e) => setEditingEntry({ ...editingEntry, refNo: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 text-green-600">Debit</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={editingEntry.debit || 0}
+                                        onChange={(e) => setEditingEntry({ ...editingEntry, debit: parseFloat(e.target.value) || 0 })}
+                                        className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 text-red-600">Credit</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={editingEntry.credit || 0}
+                                        onChange={(e) => setEditingEntry({ ...editingEntry, credit: parseFloat(e.target.value) || 0 })}
+                                        className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end space-x-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setEditingEntry(null);
+                                    }}
+                                    className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                                >
+                                    Update Entry
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setEntryToDelete(null);
+                }}
+                onConfirm={confirmDelete}
+                title="Delete Ledger Entry"
+                message="Are you sure you want to delete this transaction? This action cannot be undone and will affect the supplier balance."
+                confirmText="Delete Entry"
+                isDangerous={true}
+            />
+        </Layout >
     );
 };
 
