@@ -105,8 +105,8 @@ const Expenses = () => {
                                 key={cat}
                                 onClick={() => setCategoryFilter(cat)}
                                 className={`flex-1 rounded-xl text-sm font-semibold transition-all ${categoryFilter === cat
-                                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                                     }`}
                             >
                                 {cat}
@@ -153,8 +153,8 @@ const Expenses = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expense.category === 'Drawing'
-                                                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-                                                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+                                                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
                                                     }`}>
                                                     {expense.category}
                                                 </span>
@@ -188,6 +188,7 @@ const Expenses = () => {
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
                     onSuccess={fetchExpenses}
+                    defaultTab="expense"
                 />
             </div>
         </Layout>

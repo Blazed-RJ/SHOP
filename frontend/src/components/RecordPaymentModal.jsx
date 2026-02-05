@@ -3,10 +3,10 @@ import { X, Save, Building, User, Receipt, Calendar, Users } from 'lucide-react'
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
-const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate }) => {
+const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTab = 'customer' }) => {
     // Default to 'customer' if it's the most common action, or keep 'supplier' if preferred.
     // Changing default to 'customer' as "Record Payment" often means "Received Money".
-    const [activeTab, setActiveTab] = useState('customer');
+    const [activeTab, setActiveTab] = useState(defaultTab);
     const [loading, setLoading] = useState(false);
 
     // Data Lists
@@ -26,15 +26,16 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate }) => {
     // Reset on Open
     useEffect(() => {
         if (isOpen) {
-            if (activeTab === 'supplier') fetchSuppliers();
-            if (activeTab === 'customer') fetchCustomers();
+            setActiveTab(defaultTab); // Ensure simple sync
+            if (defaultTab === 'supplier') fetchSuppliers(); // Use defaultTab here
+            if (defaultTab === 'customer') fetchCustomers(); // Use defaultTab here
 
             // Sync date if provided
             if (defaultDate) {
                 setFormData(prev => ({ ...prev, date: defaultDate }));
             }
         }
-    }, [isOpen, activeTab, defaultDate]);
+    }, [isOpen, defaultTab, defaultDate]); // Removing activeTab from dependency to avoid loop, handled inside logic if needed
 
     const fetchSuppliers = async () => {
         try {
@@ -131,9 +132,8 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate }) => {
             remarks: '',
             date: defaultDate || new Date().toISOString().split('T')[0]
         });
-        // Don't reset activeTab, keep user preference for session? Or reset?
-        // Let's reset to 'customer' for consistency
-        setActiveTab('customer');
+        // Reset to default tab
+        setActiveTab(defaultTab);
         onClose();
     };
 
