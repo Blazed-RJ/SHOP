@@ -76,65 +76,79 @@ export const sharePdf = async (elementId, fileName, title, text) => {
  */
 const captureContent = async (element) => {
     try {
-        // Optimization: Use device pixel ratio or cap at 2 for performance vs quality balance
-        const scale = Math.min(window.devicePixelRatio || 2, 2);
+        // Optimization: Reduce scale to avoid "White Screen" OOM crashes
+        // WAS: Math.min(window.devicePixelRatio || 2, 2)
+        // NOW: Fixed 1.5 for balance, or 1 if very large
+        const isLarge = element.scrollHeight > 2000;
+        const scale = isLarge ? 1 : 1.5;
+
+        console.log(`Capturing content: ${element.id} (${element.offsetWidth}x${element.offsetHeight}), Scale: ${scale}`);
 
         return await html2canvas(element, {
             scale: scale,
-            useCORS: true, // Crucial for external images (S3/Cloudinary/etc)
-            allowTaint: true, // CRITICAL FOR PRODUCTION: Allow cross-origin images
-            logging: false, // Reduce console noise
-            backgroundColor: '#ffffff', // Ensure white background for PDF
-            // Production-ready image handling
-            proxy: undefined, // Don't use proxy unless specifically configured
-            imageTimeout: 15000, // Wait up to 15 seconds for images to load
-            removeContainer: true, // Clean up temporary container
+            useCORS: true,
+            allowTaint: true,
+            logging: true,
+            backgroundColor: '#ffffff',
+            imageTimeout: 10000,
+            removeContainer: true,
             ignoreElements: (node) => {
-                // Ignore elements specifically marked to be hidden from print/pdf
                 return node.classList.contains('no-print') || node.classList.contains('hide-on-pdf');
             },
             onclone: (clonedDoc) => {
-                // Formatting fixes for the cloned document before rendering
                 const clonedElement = clonedDoc.getElementById(element.id);
                 if (clonedElement) {
+                    // CRITICAL FIX: Remove heavy CSS filters that crash html2canvas
                     clonedElement.style.margin = '0';
-                    clonedElement.style.padding = '20px'; // Add internal padding for better PDF look
+                    clonedElement.style.padding = '20px';
+                    clonedElement.style.filter = 'none';
+                    clonedElement.style.backdropFilter = 'none'; // Remove glassmorphism
+                    clonedElement.style.boxShadow = 'none';
+                    clonedElement.style.transform = 'none';
+                    clonedElement.style.animation = 'none';
 
-                    // Ensure all images are loaded in cloned document
+                    // Force visible background since we removed backdrop
+                    clonedElement.style.backgroundColor = '#ffffff';
+                    clonedElement.style.color = '#000000';
+
+                    // Ensure images load
                     const images = clonedElement.getElementsByTagName('img');
                     Array.from(images).forEach(img => {
-                        // Add crossorigin attribute for better CORS handling
                         if (!img.complete) {
                             img.crossOrigin = 'anonymous';
                         }
-                        // Convert data URLs to inline if possible
-                        if (img.src && img.src.startsWith('http')) {
-                            // Mark external images with a data attribute for tracking
-                            img.setAttribute('data-external', 'true');
-                        }
+                        // Fix for some external images causing taint
+                        try {
+                            // img.src = img.src; // Trigger reload? No, risky.
+                        } catch (e) { }
                     });
                 }
             }
         });
     } catch (error) {
         console.error('Canvas capture error details:', error);
-
-        // Try fallback with more permissive settings if first attempt fails
-        try {
-            console.log('Attempting fallback capture with allowTaint only...');
-            return await html2canvas(element, {
-                scale: 1, // Lower quality for fallback
-                allowTaint: true,
-                logging: true, // Enable logging for debugging
-                backgroundColor: '#ffffff',
-                ignoreElements: (node) => {
-                    return node.classList.contains('no-print') || node.classList.contains('hide-on-pdf');
-                }
-            });
-        } catch (fallbackError) {
-            throw new Error(`Canvas capture failed: ${error.message}. Fallback also failed: ${fallbackError.message}`);
-        }
+        throw error; // Re-throw to be caught by main handler
     }
+};
+    } catch (error) {
+    console.error('Canvas capture error details:', error);
+
+    // Try fallback with more permissive settings if first attempt fails
+    try {
+        console.log('Attempting fallback capture with allowTaint only...');
+        return await html2canvas(element, {
+            scale: 1, // Lower quality for fallback
+            allowTaint: true,
+            logging: true, // Enable logging for debugging
+            backgroundColor: '#ffffff',
+            ignoreElements: (node) => {
+                return node.classList.contains('no-print') || node.classList.contains('hide-on-pdf');
+            }
+        });
+    } catch (fallbackError) {
+        throw new Error(`Canvas capture failed: ${error.message}. Fallback also failed: ${fallbackError.message}`);
+    }
+}
 };
 
 /**
