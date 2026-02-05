@@ -188,7 +188,16 @@ const generatePdfBox = (canvas, fileName) => {
  * Handles the logic to specific Web Share API or fallback to download.
  */
 const handleShareOrDownload = async (file, fileName, title, text) => {
-    // Check if Web Share API is supported and can share files
+    // Check if device is mobile using User Agent
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    // Force download on Desktop/Laptop to avoid Windows Web Share API issues (e.g. Adobe "Zero length file" error)
+    if (!isMobile) {
+        downloadFile(file);
+        return;
+    }
+
+    // On Mobile, try Web Share API for native experience
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
             await navigator.share({
@@ -198,18 +207,15 @@ const handleShareOrDownload = async (file, fileName, title, text) => {
             });
         } catch (error) {
             if (error.name === 'AbortError') {
-                // User cancelled the share sheet - do nothing or log
                 console.log('User cancelled share');
-                return; // Don't throw, just exit
+                return;
             }
-            // Real share error - try fallback?
-            // Usually if share fails technically, we might want to fallback or just throw.
-            // Let's fallback to download for robustness if share crashes.
+            // Fallback to download if share fails
             console.warn('Share API failed, falling back to download', error);
             downloadFile(file);
         }
     } else {
-        // Fallback for Desktop or unsupported devices
+        // Fallback for unsupported devices
         downloadFile(file);
     }
 };
