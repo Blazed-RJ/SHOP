@@ -18,6 +18,22 @@ export const sharePdf = async (elementId, fileName, title, text) => {
         return;
     }
 
+    // Validate element has content and dimensions
+    const rect = element.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+        console.error(`Element '${elementId}' has no visible dimensions (${rect.width}x${rect.height}).`);
+        toast.error('The content appears to be hidden or empty. Please ensure the document is fully loaded.');
+        return;
+    }
+
+    // Check if element has any visible content
+    const hasContent = element.children.length > 0 || element.textContent.trim().length > 0;
+    if (!hasContent) {
+        console.error(`Element '${elementId}' appears to be empty.`);
+        toast.error('The document appears to be empty. Please ensure data is loaded before generating PDF.');
+        return;
+    }
+
     const loadToast = toast.loading('Generating PDF...');
 
     try {
@@ -45,6 +61,11 @@ export const sharePdf = async (elementId, fileName, title, text) => {
         let errorMessage = 'Failed to generate PDF';
         if (error.message.includes('canvas')) errorMessage = 'Failed to capture screen';
         else if (error.message.includes('share')) errorMessage = 'Sharing failed';
+        else if (error.message.includes('empty') || error.message.includes('dimensions')) {
+            errorMessage = 'Content is empty or not visible';
+        } else if (error.message.includes('0 bytes')) {
+            errorMessage = 'PDF generation produced empty file';
+        }
 
         toast.error(errorMessage);
     }
@@ -121,23 +142,44 @@ const captureContent = async (element) => {
  */
 const generatePdfBox = (canvas, fileName) => {
     try {
+        // Validate canvas has content
+        if (!canvas || canvas.width === 0 || canvas.height === 0) {
+            throw new Error('Canvas is empty or has no dimensions. The content may not have loaded properly.');
+        }
+
         const imgData = canvas.toDataURL('image/png');
+
+        // Validate image data is not empty
+        if (!imgData || imgData === 'data:,') {
+            throw new Error('Canvas captured but contains no image data. Check if the element has visible content.');
+        }
+
         const pdf = new jsPDF('p', 'mm', 'a4');
-
         const pdfWidth = 210; // A4 Width in mm
-
 
         // Calculate image dimensions to fit A4 width
         const imgProps = pdf.getImageProperties(imgData);
         const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        // Validate dimensions are reasonable
+        if (imgHeight <= 0 || imgProps.width <= 0 || imgProps.height <= 0) {
+            throw new Error(`Invalid image dimensions: ${imgProps.width}x${imgProps.height}. Content may be hidden or empty.`);
+        }
 
         // Add image to PDF (Standard one-page or cut-off for now, as per simple invoice requirements)
         // For multi-page, we would compare imgHeight > pdfHeight and loop.
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
 
         const pdfBlob = pdf.output('blob');
+
+        // Final validation: Check if PDF blob is not empty
+        if (!pdfBlob || pdfBlob.size === 0) {
+            throw new Error('PDF blob is empty (0 bytes). Generation failed silently.');
+        }
+
         return new File([pdfBlob], fileName, { type: 'application/pdf' });
     } catch (error) {
+        console.error('PDF generation error:', error);
         throw new Error(`PDF generation failed: ${error.message}`);
     }
 };
