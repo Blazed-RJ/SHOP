@@ -193,6 +193,8 @@ const handleShareOrDownload = async (file, fileName, title, text) => {
 
     // Force download on Desktop/Laptop to avoid Windows Web Share API issues (e.g. Adobe "Zero length file" error)
     if (!isMobile) {
+        console.log('Detected Desktop: Forcing download');
+        // toast('Starting download...', { icon: '⬇️' }); // Debug feedback
         downloadFile(file);
         return;
     }
@@ -224,12 +226,19 @@ const handleShareOrDownload = async (file, fileName, title, text) => {
  * Triggers a browser download for the file.
  */
 const downloadFile = (file) => {
-    const url = URL.createObjectURL(file);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = file.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    try {
+        const url = URL.createObjectURL(file);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = file.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up with a slight delay to ensure click processed
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch (error) {
+        console.error('Download failed:', error);
+        toast.error('Failed to trigger download');
+    }
 };
