@@ -65,6 +65,13 @@ const Expenses = () => {
                         <p className="text-gray-500 dark:text-gray-400">Track your business spending and personal withdrawals</p>
                     </div>
 
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center space-x-2 px-8 py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl shadow-[0_20px_40px_rgba(220,38,38,0.2)] hover:shadow-[0_25px_50px_rgba(220,38,38,0.3)] transition-all duration-300 transform hover:-translate-y-1 group"
+                    >
+                        <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" />
+                        <span className="font-black tracking-tight text-lg">Add Expense</span>
+                    </button>
                 </div>
 
                 {/* Filters & Stats */}
@@ -183,6 +190,7 @@ const Expenses = () => {
                     onClose={() => setIsModalOpen(false)}
                     onSuccess={fetchExpenses}
                     defaultTab="expense"
+                    variant="dedicated"
                 />
             </div>
         </Layout>
