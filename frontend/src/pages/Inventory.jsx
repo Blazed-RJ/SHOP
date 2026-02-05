@@ -795,6 +795,40 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
                             </div>
                         </div>
 
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Serial Number</label>
+                            <input
+                                type="text"
+                                value={formData.serialNumber}
+                                onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
+                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-all outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+                                placeholder="Enter Serial Number"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">IMEI 1</label>
+                                <input
+                                    type="text"
+                                    value={formData.imei1}
+                                    onChange={(e) => setFormData({ ...formData, imei1: e.target.value })}
+                                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-all outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+                                    placeholder="Enter IMEI 1"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">IMEI 2</label>
+                                <input
+                                    type="text"
+                                    value={formData.imei2}
+                                    onChange={(e) => setFormData({ ...formData, imei2: e.target.value })}
+                                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-all outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+                                    placeholder="Enter IMEI 2"
+                                />
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Sub-Category</label>
@@ -914,44 +948,9 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
                             </div>
                         </div>
 
-                        {/* Category Specific Fields */}
-                        {formData.category === 'Phone' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-700">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">IMEI 1</label>
-                                    <input
-                                        type="text"
-                                        value={formData.imei1}
-                                        onChange={(e) => setFormData({ ...formData, imei1: e.target.value })}
-                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-all outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
-                                        placeholder="Enter IMEI 1"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">IMEI 2</label>
-                                    <input
-                                        type="text"
-                                        value={formData.imei2}
-                                        onChange={(e) => setFormData({ ...formData, imei2: e.target.value })}
-                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-all outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
-                                        placeholder="Enter IMEI 2"
-                                    />
-                                </div>
-                            </div>
-                        )}
 
-                        {(formData.category === 'Watch' || formData.category === 'Audio') && (
-                            <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-700">
-                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Serial Number</label>
-                                <input
-                                    type="text"
-                                    value={formData.serialNumber}
-                                    onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
-                                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-all outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
-                                    placeholder="Enter Serial Number"
-                                />
-                            </div>
-                        )}
+
+
 
                         {/* Image Upload */}
                         <div>
