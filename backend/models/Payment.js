@@ -38,6 +38,10 @@ const paymentSchema = mongoose.Schema({
         type: String,
         default: ''
     },
+    name: {
+        type: String, // For Expenses: "Rent", "Electricity", etc.
+        default: ''
+    },
     category: {
         type: String,
         enum: ['Payment', 'Receipt', 'Expense', 'Drawing'],

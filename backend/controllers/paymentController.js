@@ -158,6 +158,7 @@ export const recordExpense = async (req, res) => {
             amount: amount,
             method: method || 'Cash',
             notes: notes || `${category} recorded`,
+            name: req.body.name || '', // Save Expense Name
             category: category,
             recordedBy: req.user._id,
             user: req.user.ownerId,

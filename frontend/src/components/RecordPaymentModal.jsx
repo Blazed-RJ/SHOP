@@ -20,6 +20,7 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
         paymentMode: 'Cash',
         sourceAccount: 'Cash Drawer', // Just UI context
         remarks: '',
+        name: '', // For Expense Name
         date: defaultDate || new Date().toISOString().split('T')[0]
     });
 
@@ -112,6 +113,7 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
                     amount,
                     method: formData.paymentMode,
                     notes: formData.remarks,
+                    name: formData.name, // Send Name
                     category: 'Expense',
                     date: formData.date
                 });
@@ -209,6 +211,20 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
                             />
                         </div>
                     </div>
+
+                    {/* EXPENSE NAME (Only for Expense Tab) */}
+                    {activeTab === 'expense' && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Expense Name *</label>
+                            <input
+                                type="text"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none"
+                                placeholder="e.g. Electricity Bill, Rent, Office Supplies"
+                            />
+                        </div>
+                    )}
 
                     {/* CUSTOMER SELECT */}
                     {activeTab === 'customer' && (
