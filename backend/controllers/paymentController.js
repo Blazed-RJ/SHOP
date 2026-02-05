@@ -24,6 +24,9 @@ export const recordPayment = async (req, res) => {
             return res.status(404).json({ message: 'Customer not found' });
         }
 
+        // Use custom date or current date
+        const transactionDate = date ? moment(date).tz("Asia/Kolkata").toDate() : moment().tz("Asia/Kolkata").toDate();
+
         // Create payment record
         const payment = await Payment.create({
             customer: customerId,
@@ -33,22 +36,11 @@ export const recordPayment = async (req, res) => {
             method: method || 'Cash',
             notes: notes || 'Direct payment recorded',
             recordedBy: req.user._id,
-            user: req.user.ownerId
+            user: req.user.ownerId,
+            date: transactionDate // FIX: Save business date
         });
 
-        // Create ledger entry (Credit - reduces customer's debt)
-        // Optimization: Use incremental balance from recordPayment logic if feasible, or just fetch new balance.
-        // Since we did $inc above, we can just get the new balance. This is slightly different from Invoice which tracks running balance more explicitly in logic.
-        // Actually, we can use incrementCustomerBalance directly instead of the manual $inc above + recalculate.
-        // Let's refactor to standard pattern.
-
-        // Revert manual update above (or assume we replace it) -> Wait, let's keep it simple.
-        // We will replace lines 40-42 with incrementCustomerBalance
-
         const newBalance = await incrementCustomerBalance(customerId, -amount); // Credit reduces balance
-
-        // Use custom date or current date
-        const transactionDate = date ? moment(date).tz("Asia/Kolkata").toDate() : moment().tz("Asia/Kolkata").toDate();
 
         await LedgerEntry.create({
             customer: customerId,
@@ -62,9 +54,6 @@ export const recordPayment = async (req, res) => {
             balance: newBalance,
             user: req.user.ownerId
         });
-
-        // Recalculate ledger balance (REMOVED)
-        // await recalculateCustomerBalance(customerId, null, req.user.ownerId);
 
         res.status(201).json({
             message: 'Payment recorded successfully',
@@ -92,6 +81,9 @@ export const recordSupplierPayment = async (req, res) => {
             return res.status(404).json({ message: 'Supplier not found' });
         }
 
+        // Use custom date or current date
+        const transactionDate = date ? moment(date).tz("Asia/Kolkata").toDate() : moment().tz("Asia/Kolkata").toDate();
+
         // Create payment record
         const payment = await Payment.create({
             customer: null,
@@ -102,16 +94,14 @@ export const recordSupplierPayment = async (req, res) => {
             method: method || 'Cash',
             notes: notes || 'Payment to supplier',
             recordedBy: req.user._id,
-            user: req.user.ownerId
+            user: req.user.ownerId,
+            date: transactionDate // FIX: Save business date
         });
 
         // Update supplier balance (decrease what we owe)
         await Supplier.findByIdAndUpdate(supplierId, {
             $inc: { balance: -amount }
         });
-
-        // Use custom date or current date
-        const transactionDate = date ? moment(date).tz("Asia/Kolkata").toDate() : moment().tz("Asia/Kolkata").toDate();
 
         // Create supplier ledger entry (Debit - reduces our liability)
         await SupplierLedgerEntry.create({
@@ -146,7 +136,7 @@ export const recordSupplierPayment = async (req, res) => {
 // @access  Private
 export const recordExpense = async (req, res) => {
     try {
-        const { amount, method, notes, category } = req.body;
+        const { amount, method, notes, category, date } = req.body;
 
         if (!amount || amount <= 0) {
             return res.status(400).json({ message: 'Valid amount is required' });
@@ -155,6 +145,9 @@ export const recordExpense = async (req, res) => {
         if (!['Expense', 'Drawing'].includes(category)) {
             return res.status(400).json({ message: 'Invalid category for this endpoint' });
         }
+
+        // Use custom date or current date
+        const transactionDate = date ? moment(date).tz("Asia/Kolkata").toDate() : moment().tz("Asia/Kolkata").toDate();
 
         // Create payment record
         const payment = await Payment.create({
@@ -167,7 +160,8 @@ export const recordExpense = async (req, res) => {
             notes: notes || `${category} recorded`,
             category: category,
             recordedBy: req.user._id,
-            user: req.user.ownerId
+            user: req.user.ownerId,
+            date: transactionDate // FIX: Save business date
         });
 
         res.status(201).json({
