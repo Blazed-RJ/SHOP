@@ -206,10 +206,10 @@ const CustomerLedger = ({ isPublic = false }) => {
                         <>
                             <button
                                 onClick={handleShare}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-green-200"
-                                title="Share as PDF"
+                                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                             >
-                                <Share2 className="w-5 h-5" />
+                                <Share2 className="w-4 h-4" />
+                                <span>Download PDF</span>
                             </button>
                             <button
                                 onClick={handleWhatsAppShare}
