@@ -106,13 +106,13 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
                     date: formData.date
                 });
             }
-            // --- EXPENSE / DRAWING (OUT) ---
+            // --- EXPENSE (OUT) ---
             else {
                 await api.post('/payments/expense', {
                     amount,
                     method: formData.paymentMode,
                     notes: formData.remarks,
-                    category: activeTab === 'drawing' ? 'Drawing' : 'Expense',
+                    category: 'Expense',
                     date: formData.date
                 });
             }
@@ -152,8 +152,7 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
                 <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
                     <h2 className="text-xl font-bold text-gray-800 dark:text-white">
                         {activeTab === 'customer' ? 'Receive Payment' :
-                            activeTab === 'expense' ? 'Record Expense' :
-                                activeTab === 'drawing' ? 'Record Drawing' : 'Record Payment'}
+                            activeTab === 'expense' ? 'Record Expense' : 'Record Payment'}
                     </h2>
                     <button onClick={handleClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
                         <X className="w-5 h-5" />
@@ -180,15 +179,7 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
                     >
                         <Building className="w-4 h-4" /> Supplier
                     </button>
-                    <button
-                        onClick={() => setActiveTab('drawing')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all min-w-[90px] ${activeTab === 'drawing'
-                            ? 'bg-white dark:bg-gray-600 text-purple-600 dark:text-purple-400 shadow-sm'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                            }`}
-                    >
-                        <User className="w-4 h-4" /> Drawing
-                    </button>
+                    {/* Drawing Tab Removed */}
                     <button
                         onClick={() => setActiveTab('expense')}
                         className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all min-w-[90px] ${activeTab === 'expense'
@@ -357,8 +348,7 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
                         >
                             {loading ? 'Recording...' :
                                 activeTab === 'customer' ? 'Receive Payment' :
-                                    activeTab === 'expense' ? 'Record Expense' :
-                                        activeTab === 'drawing' ? 'Record Drawing' : 'Record Supplier Payment'}
+                                    activeTab === 'expense' ? 'Record Expense' : 'Record Supplier Payment'}
                         </button>
                     </div>
                 </form>
