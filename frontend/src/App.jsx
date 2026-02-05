@@ -22,6 +22,7 @@ import Daybook from './pages/Daybook';
 import Settings from './pages/Settings';
 import LetterheadList from './pages/LetterheadList';
 import LetterheadCreator from './pages/LetterheadCreator';
+import Expenses from './pages/Expenses';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -112,6 +113,12 @@ function AppRoutes() {
       <Route path="/daybook" element={
         <ProtectedRoute>
           <Daybook />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/expenses" element={
+        <ProtectedRoute>
+          <Expenses />
         </ProtectedRoute>
       } />
 

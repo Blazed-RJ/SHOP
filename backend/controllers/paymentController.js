@@ -174,6 +174,39 @@ export const recordExpense = async (req, res) => {
     }
 };
 
+// @desc    Get all expenses
+// @route   GET /api/payments/expenses
+// @access  Private
+export const getExpenses = async (req, res) => {
+    try {
+        const { startDate, endDate, category } = req.query;
+        let query = {
+            user: req.user.ownerId,
+            type: 'Credit', // Expenses are money out
+            category: { $in: ['Expense', 'Drawing'] }
+        };
+
+        if (category && category !== 'All') {
+            query.category = category;
+        }
+
+        if (startDate && endDate) {
+            query.date = {
+                $gte: moment(startDate).startOf('day').toDate(),
+                $lte: moment(endDate).endOf('day').toDate()
+            };
+        }
+
+        const expenses = await Payment.find(query)
+            .sort({ date: -1, createdAt: -1 });
+
+        res.json(expenses);
+    } catch (error) {
+        console.error('Get Expenses Error:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // @desc    Delete a payment
 // @route   DELETE /api/payments/:id
 // @access  Private (Admin/Manager)

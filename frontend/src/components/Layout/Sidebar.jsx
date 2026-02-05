@@ -17,7 +17,8 @@ import {
     ScrollText,
     Sun,
     Moon,
-    Monitor
+    Monitor,
+    Receipt
 } from 'lucide-react';
 import { useClientView } from '../../context/ClientViewContext.jsx';
 import { BACKEND_URL } from '../../utils/api';
@@ -41,6 +42,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { name: 'Customers', icon: Users, path: '/customers', admin: false },
         { name: 'Suppliers', icon: TruckIcon, path: '/suppliers', admin: false }, // Everyone
         { name: 'Daybook', icon: BookOpen, path: '/daybook', admin: false },
+        { name: 'Expenses', icon: Receipt, path: '/expenses', admin: false },
         { name: 'Letterheads', icon: ScrollText, path: '/letterheads', admin: false },
         { name: 'Settings', icon: Settings, path: '/settings', admin: true }, // Admin Only
     ];
