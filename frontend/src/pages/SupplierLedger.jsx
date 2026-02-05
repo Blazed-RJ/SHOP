@@ -4,7 +4,7 @@ import Layout from '../components/Layout/Layout';
 import api from '../utils/api';
 import { formatINR } from '../utils/currency';
 import { formatDate } from '../utils/date';
-import { ArrowLeft, RefreshCw, Printer, Plus, X, Edit2, Paperclip, Trash2, Share2, Mail, MessageCircle } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Printer, Plus, X, Edit2, Paperclip, Trash2, Share2, Mail, MessageCircle, Download } from 'lucide-react';
 import ConfirmationModal from '../components/ConfirmationModal';
 import toast from 'react-hot-toast';
 import { sharePdf } from '../utils/pdfShare';
@@ -245,11 +245,10 @@ const SupplierLedger = ({ isPublic = false }) => {
                             <>
                                 <button
                                     onClick={handleShare}
-                                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                                 >
-                                    <Share2 className="w-4 h-4" />
-                                    <Share2 className="w-4 h-4" />
-                                    <span>Share PDF</span>
+                                    <Download className="w-4 h-4" />
+                                    <span>Download PDF</span>
                                 </button>
                                 <button
                                     onClick={handleWhatsAppShare}
@@ -263,10 +262,11 @@ const SupplierLedger = ({ isPublic = false }) => {
                             <>
                                 <button
                                     onClick={handleShare}
-                                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-green-200"
-                                    title="Share as PDF"
+                                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    title="Download as PDF"
                                 >
-                                    <Share2 className="w-5 h-5" />
+                                    <Download className="w-4 h-4" />
+                                    <span>Download PDF</span>
                                 </button>
                                 <button
                                     onClick={handleWhatsAppShare}

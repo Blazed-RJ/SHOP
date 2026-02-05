@@ -1,0 +1,25 @@
+
+Found 20 documents
+
+DATE       | AMOUNT    | TYPE   | DESC                                      | ID
+-------------------------------------------------------------------------------------
+No Date | 10001234  | Credit |                                           | 6984f8e64acb700e306c3e3b
+No Date | 1000      | Credit |                                           | 6984f7f14acb700e306c3d8b
+No Date | 500       | Debit  |                                           | 6984ef1d4acb700e306c3ad8
+No Date | 485487    | Debit  |                                           | 698381e52dd38f06650bfa7f
+No Date | 50        | Debit  |                                           | 698381662dd38f06650bfa55
+No Date | 500       | Credit |                                           | 698379d7c176c7f94bdba7eb
+No Date | 500       | Debit  |                                           | 6980f90bd39a0d793dbd61d6
+No Date | 500       | Debit  |                                           | 697e1bdf4088519c4465724a
+No Date | 500       | Debit  |                                           | 697e1b9c934370358411b956
+No Date | 500       | Debit  |                                           | 697e1b5bdf90c1f3143ae986
+No Date | 500       | Debit  |                                           | 697e1aa4d8a741507f1b05ed
+No Date | 500       | Debit  |                                           | 697e17488376ea3c3baf9e4f
+No Date | 500       | Debit  |                                           | 697e16eeb31819a0e3cb38ce
+No Date | 500       | Debit  |                                           | 697e16a08a96567303beb7a6
+No Date | 500       | Debit  |                                           | 697e16561b50fe4e2b89d9fc
+No Date | 500       | Debit  |                                           | 697e15ffcde720f9030b7f40
+No Date | 50000     | Credit |                                           | 697a27df7b7202a5fe6d2c37
+No Date | 50000     | Credit |                                           | 697a25e5ab3f30ece25d57e4
+No Date | 5000      | Credit |                                           | 6977d3555e97389d2ced24da
+No Date | 7000      | Credit |                                           | 6977d2475e97389d2ced248c
