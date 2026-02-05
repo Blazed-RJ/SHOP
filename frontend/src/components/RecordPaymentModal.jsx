@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Building, User, Receipt } from 'lucide-react';
+import { X, Save, Building, User, Receipt, Calendar } from 'lucide-react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
-const RecordPaymentModal = ({ isOpen, onClose, onSuccess }) => {
+const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate }) => {
     const [activeTab, setActiveTab] = useState('supplier'); // supplier, drawing, expense
     const [loading, setLoading] = useState(false);
     const [suppliers, setSuppliers] = useState([]);
@@ -14,7 +14,8 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess }) => {
         amount: '',
         paymentMode: 'Cash',
         sourceAccount: 'Cash Drawer', // Just UI context, backend uses method
-        remarks: ''
+        remarks: '',
+        date: defaultDate || new Date().toISOString().split('T')[0]
     });
 
     useEffect(() => {
@@ -22,6 +23,12 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess }) => {
             fetchSuppliers();
         }
     }, [isOpen, activeTab]);
+
+    useEffect(() => {
+        if (isOpen && defaultDate) {
+            setFormData(prev => ({ ...prev, date: defaultDate }));
+        }
+    }, [isOpen, defaultDate]);
 
     const fetchSuppliers = async () => {
         try {
@@ -55,7 +62,8 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess }) => {
                     supplierId: formData.supplierId,
                     amount,
                     method: formData.paymentMode,
-                    notes: formData.remarks
+                    notes: formData.remarks,
+                    date: formData.date // Pass selected date
                 });
             } else {
                 // Drawing or Expense
@@ -63,7 +71,8 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess }) => {
                     amount,
                     method: formData.paymentMode,
                     notes: formData.remarks,
-                    category: activeTab === 'drawing' ? 'Drawing' : 'Expense'
+                    category: activeTab === 'drawing' ? 'Drawing' : 'Expense',
+                    date: formData.date // Pass selected date
                 });
             }
 
@@ -85,7 +94,8 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess }) => {
             amount: '',
             paymentMode: 'Cash',
             sourceAccount: 'Cash Drawer',
-            remarks: ''
+            remarks: '',
+            date: defaultDate || new Date().toISOString().split('T')[0]
         });
         setActiveTab('supplier');
         onClose();
@@ -137,6 +147,20 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess }) => {
 
                 {/* Body */}
                 <form onSubmit={handleSubmit} className="p-6 pt-2 space-y-4">
+
+                    {/* Date Selection */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                        <div className="relative">
+                            <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-gray-500" />
+                            <input
+                                type="date"
+                                value={formData.date}
+                                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                className="w-full pl-9 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none"
+                            />
+                        </div>
+                    </div>
 
                     {activeTab === 'supplier' && (
                         <div>

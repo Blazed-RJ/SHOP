@@ -338,6 +338,7 @@ const Daybook = () => {
                 isOpen={isPaymentModalOpen}
                 onClose={() => setIsPaymentModalOpen(false)}
                 onSuccess={loadDaybook}
+                defaultDate={selectedDate}
             />
         </Layout>
     );
