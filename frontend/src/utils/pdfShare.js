@@ -130,26 +130,7 @@ const captureContent = async (element) => {
         throw error; // Re-throw to be caught by main handler
     }
 };
-    } catch (error) {
-    console.error('Canvas capture error details:', error);
 
-    // Try fallback with more permissive settings if first attempt fails
-    try {
-        console.log('Attempting fallback capture with allowTaint only...');
-        return await html2canvas(element, {
-            scale: 1, // Lower quality for fallback
-            allowTaint: true,
-            logging: true, // Enable logging for debugging
-            backgroundColor: '#ffffff',
-            ignoreElements: (node) => {
-                return node.classList.contains('no-print') || node.classList.contains('hide-on-pdf');
-            }
-        });
-    } catch (fallbackError) {
-        throw new Error(`Canvas capture failed: ${error.message}. Fallback also failed: ${fallbackError.message}`);
-    }
-}
-};
 
 /**
  * Converts canvas to PDF Blob/File.
