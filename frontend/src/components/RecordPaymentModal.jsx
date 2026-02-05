@@ -48,9 +48,12 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate }) => {
     const fetchCustomers = async () => {
         try {
             const { data } = await api.get('/customers');
-            setCustomers(data);
+            // Customer API returns { customers: [], total: ... }
+            setCustomers(data.customers || []);
         } catch (error) {
             console.error('Failed to load customers', error);
+            // Fallback to empty array to prevent crash
+            setCustomers([]);
         }
     };
 
@@ -338,8 +341,8 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate }) => {
                             type="submit"
                             disabled={loading}
                             className={`flex-1 py-2.5 text-white rounded-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'customer'
-                                    ? 'bg-green-600 hover:bg-green-700 shadow-green-200 dark:shadow-none'
-                                    : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200 dark:shadow-none'
+                                ? 'bg-green-600 hover:bg-green-700 shadow-green-200 dark:shadow-none'
+                                : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200 dark:shadow-none'
                                 }`}
                         >
                             {loading ? 'Recording...' : activeTab === 'customer' ? 'Receive Payment' : 'Record Payment'}
