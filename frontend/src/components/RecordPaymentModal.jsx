@@ -144,7 +144,11 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in border border-gray-100 dark:border-gray-700">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
-                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">Record Payment</h2>
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                        {activeTab === 'customer' ? 'Receive Payment' :
+                            activeTab === 'expense' ? 'Record Expense' :
+                                activeTab === 'drawing' ? 'Record Drawing' : 'Record Payment'}
+                    </h2>
                     <button onClick={handleClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
                         <X className="w-5 h-5" />
                     </button>
@@ -345,7 +349,10 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
                                 : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200 dark:shadow-none'
                                 }`}
                         >
-                            {loading ? 'Recording...' : activeTab === 'customer' ? 'Receive Payment' : 'Record Payment'}
+                            {loading ? 'Recording...' :
+                                activeTab === 'customer' ? 'Receive Payment' :
+                                    activeTab === 'expense' ? 'Record Expense' :
+                                        activeTab === 'drawing' ? 'Record Drawing' : 'Record Supplier Payment'}
                         </button>
                     </div>
                 </form>
