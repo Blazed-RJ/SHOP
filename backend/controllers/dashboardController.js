@@ -15,6 +15,7 @@ export const getDashboardStats = async (req, res) => {
         const yesterdayStart = moment().tz("Asia/Kolkata").subtract(1, 'days').startOf('day').toDate();
         const yesterdayEnd = moment().tz("Asia/Kolkata").subtract(1, 'days').endOf('day').toDate();
 
+        // 1. Sales Stats (Using invoiceDate instead of createdAt)
         const stats = await Invoice.aggregate([
             { $match: { user: ownerId } },
             {
@@ -23,15 +24,17 @@ export const getDashboardStats = async (req, res) => {
                         { $group: { _id: null, total: { $sum: "$grandTotal" }, count: { $sum: 1 } } }
                     ],
                     "todaySales": [
-                        { $match: { createdAt: { $gte: todayStart, $lte: todayEnd } } },
+                        // FIX: Use invoiceDate for "Today's Sales"
+                        { $match: { invoiceDate: { $gte: todayStart, $lte: todayEnd } } },
                         { $group: { _id: null, total: { $sum: "$grandTotal" } } }
                     ],
                     "yesterdaySales": [
-                        { $match: { createdAt: { $gte: yesterdayStart, $lte: yesterdayEnd } } },
+                        // FIX: Use invoiceDate for "Yesterday's Sales"
+                        { $match: { invoiceDate: { $gte: yesterdayStart, $lte: yesterdayEnd } } },
                         { $group: { _id: null, total: { $sum: "$grandTotal" } } }
                     ],
                     "recentInvoices": [
-                        { $sort: { createdAt: -1 } },
+                        { $sort: { createdAt: -1 } }, // Keep "Recent" as actually recently created
                         { $limit: 5 },
                         {
                             $project: {
@@ -39,7 +42,8 @@ export const getDashboardStats = async (req, res) => {
                                 customerName: 1,
                                 grandTotal: 1,
                                 status: 1,
-                                createdAt: 1
+                                createdAt: 1,
+                                invoiceDate: 1
                             }
                         }
                     ],
@@ -91,11 +95,12 @@ export const getDashboardStats = async (req, res) => {
         ]);
 
         // Collection breakdown (Cash vs Online for today)
+        // FIX: Use 'date' instead of 'createdAt' for Today's Collections
         const collections = await Payment.aggregate([
             {
                 $match: {
                     user: ownerId,
-                    createdAt: { $gte: todayStart, $lte: todayEnd }
+                    date: { $gte: todayStart, $lte: todayEnd } // Use business date
                 }
             },
             {
