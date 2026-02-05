@@ -16,6 +16,7 @@ import paymentRoutes from './routes/payments.js';
 import supplierLedgerRoutes from './routes/supplierLedger.js';
 import letterheadRoutes from './routes/letterheadRoutes.js';
 import dashboardRoutes from './routes/dashboard.js';
+import publicRoutes from './routes/publicRoutes.js';
 
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -88,6 +89,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/supplier-ledger', supplierLedgerRoutes);
 app.use('/api/letterheads', letterheadRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/public', publicRoutes);
 
 // Serve Static Assets in Production
 if (process.env.NODE_ENV === 'production') {
@@ -103,6 +105,7 @@ if (process.env.NODE_ENV === 'production') {
         res.send('API is running in Development mode... Use Frontend to access app.');
     });
 }
+
 
 // Error Handling
 app.use((err, req, res, next) => {

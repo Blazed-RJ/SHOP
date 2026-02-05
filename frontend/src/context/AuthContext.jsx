@@ -20,9 +20,18 @@ export const AuthProvider = ({ children }) => {
     });
     const [loading] = useState(false);
 
-    const login = async (username, password) => {
+    const login = async (username, password, deviceId) => {
         try {
-            const { data } = await api.post('/auth/login', { username, password });
+            const { data } = await api.post('/auth/login', { username, password, deviceId });
+
+            if (data.requireOtp) {
+                return {
+                    success: true,
+                    requireOtp: true,
+                    userId: data.userId,
+                    emailMasked: data.emailMasked
+                };
+            }
 
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data));
@@ -33,6 +42,23 @@ export const AuthProvider = ({ children }) => {
             return {
                 success: false,
                 error: error.response?.data?.message || error.message || 'Login failed. Check if backend is running.'
+            };
+        }
+    };
+
+    const verifyOTP = async (userId, otp, deviceId) => {
+        try {
+            const { data } = await api.post('/auth/verify-otp', { userId, otp, deviceId });
+
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data));
+            setUser(data);
+
+            return { success: true, user: data };
+        } catch (error) {
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || 'Verification failed.'
             };
         }
     };
@@ -95,6 +121,7 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         login,
+        verifyOTP,
         googleLogin,
         register,
         logout,

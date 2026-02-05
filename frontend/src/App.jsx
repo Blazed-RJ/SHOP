@@ -76,6 +76,8 @@ function AppRoutes() {
 
       {/* Public Route for Sharing */}
       <Route path="/share/invoice/:id" element={<InvoiceView isPublic={true} />} />
+      <Route path="/share/customer/:id/ledger" element={<CustomerLedger isPublic={true} />} />
+      <Route path="/share/supplier/:id/ledger" element={<SupplierLedger isPublic={true} />} />
 
       <Route path="/invoices" element={
         <ProtectedRoute>

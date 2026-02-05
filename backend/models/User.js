@@ -22,6 +22,9 @@ const userSchema = mongoose.Schema({
     },
     shopCode: { type: String }, // Used during registration to verify intent
     avatar: { type: String }, // Path to local image
+    otp: { type: String },
+    otpExpires: { type: Date },
+    trustedDevices: [{ type: String }], // Array of trusted device IDs
 }, {
     timestamps: true // Will use server time (IST via env)
 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -31,6 +31,20 @@ const Suppliers = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [supplierToDelete, setSupplierToDelete] = useState(null);
 
+    const loadSuppliers = useCallback(async () => {
+        try {
+            setLoading(true);
+            const { data } = await api.get('/suppliers');
+            setSuppliers(data);
+            setFilteredSuppliers(data);
+            setLoading(false);
+        } catch (error) {
+            console.error('Failed to load suppliers:', error);
+            toast.error('Failed to load suppliers');
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         if (!isAdmin()) {
             navigate('/dashboard');
@@ -38,7 +52,7 @@ const Suppliers = () => {
             return;
         }
         loadSuppliers();
-    }, []);
+    }, [isAdmin, navigate, loadSuppliers]);
 
     useEffect(() => {
         if (searchQuery) {
@@ -53,19 +67,7 @@ const Suppliers = () => {
         }
     }, [searchQuery, suppliers]);
 
-    const loadSuppliers = async () => {
-        try {
-            setLoading(true);
-            const { data } = await api.get('/suppliers');
-            setSuppliers(data);
-            setFilteredSuppliers(data);
-            setLoading(false);
-        } catch (error) {
-            console.error('Failed to load suppliers:', error);
-            toast.error('Failed to load suppliers');
-            setLoading(false);
-        }
-    };
+
 
     const handleDeleteClick = (supplier) => {
         setSupplierToDelete(supplier);
@@ -127,16 +129,16 @@ const Suppliers = () => {
                 </div>
 
                 {/* Logistics Search Array */}
-                <div className="mb-8 relative z-10">
-                    <div className="bg-white/80 dark:bg-white/2 backdrop-blur-2xl p-2 rounded-[28px] border border-white dark:border-white/5 shadow-2xl shadow-amber-500/5">
-                        <div className="relative group">
-                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-amber-500 transition-colors" />
+                <div className="mb-8 relative z-10 max-w-4xl mx-auto">
+                    <div className="bg-white dark:bg-[#0a0a0a] p-2 rounded-2xl border border-amber-500/30 shadow-[0_4px_20px_-8px_rgba(245,158,11,0.3)] transition-all duration-300">
+                        <div className="flex items-center px-4">
+                            <Search className="w-5 h-5 text-gray-400" />
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search by channel name, contact, or logistics ID..."
-                                className="w-full pl-14 pr-6 py-4.5 bg-gray-50/50 dark:bg-white/5 border border-transparent focus:border-amber-500/30 rounded-[22px] text-gray-900 dark:text-white placeholder-gray-400 transition-all outline-none"
+                                className="w-full pl-4 pr-4 py-3 bg-transparent border-none text-gray-900 dark:text-white placeholder-gray-400 focus:ring-0 text-sm font-medium"
                             />
                         </div>
                     </div>
@@ -168,84 +170,85 @@ const Suppliers = () => {
                         {filteredSuppliers.map((supplier) => (
                             <div
                                 key={supplier._id}
-                                className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 p-8 hover:bg-amber-500/[0.02] transition-all duration-500 shadow-xl shadow-black/5 group hover:-translate-y-2"
+                                className="bg-[#FFFDF5] dark:bg-[#0a0a0a] rounded-[32px] border-[1.5px] border-amber-400/40 p-6 shadow-sm hover:shadow-[0_8px_30px_-10px_rgba(245,158,11,0.2)] transition-all duration-300 group"
                             >
-                                <div className="flex items-start justify-between mb-6">
-                                    <div className="flex items-center space-x-4">
-                                        <div className="relative">
-                                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400 font-black text-xl border border-amber-500/10 group-hover:scale-110 transition-transform duration-500 text-center leading-none">
-                                                {supplier.name.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full border-2 border-white dark:border-[#0a0a0a]"></div>
+                                {/* Header Pill */}
+                                <div className="border border-black/80 dark:border-white/80 rounded-full p-2 flex items-center gap-4 mb-4 bg-white dark:bg-black/40">
+                                    <div className="relative">
+                                        <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold text-lg border border-orange-200 dark:border-orange-500/30">
+                                            {supplier.name.charAt(0).toUpperCase()}
                                         </div>
-                                        <div>
-                                            <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                                                {supplier.name}
-                                            </h3>
-                                            <div className="flex items-center space-x-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-0.5">
-                                                <span>Source Code: {supplier._id.slice(-6).toUpperCase()}</span>
-                                            </div>
-                                        </div>
+                                        <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-orange-500 rounded-full border-2 border-white dark:border-black"></div>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-base font-bold text-gray-900 dark:text-white leading-tight">
+                                            {supplier.name}
+                                        </span>
+                                        <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                                            Source Code: {supplier._id.slice(-6).toUpperCase()}
+                                        </span>
                                     </div>
                                 </div>
 
-                                <div className="space-y-3 mb-8">
-                                    <div className="flex items-center space-x-3 p-3 bg-gray-50/50 dark:bg-white/5 rounded-2xl border border-transparent group-hover:border-amber-500/10 transition-all duration-500">
-                                        <div className="p-2 bg-amber-500/10 rounded-lg">
-                                            <Phone className="w-4 h-4 text-amber-500" />
-                                        </div>
-                                        <span className="text-sm font-bold text-gray-600 dark:text-gray-300 tracking-tight">+91 {supplier.phone}</span>
+                                {/* Contact Pill */}
+                                <div className="border border-black/80 dark:border-white/80 rounded-full px-5 py-3 mb-6 bg-white dark:bg-black/40 flex items-center gap-3">
+                                    <div className="w-6 h-6 rounded-md bg-amber-500/10 flex items-center justify-center">
+                                        <Phone className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                                     </div>
-                                    {supplier.email && (
-                                        <div className="flex items-center space-x-3 p-3 bg-gray-50/50 dark:bg-white/5 rounded-2xl border border-transparent group-hover:border-orange-500/10 transition-all duration-500">
-                                            <div className="p-2 bg-orange-500/10 rounded-lg">
-                                                <Mail className="w-4 h-4 text-orange-500" />
-                                            </div>
-                                            <span className="text-sm font-bold text-gray-600 dark:text-gray-300 tracking-tight truncate">{supplier.email}</span>
-                                        </div>
-                                    )}
+                                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300 tracking-wide">
+                                        +91 {supplier.phone}
+                                    </span>
                                 </div>
 
-                                <div className="p-5 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-white/5 dark:to-transparent rounded-[24px] border border-white dark:border-white/5 group-hover:border-amber-500/20 transition-all duration-500 mb-6">
-                                    <div className="flex items-center justify-between mb-2">
+                                {/* Liability/Actions Container */}
+                                <div className="border border-black/80 dark:border-white/80 rounded-2xl p-4 bg-gray-50/50 dark:bg-white/5 relative overflow-hidden">
+                                    {/* Background/Texture could go here */}
+
+                                    <div className="flex justify-between items-start mb-1">
                                         <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Liability Index</span>
-                                        <IndianRupee className="w-3 h-3 text-gray-400" />
+                                        <IndianRupee className="w-3 h-3 text-gray-300" />
                                     </div>
-                                    <div className={`text-2xl font-black rupee font-mono tracking-tighter ${supplier.balance > 0 ? 'text-emerald-600 dark:text-emerald-400' : supplier.balance < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
+
+                                    <div className={`text-xl font-bold font-mono tracking-tighter mb-3 ${supplier.balance > 0 ? 'text-emerald-600 dark:text-emerald-400' : supplier.balance < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
                                         {formatINR(Math.abs(supplier.balance))}
                                     </div>
-                                    <div className="flex items-center space-x-2 mt-2">
-                                        <div className="h-1 flex-1 bg-gray-200 dark:bg-white/5 rounded-full overflow-hidden">
+
+                                    <div className="flex items-center space-x-2 mb-2">
+                                        <div className="h-1 flex-1 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full transition-all duration-1000 ${supplier.balance > 0 ? 'bg-emerald-500' : supplier.balance < 0 ? 'bg-red-500' : 'bg-gray-400'}`}
                                                 style={{ width: supplier.balance === 0 ? '0%' : '65%' }}
                                             ></div>
                                         </div>
-                                        <span className={`text-[10px] font-bold ${supplier.balance > 0 ? 'text-emerald-500' : supplier.balance < 0 ? 'text-red-500' : 'text-gray-400'} uppercase`}>
-                                            {supplier.balance > 0 ? 'Payable' : supplier.balance < 0 ? 'Receivable' : 'Neutral'}
+                                        <span className={`text-[9px] font-bold ${supplier.balance > 0 ? 'text-emerald-500' : supplier.balance < 0 ? 'text-red-500' : 'text-gray-400'} uppercase`}>
+                                            {supplier.balance > 0 ? 'PAY' : supplier.balance < 0 ? 'REC' : 'NIL'}
                                         </span>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                                {/* Hover Actions (Absolute positioned or appearing below) - Keeping cleaner for this design, 
+                                    let's make the whole card clickable or add specific icon buttons in a subtle way 
+                                    Actually, the user asked for this specific card look. I'll add the actions as a row below the box but minimal.
+                                */}
+                                <div className="flex items-center justify-end space-x-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                     <button
                                         onClick={() => navigate(`/suppliers/${supplier._id}/ledger`)}
-                                        className="p-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-500/20 transition-all"
+                                        className="p-2 text-gray-400 hover:text-indigo-500 transition-colors"
                                         title="Ledger"
                                     >
                                         <BookOpen className="w-4 h-4" />
                                     </button>
                                     <button
                                         onClick={() => handleEdit(supplier)}
-                                        className="p-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-lg shadow-amber-500/20 transition-all"
-                                        title="Recalibrate"
+                                        className="p-2 text-gray-400 hover:text-amber-500 transition-colors"
+                                        title="Edit"
                                     >
                                         <Edit2 className="w-4 h-4" />
                                     </button>
                                     <button
                                         onClick={() => handleDeleteClick(supplier)}
-                                        className="p-3 bg-white dark:bg-white/5 text-red-500 hover:bg-red-500 hover:text-white rounded-xl border border-red-500/10 transition-all"
-                                        title="Disconnect"
+                                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                        title="Delete"
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>
@@ -322,7 +325,7 @@ const SupplierModal = ({ supplier, onClose, onSuccess }) => {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-gray-700">
-                <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div className="p-6 border-b-[2.5px] border-black dark:border-white/90 flex items-center justify-between">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                         {supplier ? 'Edit Supplier' : 'Add New Supplier'}
                     </h2>
@@ -398,7 +401,7 @@ const SupplierModal = ({ supplier, onClose, onSuccess }) => {
                         />
                     </div>
 
-                    <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-end space-x-3 pt-4 border-t-[2.5px] border-black dark:border-white/90">
                         <button
                             type="button"
                             onClick={onClose}

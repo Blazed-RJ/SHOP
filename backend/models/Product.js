@@ -13,6 +13,14 @@ const productSchema = mongoose.Schema({
         type: String,
         default: ''
     },
+    subSubCategory: {
+        type: String,
+        default: ''
+    },
+    sku: {
+        type: String,
+        default: null
+    },
     costPrice: {
         type: Number,
         required: true // Hidden from Staff users
@@ -78,7 +86,8 @@ const productSchema = mongoose.Schema({
 });
 
 // Indexes for faster searching
-productSchema.index({ name: 'text', category: 'text' });
+productSchema.index({ name: 'text', category: 'text', sku: 'text' });
+productSchema.index({ sku: 1 });
 productSchema.index({ imei1: 1 });
 productSchema.index({ imei2: 1 });
 productSchema.index({ serialNumber: 1 });

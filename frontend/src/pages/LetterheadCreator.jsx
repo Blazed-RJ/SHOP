@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout/Layout';
 import api from '../utils/api';
@@ -29,13 +29,7 @@ const LetterheadCreator = () => {
         }
     }, [settings, id]);
 
-    useEffect(() => {
-        if (id) {
-            loadLetterhead();
-        }
-    }, [id]);
-
-    const loadLetterhead = async () => {
+    const loadLetterhead = useCallback(async () => {
         try {
             setLoading(true);
             const { data } = await api.get(`/letterheads/${id}`);
@@ -48,13 +42,21 @@ const LetterheadCreator = () => {
                 setConfig(settings.letterheadConfig);
             }
         } catch (error) {
-            console.error(error);
+            console.error('Failed to load', error);
             toast.error('Failed to load letterhead');
             navigate('/letterheads');
         } finally {
             setLoading(false);
         }
-    };
+    }, [id, settings, navigate]);
+
+    useEffect(() => {
+        if (id) {
+            loadLetterhead();
+        }
+    }, [id, loadLetterhead]);
+
+
 
     const handleSave = async (status = 'Draft') => {
         if (!subject || !content) {
@@ -119,9 +121,12 @@ const LetterheadCreator = () => {
 
                 <div className="flex-1 flex gap-6 overflow-hidden">
                     {/* Editor Panel */}
-                    <div className="w-1/3 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                            <h3 className="font-semibold text-gray-700 dark:text-gray-200 flex items-center">
+                    <div className="w-1/3 flex flex-col bg-white dark:bg-gray-800 rounded-[28px] shadow-xl border-[2.5px] border-amber-500/30 overflow-hidden relative">
+                        {/* Soft Gold Glow */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-[50px] pointer-events-none"></div>
+
+                        <div className="p-4 bg-amber-50/50 dark:bg-amber-900/10 border-b-[2.5px] border-amber-500/20 flex items-center justify-between">
+                            <h3 className="font-black text-amber-800 dark:text-amber-500 flex items-center uppercase tracking-widest text-xs">
                                 <Type className="w-4 h-4 mr-2" /> Content Editor
                             </h3>
                         </div>
@@ -267,9 +272,9 @@ const LetterheadCreator = () => {
                                 </div>
 
                                 {/* Graphical Separator - Red/Black Line */}
-                                <div className="relative z-10 w-full flex h-2 mb-10">
+                                <div className="relative z-10 w-full flex h-3 mb-10">
                                     <div className="w-1/3" style={{ backgroundColor: settings.brandColor || '#EF4444' }}></div>
-                                    <div className="flex-1 bg-gray-900"></div>
+                                    <div className="flex-1 bg-black"></div>
                                 </div>
 
                                 {/* Letter Content */}

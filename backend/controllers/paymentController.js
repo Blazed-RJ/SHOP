@@ -118,7 +118,8 @@ export const recordSupplierPayment = async (req, res) => {
             debit: amount,
             credit: 0,
             balance: 0, // Will be recalculated
-            user: req.user.ownerId
+            user: req.user.ownerId,
+            billAttachment: req.file ? `/uploads/bills/${req.file.filename}` : ''
         });
 
         // Recalculate ledger balance

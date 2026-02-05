@@ -7,18 +7,18 @@ import { formatInvoiceDate } from './templateUtils';
 export const ClassicTemplate = ({ data, settings }) => {
     const {
         logo, shopName, address, phone,
-        brandColor = '#000', primaryTextColor = '#000',
         invoiceFooterText, fieldVisibility = {}
     } = settings;
 
     const {
         invoiceNo, date, customerName, customerPhone, customerAddress, items = [],
-        subtotal, tax, total, upiId, digitalSignature, authSignLabel, terms
+        subtotal, tax, total, digitalSignature, authSignLabel, terms
     } = data;
 
     return (
         <div className="w-full h-full bg-white font-serif text-xs p-8 text-black flex flex-col">
             <div className="text-center border-b-2 border-black pb-6 mb-6">
+                {logo && <img src={logo instanceof File ? URL.createObjectURL(logo) : (logo?.startsWith('http') ? logo : `${BACKEND_URL}${logo}`)} alt="Logo" className="h-16 mx-auto object-contain mb-4" />}
                 <h1 className="text-2xl font-bold uppercase tracking-widest mb-2">{shopName}</h1>
                 <p className="italic opacity-80">{address}</p>
                 <p className="mt-1 opacity-80">{phone}</p>
@@ -138,6 +138,8 @@ export const ClassicTemplateV2 = ({ data, settings }) => {
                     <p className="font-bold text-lg">{customerName}</p>
                 </div>
                 <div className="text-right">
+                    <span className="block text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-1">Invoice No:</span>
+                    <p className="font-bold text-lg mb-2">{invoiceNo}</p>
                     <span className="block text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-1">Date:</span>
                     <p className="font-bold  text-lg">{formatInvoiceDate(date)}</p>
                 </div>
@@ -162,14 +164,30 @@ export const ClassicTemplateV2 = ({ data, settings }) => {
                     ))}
                 </tbody>
             </table>
-            <div className="flex justify-end mb-12">
+            <div className="flex justify-end mb-8">
                 <div className="w-1/2 border-t border-black pt-4">
+                    <div className="flex justify-between mb-1 text-[10px] font-bold">
+                        <span>SUBTOTAL</span>
+                        <span>{formatINR(subtotal)}</span>
+                    </div>
+                    {fieldVisibility.taxBreakdown && (
+                        <div className="flex justify-between mb-2 text-[10px] font-bold">
+                            <span>TAX</span>
+                            <span>{formatINR(tax)}</span>
+                        </div>
+                    )}
                     <div className="flex justify-between font-bold text-xl border-t-4 border-double border-black pt-2">
                         <span>TOTAL</span>
                         <span>{formatINR(total)}</span>
                     </div>
                 </div>
             </div>
+            {fieldVisibility.terms && terms && (
+                <div className="mt-auto border-t border-gray-300 pt-4 text-[10px] text-gray-500">
+                    <p className="font-bold uppercase mb-1">Terms & Conditions:</p>
+                    <p className="whitespace-pre-line">{terms}</p>
+                </div>
+            )}
         </div>
     );
 };
@@ -184,6 +202,7 @@ export const ClassicTemplateV3 = ({ data, settings }) => {
             <div className="text-right mb-12 font-bold">
                 <h1 className="text-lg">{shopName}</h1>
                 <p className="font-normal opacity-60 text-[10px]">{address}</p>
+                <p className="font-normal opacity-60 text-[10px]">{phone}</p>
             </div>
 
             <div className="mb-12">

@@ -64,13 +64,14 @@ const Dashboard = () => {
     const getStatusColor = (status) => {
         switch (status) {
             case 'Paid':
-                return 'bg-green-100 text-green-700';
+                return 'border-emerald-500/20 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10';
             case 'Partial':
-                return 'bg-yellow-100 text-yellow-700';
+                return 'border-amber-500/20 text-amber-600 dark:text-amber-400 bg-amber-500/10';
             case 'Due':
-                return 'bg-red-100 text-red-700';
+            case 'Overdue':
+                return 'border-red-500/20 text-red-600 dark:text-red-400 bg-red-500/10';
             default:
-                return 'bg-gray-100 text-gray-700';
+                return 'border-gray-500/20 text-gray-600 dark:text-gray-400 bg-gray-500/10';
         }
     };
 
@@ -101,7 +102,7 @@ const Dashboard = () => {
                 {/* Top 4 Stat Cards - Premium Industrial Style */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     {/* Total Parties (Blue) */}
-                    <div className="bg-blue-50/40 dark:bg-gradient-to-br dark:from-blue-950 dark:via-black dark:to-black rounded-2xl p-6 border-4 border-blue-200 dark:border-blue-500/30 shadow-sm dark:shadow-[0_0_20px_rgba(59,130,246,0.15)] relative overflow-hidden group transition-all duration-300">
+                    <div className="bg-blue-50/40 dark:bg-gradient-to-br dark:from-blue-950 dark:via-black dark:to-black rounded-2xl p-6 box-outline shadow-sm dark:shadow-[0_0_20px_rgba(59,130,246,0.15)] relative overflow-hidden group transition-all duration-300">
                         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
                         <div className="relative z-10 w-full">
                             <div className="flex items-start justify-between">
@@ -111,7 +112,7 @@ const Dashboard = () => {
                                         {stats.totalParties}
                                     </p>
                                 </div>
-                                <div className="p-3 bg-white/80 dark:bg-blue-500/20 rounded-xl border border-blue-100 dark:border-blue-500/30 text-blue-500 dark:text-blue-300 group-hover:text-white group-hover:bg-blue-600 dark:group-hover:bg-blue-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                                <div className="p-3 bg-white/80 dark:bg-blue-500/20 rounded-xl border border-brand-500/20 dark:border-brand-500/10 text-blue-500 dark:text-blue-300 group-hover:text-white group-hover:bg-blue-600 dark:group-hover:bg-blue-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                                     <Users className="w-6 h-6" />
                                 </div>
                             </div>
@@ -122,7 +123,7 @@ const Dashboard = () => {
                     </div>
 
                     {/* Total Items (Green) */}
-                    <div className="bg-emerald-50/40 dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black rounded-2xl p-6 border-4 border-emerald-200 dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_20px_rgba(16,185,129,0.15)] relative overflow-hidden group transition-all duration-300">
+                    <div className="bg-emerald-50/40 dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black rounded-2xl p-6 box-outline shadow-sm dark:shadow-[0_0_20px_rgba(16,185,129,0.15)] relative overflow-hidden group transition-all duration-300">
                         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
                         <div className="relative z-10 w-full">
                             <div className="flex items-start justify-between">
@@ -132,7 +133,7 @@ const Dashboard = () => {
                                         {stats.totalItems}
                                     </p>
                                 </div>
-                                <div className="p-3 bg-white/80 dark:bg-emerald-500/20 rounded-xl border border-emerald-100 dark:border-emerald-500/30 text-emerald-500 dark:text-emerald-300 group-hover:text-white group-hover:bg-emerald-600 dark:group-hover:bg-emerald-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                                <div className="p-3 bg-white/80 dark:bg-emerald-500/20 rounded-xl border border-brand-500/20 dark:border-brand-500/10 text-emerald-500 dark:text-emerald-300 group-hover:text-white group-hover:bg-emerald-600 dark:group-hover:bg-emerald-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                                     <Package className="w-6 h-6" />
                                 </div>
                             </div>
@@ -143,7 +144,7 @@ const Dashboard = () => {
                     </div>
 
                     {/* Total Invoices (Orange) */}
-                    <div className="bg-orange-50/40 dark:bg-gradient-to-br dark:from-orange-950 dark:via-black dark:to-black rounded-2xl p-6 border-4 border-orange-200 dark:border-orange-500/30 shadow-sm dark:shadow-[0_0_20px_rgba(249,115,22,0.15)] relative overflow-hidden group transition-all duration-300">
+                    <div className="bg-orange-50/40 dark:bg-gradient-to-br dark:from-orange-950 dark:via-black dark:to-black rounded-2xl p-6 box-outline shadow-sm dark:shadow-[0_0_20px_rgba(249,115,22,0.15)] relative overflow-hidden group transition-all duration-300">
                         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
                         <div className="relative z-10 w-full">
                             <div className="flex items-start justify-between">
@@ -153,7 +154,7 @@ const Dashboard = () => {
                                         {stats.totalInvoices}
                                     </p>
                                 </div>
-                                <div className="p-3 bg-white/80 dark:bg-orange-500/20 rounded-xl border border-orange-100 dark:border-orange-500/30 text-orange-500 dark:text-orange-300 group-hover:text-white group-hover:bg-orange-600 dark:group-hover:bg-orange-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+                                <div className="p-3 bg-white/80 dark:bg-orange-500/20 rounded-xl border border-brand-500/20 dark:border-brand-500/10 text-orange-500 dark:text-orange-300 group-hover:text-white group-hover:bg-orange-600 dark:group-hover:bg-orange-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(249,115,22,0.3)]">
                                     <FileText className="w-6 h-6" />
                                 </div>
                             </div>
@@ -164,7 +165,7 @@ const Dashboard = () => {
                     </div>
 
                     {/* Total Sales (Indigo) */}
-                    <div className="bg-indigo-50/40 dark:bg-gradient-to-br dark:from-indigo-950 dark:via-black dark:to-black rounded-2xl p-6 border-4 border-indigo-200 dark:border-indigo-500/30 shadow-sm dark:shadow-[0_0_20px_rgba(99,102,241,0.15)] relative overflow-hidden group transition-all duration-300">
+                    <div className="bg-indigo-50/40 dark:bg-gradient-to-br dark:from-indigo-950 dark:via-black dark:to-black rounded-2xl p-6 box-outline shadow-sm dark:shadow-[0_0_20px_rgba(99,102,241,0.15)] relative overflow-hidden group transition-all duration-300">
                         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
                         <div className="relative z-10">
                             <div className="flex items-start justify-between">
@@ -174,7 +175,7 @@ const Dashboard = () => {
                                         {formatINR(stats.totalSales)}
                                     </p>
                                 </div>
-                                <div className="p-3 bg-white/80 dark:bg-indigo-500/20 rounded-xl border border-indigo-100 dark:border-indigo-500/30 text-indigo-500 dark:text-indigo-300 group-hover:text-white group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                                <div className="p-3 bg-white/80 dark:bg-indigo-500/20 rounded-xl border border-brand-500/20 dark:border-brand-500/10 text-indigo-500 dark:text-indigo-300 group-hover:text-white group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
                                     <TrendingUp className="w-6 h-6" />
                                 </div>
                             </div>
@@ -207,7 +208,7 @@ const Dashboard = () => {
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* Cash Collection (Green) */}
-                        <div className="bg-gradient-to-r from-emerald-50 via-white to-white dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black rounded-xl p-5 border-4 border-emerald-200 dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_15px_rgba(16,185,129,0.15)] relative overflow-hidden group transition-all duration-300">
+                        <div className="bg-gradient-to-br from-emerald-100 via-emerald-50 to-white dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black rounded-xl p-5 box-outline shadow-lg shadow-emerald-200/50 dark:shadow-[0_0_15px_rgba(16,185,129,0.15)] relative overflow-hidden group transition-all duration-300">
                             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
                             <div className="relative z-10">
                                 <div className="flex items-start justify-between">
@@ -217,7 +218,7 @@ const Dashboard = () => {
                                             {formatINR(stats.cashCollection)}
                                         </p>
                                     </div>
-                                    <div className="p-2 bg-white/80 dark:bg-emerald-500/20 rounded-lg border border-emerald-100 dark:border-emerald-500/30 text-emerald-500 dark:text-emerald-300 group-hover:text-white group-hover:bg-emerald-600 dark:group-hover:bg-emerald-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                                    <div className="p-2 bg-white/80 dark:bg-emerald-500/20 rounded-lg border border-brand-500/20 dark:border-brand-500/10 text-emerald-500 dark:text-emerald-300 group-hover:text-white group-hover:bg-emerald-600 dark:group-hover:bg-emerald-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_10px_rgba(16,185,129,0.3)]">
                                         <Wallet className="w-4 h-4" />
                                     </div>
                                 </div>
@@ -228,7 +229,7 @@ const Dashboard = () => {
                         </div>
 
                         {/* Online (UPI) (Yellow) */}
-                        <div className="bg-gradient-to-r from-amber-50 via-white to-white dark:bg-gradient-to-br dark:from-yellow-950 dark:via-black dark:to-black rounded-xl p-5 border-4 border-amber-200 dark:border-yellow-500/30 shadow-sm dark:shadow-[0_0_15px_rgba(234,179,8,0.15)] relative overflow-hidden group transition-all duration-300">
+                        <div className="bg-gradient-to-br from-amber-100 via-amber-50 to-white dark:bg-gradient-to-br dark:from-yellow-950 dark:via-black dark:to-black rounded-xl p-5 box-outline shadow-lg shadow-amber-200/50 dark:shadow-[0_0_15px_rgba(234,179,8,0.15)] relative overflow-hidden group transition-all duration-300">
                             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
                             <div className="relative z-10">
                                 <div className="flex items-start justify-between">
@@ -238,7 +239,7 @@ const Dashboard = () => {
                                             {formatINR(stats.onlineCollection)}
                                         </p>
                                     </div>
-                                    <div className="p-2 bg-white/80 dark:bg-yellow-500/20 rounded-lg border border-amber-100 dark:border-yellow-500/30 text-amber-600 dark:text-yellow-300 group-hover:text-white group-hover:bg-yellow-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_10px_rgba(234,179,8,0.3)]">
+                                    <div className="p-2 bg-white/80 dark:bg-yellow-500/20 rounded-lg border border-brand-500/20 dark:border-brand-500/10 text-amber-600 dark:text-yellow-300 group-hover:text-white group-hover:bg-yellow-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_10px_rgba(234,179,8,0.3)]">
                                         <CreditCard className="w-4 h-4" />
                                     </div>
                                 </div>
@@ -249,7 +250,7 @@ const Dashboard = () => {
                         </div>
 
                         {/* Total Sale (Indigo) */}
-                        <div className="bg-gradient-to-r from-indigo-50 via-white to-white dark:bg-gradient-to-br dark:from-indigo-950 dark:via-black dark:to-black rounded-xl p-5 border-4 border-indigo-200 dark:border-indigo-500/30 shadow-sm dark:shadow-[0_0_15px_rgba(99,102,241,0.15)] relative overflow-hidden group transition-all duration-300">
+                        <div className="bg-gradient-to-br from-indigo-100 via-indigo-50 to-white dark:bg-gradient-to-br dark:from-indigo-950 dark:via-black dark:to-black rounded-xl p-5 box-outline shadow-lg shadow-indigo-200/50 dark:shadow-[0_0_15px_rgba(99,102,241,0.15)] relative overflow-hidden group transition-all duration-300">
                             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
                             <div className="relative z-10">
                                 <div className="flex items-start justify-between">
@@ -259,7 +260,7 @@ const Dashboard = () => {
                                             {formatINR(stats.todaySales)}
                                         </p>
                                     </div>
-                                    <div className="p-2 bg-white/80 dark:bg-indigo-500/20 rounded-lg border border-indigo-100 dark:border-indigo-500/30 text-indigo-500 dark:text-indigo-300 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300 shadow-sm dark:shadow-[0_0_10px_rgba(99,102,241,0.3)]">
+                                    <div className="p-2 bg-white/80 dark:bg-indigo-500/20 rounded-lg border border-brand-500/20 dark:border-brand-500/10 text-indigo-500 dark:text-indigo-300 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300 shadow-sm dark:shadow-[0_0_10px_rgba(99,102,241,0.3)]">
                                         <ShoppingCart className="w-4 h-4" />
                                     </div>
                                 </div>
@@ -270,7 +271,7 @@ const Dashboard = () => {
                         </div>
 
                         {/* Credit (Udhaar) (Red) */}
-                        <div className="bg-gradient-to-r from-red-50 via-white to-white dark:bg-gradient-to-br dark:from-red-950 dark:via-black dark:to-black rounded-xl p-5 border-4 border-red-200 dark:border-red-500/30 shadow-sm dark:shadow-[0_0_15px_rgba(239,68,68,0.15)] relative overflow-hidden group transition-all duration-300">
+                        <div className="bg-gradient-to-br from-red-100 via-red-50 to-white dark:bg-gradient-to-br dark:from-red-950 dark:via-black dark:to-black rounded-xl p-5 box-outline shadow-lg shadow-red-200/50 dark:shadow-[0_0_15px_rgba(239,68,68,0.15)] relative overflow-hidden group transition-all duration-300">
                             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
                             <div className="relative z-10">
                                 <div className="flex items-start justify-between">
@@ -280,7 +281,7 @@ const Dashboard = () => {
                                             {formatINR(stats.totalReceivables)}
                                         </p>
                                     </div>
-                                    <div className="p-2 bg-white/80 dark:bg-red-500/20 rounded-lg border border-red-100 dark:border-red-500/30 text-red-500 dark:text-red-300 group-hover:text-white group-hover:bg-red-600 dark:group-hover:bg-red-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_10px_rgba(239,68,68,0.5)]">
+                                    <div className="p-2 bg-white/80 dark:bg-red-500/20 rounded-lg border border-brand-500/20 dark:border-brand-500/10 text-red-500 dark:text-red-300 group-hover:text-white group-hover:bg-red-600 dark:group-hover:bg-red-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_10px_rgba(239,68,68,0.5)]">
                                         <AlertCircle className="w-4 h-4" />
                                     </div>
                                 </div>
@@ -296,7 +297,7 @@ const Dashboard = () => {
                 {!isClientView && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                         {/* Stock Value Widget */}
-                        <div className="bg-sky-50/40 dark:bg-gradient-to-br dark:from-sky-950 dark:via-black dark:to-black p-6 rounded-2xl border-4 border-sky-200 dark:border-sky-500/30 shadow-sm relative overflow-hidden group transition-all duration-300">
+                        <div className="bg-sky-50/40 dark:bg-gradient-to-br dark:from-sky-950 dark:via-black dark:to-black p-6 rounded-2xl box-outline shadow-sm relative overflow-hidden group transition-all duration-300">
                             <div className="absolute -right-10 -top-10 w-40 h-40 bg-sky-500/10 rounded-full blur-3xl"></div>
                             <div className="flex items-center space-x-2">
                                 <div className="p-2 bg-sky-500/20 rounded-lg text-sky-600 dark:text-sky-400 group-hover:text-white group-hover:bg-sky-600 dark:group-hover:bg-sky-500 transition-all duration-300 shadow-sm">
@@ -317,7 +318,7 @@ const Dashboard = () => {
                         </div>
 
                         {/* Profit Widget */}
-                        <div className="bg-emerald-50/40 dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black p-6 rounded-2xl border-4 border-emerald-200 dark:border-emerald-500/30 shadow-sm relative overflow-hidden group transition-all duration-300">
+                        <div className="bg-emerald-50/40 dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black p-6 rounded-2xl box-outline shadow-sm relative overflow-hidden group transition-all duration-300">
                             <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl"></div>
                             <div className="flex items-center space-x-2">
                                 <div className="p-2 bg-emerald-500/20 rounded-lg text-emerald-600 dark:text-emerald-400 group-hover:text-white group-hover:bg-emerald-600 dark:group-hover:bg-emerald-500 transition-all duration-300 shadow-sm">
@@ -354,8 +355,8 @@ const Dashboard = () => {
                 {/* Recent Invoices and Low Stock Items */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Recent Invoices */}
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl border-4 border-violet-200 dark:border-violet-800 shadow-sm overflow-hidden transition-all duration-300">
-                        <div className="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-violet-50/30 dark:bg-violet-950/10">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl box-outline shadow-sm overflow-hidden transition-all duration-300">
+                        <div className="p-6 border-b-[2.5px] border-black dark:border-white/90 flex items-center justify-between bg-violet-50/30 dark:bg-violet-950/10">
                             <div className="flex items-center space-x-3">
                                 <div className="p-2 bg-violet-500/10 rounded-lg">
                                     <TrendingUp className="w-5 h-5 text-violet-500" />
@@ -390,7 +391,7 @@ const Dashboard = () => {
                                             onClick={() => navigate(`/invoices`)}
                                         >
                                             <div className="flex items-center space-x-4">
-                                                <div className="w-12 h-12 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-center text-gray-400 group-hover:text-violet-500 transition-colors shadow-sm">
+                                                <div className="w-12 h-12 rounded-xl bg-white dark:bg-white/5 border border-brand-500/40 dark:border-brand-500/30 flex items-center justify-center text-gray-400 group-hover:text-violet-500 transition-colors shadow-sm">
                                                     <FileText className="w-6 h-6" />
                                                 </div>
                                                 <div>
@@ -404,10 +405,7 @@ const Dashboard = () => {
                                                 <p className="font-black text-gray-900 dark:text-white rupee text-base font-mono tracking-tighter">
                                                     {formatINR(invoice.grandTotal)}
                                                 </p>
-                                                <span className={`mt-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${invoice.status === 'Paid' ? 'border-emerald-500/20 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' :
-                                                    invoice.status === 'Partial' ? 'border-amber-500/20 text-amber-600 dark:text-amber-400 bg-amber-500/10' :
-                                                        'border-red-500/20 text-red-600 dark:text-red-400 bg-red-500/10'
-                                                    }`}>
+                                                <span className={`mt-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${getStatusColor(invoice.status)}`}>
                                                     {invoice.status}
                                                 </span>
                                             </div>
@@ -419,8 +417,8 @@ const Dashboard = () => {
                     </div>
 
                     {/* Low Stock Items */}
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl border-4 border-emerald-200 dark:border-emerald-800 shadow-sm overflow-hidden transition-all duration-300">
-                        <div className="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-red-50/20 dark:bg-red-950/20">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl box-outline shadow-sm overflow-hidden transition-all duration-300">
+                        <div className="p-6 border-b-[2.5px] border-black dark:border-white/90 flex items-center justify-between bg-red-50/20 dark:bg-red-950/20">
                             <div className="flex items-center space-x-3">
                                 <div className={`p-2 rounded-lg ${lowStockProducts.length > 0 ? 'bg-red-500/20 text-red-500 animate-pulse' : 'bg-emerald-500/20 text-emerald-500'}`}>
                                     <AlertCircle className="w-5 h-5" />
@@ -435,7 +433,7 @@ const Dashboard = () => {
                         </div>
                         <div className="p-4">
                             {lowStockProducts.length === 0 ? (
-                                <div className="py-12 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl border border-emerald-100 dark:border-emerald-500/10 flex flex-col items-center justify-center relative overflow-hidden group">
+                                <div className="py-12 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl border border-brand-500/80 dark:border-brand-500/70 flex flex-col items-center justify-center relative overflow-hidden group">
                                     <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                                     <div className="relative z-10 w-20 h-20 bg-white dark:bg-emerald-500/20 rounded-full flex items-center justify-center shadow-lg border border-emerald-100 dark:border-emerald-500/30 mb-4 transition-transform duration-500 group-hover:scale-110">
                                         <Package className="w-10 h-10 text-emerald-500" />

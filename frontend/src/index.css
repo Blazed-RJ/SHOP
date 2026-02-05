@@ -28,7 +28,9 @@ body {
   --bg-tertiary: #f3f4f6;
   --text-primary: #111827;
   --text-secondary: #4b5563;
-  --border-color: #e5e7eb;
+  --border-color: rgba(212, 175, 55, 0.8);
+  --box-outline: #D4AF37;
+  /* Premium Gold */
 }
 
 [data-theme='dark'] {
@@ -45,10 +47,18 @@ body {
   --text-secondary: #A0A0A0;
   /* Muted sliver */
 
-  --border-color: #333333;
-  /* Dark Gray Border */
-  --border-highlight: #D4AF37;
-  /* Gold Border for accents */
+  --border-color: rgba(184, 134, 11, 0.6);
+  /* Muted Gold Tint */
+  --border-highlight: #B8860B;
+  /* Darker Gold Accent */
+  --box-outline: rgba(184, 134, 11, 0.4);
+  /* Muted Deep Gold */
+}
+
+/* Global Box Outline Utility */
+.box-outline {
+  border: 1.5px solid var(--box-outline);
+  box-shadow: 0 4px 20px -10px rgba(0, 0, 0, 0.8);
 }
 
 /* Glassmorphism utilities */

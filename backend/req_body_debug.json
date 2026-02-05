@@ -1,0 +1,17 @@
+{
+  "name": "The Definitive Mystery Widget",
+  "sku": "SKU-MYSTERY-001",
+  "category": "41512",
+  "subCategory": "",
+  "subSubCategory": "",
+  "costPrice": "100",
+  "margin": "70",
+  "sellingPrice": "170.00",
+  "stock": "10",
+  "minStockAlert": 5,
+  "gstPercent": 18,
+  "imei1": "",
+  "imei2": "",
+  "serialNumber": "",
+  "image": ""
+}

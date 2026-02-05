@@ -142,10 +142,10 @@ const InvoiceHistory = () => {
 
                 {/* Advanced Search & Filter Array */}
                 <div className="mb-8 relative z-10">
-                    <div className="bg-white/80 dark:bg-white/2 backdrop-blur-2xl p-2 rounded-[28px] border border-white dark:border-white/5 shadow-2xl shadow-indigo-500/5">
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+                    <div className="bg-white/80 dark:bg-white/5 backdrop-blur-xl p-6 box-outline shadow-2xl border-b-[2.5px] border-black dark:border-white/90 transition-all duration-300">
+                        <div className="flex flex-col md:flex-row gap-4 items-center">
                             {/* Neural Search */}
-                            <div className="lg:col-span-8 relative group">
+                            <div className="relative group flex-grow">
                                 <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
                                 <input
                                     type="text"
@@ -157,7 +157,7 @@ const InvoiceHistory = () => {
                             </div>
 
                             {/* Status Intel */}
-                            <div className="lg:col-span-4 relative group">
+                            <div className="relative group w-full md:w-auto">
                                 <Filter className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-violet-500 transition-colors" />
                                 <select
                                     value={statusFilter}
@@ -170,18 +170,15 @@ const InvoiceHistory = () => {
                                     <option className="dark:bg-gray-900">Due</option>
                                     <option className="dark:bg-gray-900">Void</option>
                                 </select>
-                                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
-                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* High-Performance Ledger */}
-                <div className="relative z-10">
+                <div className="relative z-10 transition-all duration-500">
                     {loading ? (
-                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 p-20 text-center">
+                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] box-outline p-20 text-center transition-all duration-300">
                             <div className="relative inline-block">
                                 <div className="w-16 h-16 border-t-2 border-indigo-500 rounded-full animate-spin mx-auto"></div>
                                 <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full"></div>
@@ -189,7 +186,7 @@ const InvoiceHistory = () => {
                             <p className="mt-4 text-indigo-600 dark:text-indigo-400 font-bold tracking-widest uppercase text-xs animate-pulse font-mono">Accessing Ledger...</p>
                         </div>
                     ) : filteredInvoices.length === 0 ? (
-                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 p-20 text-center group">
+                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] box-outline p-20 text-center group transition-all duration-300">
                             <div className="relative inline-block mb-6">
                                 <div className="absolute inset-0 bg-indigo-500/10 blur-3xl rounded-full group-hover:bg-indigo-500/20 transition-all duration-700"></div>
                                 <FileText className="w-20 h-20 text-indigo-500/20 group-hover:text-indigo-500/40 transition-all duration-500 relative z-10 mx-auto" strokeWidth={1} />
@@ -201,11 +198,11 @@ const InvoiceHistory = () => {
                             </button>
                         </div>
                     ) : (
-                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 overflow-hidden shadow-2xl shadow-indigo-500/5">
+                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] box-outline overflow-hidden shadow-2xl transition-all duration-300">
                             <div className="overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
-                                        <tr className="border-b border-gray-100 dark:border-white/5">
+                                        <tr className="border-b-[2.5px] border-black dark:border-white/90">
                                             <th className="px-8 py-6 text-left text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.2em]">Reference</th>
                                             <th className="px-8 py-6 text-left text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.2em]">Stakeholder</th>
                                             <th className="px-8 py-6 text-left text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.2em]">Timeline</th>
@@ -260,9 +257,9 @@ const InvoiceHistory = () => {
                                                 </td>
                                                 <td className="px-8 py-5">
                                                     <div className="flex justify-center">
-                                                        <span className={`px-4 py-1 rounded-[10px] text-[10px] font-black uppercase tracking-widest border ${invoice.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
-                                                            invoice.status === 'Partial' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
-                                                                invoice.status === 'Due' ? 'bg-red-500/10 text-red-600 border-red-500/20' :
+                                                        <span className={`px-4 py-1 rounded-[10px] text-[10px] font-black uppercase tracking-widest border transition-all duration-300 ${invoice.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20' :
+                                                            invoice.status === 'Partial' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20' :
+                                                                invoice.status === 'Due' ? 'bg-red-500/10 text-red-600 border-red-500/20 hover:bg-red-500/20' :
                                                                     'bg-gray-500/10 text-gray-400 border-gray-500/20 line-through'
                                                             }`}>
                                                             {invoice.status}
@@ -305,39 +302,39 @@ const InvoiceHistory = () => {
                 {/* Intelligent Analytics Dashboard */}
                 {!loading && filteredInvoices.length > 0 && (
                     <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
-                        <div className="bg-white/60 dark:bg-white/2 backdrop-blur-xl rounded-[28px] p-6 border border-white dark:border-white/5 shadow-xl shadow-black/5 group">
-                            <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-3">Volume Trace</p>
+                        <div className="bg-gradient-to-br from-indigo-100 via-indigo-50 to-white dark:bg-gradient-to-br dark:from-indigo-950 dark:via-black dark:to-black backdrop-blur-xl rounded-[28px] p-6 box-outline shadow-lg shadow-indigo-200/50 dark:shadow-[0_0_15px_rgba(99,102,241,0.15)] group transition-all duration-300">
+                            <p className="text-[10px] font-black text-indigo-800/60 dark:text-indigo-300 uppercase tracking-[0.2em] mb-3">Volume Trace</p>
                             <div className="flex items-end justify-between">
-                                <p className="text-3xl font-black text-gray-900 dark:text-white font-mono">{filteredInvoices.length}</p>
+                                <p className="text-3xl font-black text-indigo-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-indigo-100 dark:via-indigo-300 dark:to-indigo-500 font-mono">{filteredInvoices.length}</p>
                                 <div className="p-2 bg-indigo-500/10 rounded-lg group-hover:bg-indigo-500/20 transition-colors">
                                     <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white/60 dark:bg-white/2 backdrop-blur-xl rounded-[28px] p-6 border border-white dark:border-white/5 shadow-xl shadow-black/5 group">
-                            <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-3">Gross Liquidity</p>
+                        <div className="bg-gradient-to-br from-emerald-100 via-emerald-50 to-white dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black backdrop-blur-xl rounded-[28px] p-6 box-outline shadow-lg shadow-emerald-200/50 dark:shadow-[0_0_15px_rgba(16,185,129,0.15)] group transition-all duration-300">
+                            <p className="text-[10px] font-black text-emerald-800/60 dark:text-emerald-300 uppercase tracking-[0.2em] mb-3">Gross Liquidity</p>
                             <div className="flex items-end justify-between">
-                                <p className="text-2xl font-black text-gray-900 dark:text-white rupee font-mono tracking-tighter">
+                                <p className="text-2xl font-black text-emerald-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-emerald-100 dark:via-emerald-300 dark:to-emerald-500 rupee font-mono tracking-tighter">
                                     {formatINR(filteredInvoices.reduce((sum, inv) => sum + inv.grandTotal, 0))}
                                 </p>
-                                <div className="p-2 bg-violet-500/10 rounded-lg group-hover:bg-violet-500/20 transition-colors">
-                                    <Plus className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                                <div className="p-2 bg-white/80 dark:bg-emerald-500/20 rounded-lg border border-emerald-100 dark:border-emerald-500/30 group-hover:bg-emerald-600 dark:group-hover:bg-emerald-500 transition-colors">
+                                    <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white/60 dark:bg-white/2 backdrop-blur-xl rounded-[28px] p-6 border border-white dark:border-white/5 shadow-xl shadow-black/5 group">
-                            <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-3">Settled Flow</p>
+                        <div className="bg-gradient-to-br from-cyan-100 via-cyan-50 to-white dark:bg-gradient-to-br dark:from-cyan-950 dark:via-black dark:to-black backdrop-blur-xl rounded-[28px] p-6 box-outline shadow-lg shadow-cyan-200/50 dark:shadow-[0_0_15px_rgba(6,182,212,0.15)] group transition-all duration-300">
+                            <p className="text-[10px] font-black text-cyan-800/60 dark:text-cyan-300 uppercase tracking-[0.2em] mb-3">Settled Flow</p>
                             <div className="flex items-end justify-between">
-                                <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 rupee font-mono tracking-tighter">
+                                <p className="text-2xl font-black text-cyan-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-cyan-100 dark:via-cyan-300 dark:to-cyan-500 rupee font-mono tracking-tighter">
                                     {formatINR(filteredInvoices.reduce((sum, inv) => sum + inv.paidAmount, 0))}
                                 </p>
-                                <div className="p-2 bg-emerald-500/10 rounded-lg group-hover:bg-emerald-500/20 transition-colors">
-                                    <div className="w-4 h-4 bg-emerald-500 rounded-full animate-pulse"></div>
+                                <div className="p-2 bg-white/80 dark:bg-cyan-500/20 rounded-lg border border-cyan-100 dark:border-cyan-500/30 group-hover:bg-cyan-600 dark:group-hover:bg-cyan-500 transition-colors">
+                                    <div className="w-4 h-4 bg-cyan-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.5)]"></div>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white/60 dark:bg-white/2 backdrop-blur-xl rounded-[28px] p-6 border border-white dark:border-white/5 shadow-xl shadow-black/5 group">
-                            <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-3">Deficit Ratio</p>
+                        <div className="bg-gradient-to-br from-red-100 via-red-50 to-white dark:bg-gradient-to-br dark:from-red-950 dark:via-black dark:to-black backdrop-blur-xl rounded-[28px] p-6 box-outline shadow-lg shadow-red-200/50 dark:shadow-[0_0_15px_rgba(239,68,68,0.15)] group transition-all duration-300">
+                            <p className="text-[10px] font-black text-red-800/60 dark:text-red-300 uppercase tracking-[0.2em] mb-3">Deficit Ratio</p>
                             <div className="flex items-end justify-between">
                                 <p className="text-2xl font-black text-red-600 dark:text-red-400 rupee font-mono tracking-tighter">
                                     {formatINR(filteredInvoices.reduce((sum, inv) => sum + (inv.grandTotal - inv.paidAmount), 0))}
@@ -353,33 +350,45 @@ const InvoiceHistory = () => {
 
             {/* Delete Confirmation Modal */}
             {showVoidModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 shadow-xl border border-gray-200 dark:border-gray-700 animate-in fade-in zoom-in duration-200">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Delete Invoice {selectedInvoice?.invoiceNo}</h3>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-[#0A0A0A] rounded-[32px] max-w-md w-full p-8 box-outline shadow-2xl animate-in zoom-in duration-300 overflow-hidden relative">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-rose-600"></div>
 
-                        <div className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 border p-4 rounded-lg mb-6">
-                            <p className="text-sm text-red-800 dark:text-red-300 font-medium mb-2">
-                                Critical Warning: This will PERMANENTLY remove the invoice.
-                            </p>
-                            <ul className="list-disc pl-5 text-sm text-red-700 dark:text-red-400 space-y-1">
-                                <li>Items will be restored to inventory.</li>
-                                <li>Customer balance will be reverted.</li>
-                                <li>Record will be gone forever.</li>
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="p-3 bg-red-500/10 rounded-2xl">
+                                <Trash2 className="w-6 h-6 text-red-500" />
+                            </div>
+                            <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Liquidate Invoice</h3>
+                        </div>
+
+                        <div className="p-6 bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-500/20 mb-8">
+                            <p className="text-sm text-red-800 dark:text-red-300 font-bold mb-4 uppercase tracking-widest">Permanent Removal Protocol</p>
+                            <ul className="space-y-3">
+                                {[
+                                    'Restores items to primary inventory',
+                                    'Reverts customer balance liability',
+                                    'Purges transaction from official ledger'
+                                ].map((item, i) => (
+                                    <li key={i} className="flex items-start gap-3 text-sm text-red-700 dark:text-red-400/80">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0"></div>
+                                        {item}
+                                    </li>
+                                ))}
                             </ul>
                         </div>
 
-                        <div className="flex justify-end space-x-3">
+                        <div className="flex gap-4">
                             <button
                                 onClick={() => setShowVoidModal(false)}
-                                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors"
+                                className="flex-1 px-6 py-4 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
                             >
-                                Cancel
+                                Abort
                             </button>
                             <button
                                 onClick={confirmDelete}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors"
+                                className="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-red-600/20 hover:bg-red-500 transition-all transform hover:-translate-y-1"
                             >
-                                Confirm Delete
+                                Confirm
                             </button>
                         </div>
                     </div>

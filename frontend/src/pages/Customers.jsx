@@ -70,6 +70,7 @@ const Customers = () => {
             loadCustomers();
             setCustomerToDelete(null);
         } catch (error) {
+            console.error('Delete error:', error);
             toast.error('Failed to delete customer');
         }
     };
@@ -116,16 +117,16 @@ const Customers = () => {
                 </div>
 
                 {/* Cognitive Search Bar */}
-                <div className="mb-8 relative z-10">
-                    <div className="bg-white/80 dark:bg-white/2 backdrop-blur-2xl p-2 rounded-[28px] border border-white dark:border-white/5 shadow-2xl shadow-blue-500/5">
-                        <div className="relative group">
-                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                <div className="mb-8 relative z-10 max-w-4xl mx-auto">
+                    <div className="bg-white dark:bg-[#0a0a0a] p-2 rounded-2xl border border-blue-500/30 shadow-[0_4px_20px_-8px_rgba(59,130,246,0.3)] transition-all duration-300">
+                        <div className="flex items-center px-4">
+                            <Search className="w-5 h-5 text-gray-400" />
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search by name, phone, or digital ID..."
-                                className="w-full pl-14 pr-6 py-4.5 bg-gray-50/50 dark:bg-white/5 border border-transparent focus:border-blue-500/30 rounded-[22px] text-gray-900 dark:text-white placeholder-gray-400 transition-all outline-none"
+                                className="w-full pl-4 pr-4 py-3 bg-transparent border-none text-gray-900 dark:text-white placeholder-gray-400 focus:ring-0 text-sm font-medium"
                             />
                         </div>
                     </div>
@@ -157,83 +158,78 @@ const Customers = () => {
                         {filteredCustomers.map((customer) => (
                             <div
                                 key={customer._id}
-                                className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 p-8 hover:bg-blue-500/[0.02] transition-all duration-500 shadow-xl shadow-black/5 group hover:-translate-y-2"
+                                className="bg-[#F8FAFF] dark:bg-[#0a0a0a] rounded-[32px] border-[1.5px] border-blue-400/40 p-6 shadow-sm hover:shadow-[0_8px_30px_-10px_rgba(59,130,246,0.2)] transition-all duration-300 group"
                             >
-                                <div className="flex items-start justify-between mb-6">
-                                    <div className="flex items-center space-x-4">
-                                        <div className="relative">
-                                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-sky-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-xl border border-blue-500/10 group-hover:scale-110 transition-transform duration-500">
-                                                {customer.name.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-white dark:border-[#0a0a0a] rounded-full"></div>
+                                {/* Header Pill */}
+                                <div className="border border-black/80 dark:border-white/80 rounded-full p-2 flex items-center gap-4 mb-4 bg-white dark:bg-black/40">
+                                    <div className="relative">
+                                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg border border-blue-200 dark:border-blue-500/30">
+                                            {customer.name.charAt(0).toUpperCase()}
                                         </div>
-                                        <div>
-                                            <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                                {customer.name}
-                                            </h3>
-                                            <div className="flex items-center space-x-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-0.5">
-                                                <span>Level ID: {customer._id.slice(-6).toUpperCase()}</span>
-                                            </div>
-                                        </div>
+                                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-black rounded-full"></div>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-base font-bold text-gray-900 dark:text-white leading-tight">
+                                            {customer.name}
+                                        </span>
+                                        <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                                            Level ID: {customer._id.slice(-6).toUpperCase()}
+                                        </span>
                                     </div>
                                 </div>
 
-                                <div className="space-y-3 mb-8">
-                                    <div className="flex items-center space-x-3 p-3 bg-gray-50/50 dark:bg-white/5 rounded-2xl border border-transparent group-hover:border-blue-500/10 transition-all duration-500">
-                                        <div className="p-2 bg-blue-500/10 rounded-lg">
-                                            <Phone className="w-4 h-4 text-blue-500" />
-                                        </div>
-                                        <span className="text-sm font-bold text-gray-600 dark:text-gray-300 tracking-tight">+91 {customer.phone}</span>
+                                {/* Contact Pill */}
+                                <div className="border border-black/80 dark:border-white/80 rounded-full px-5 py-3 mb-6 bg-white dark:bg-black/40 flex items-center gap-3">
+                                    <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center">
+                                        <Phone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                                     </div>
-                                    {customer.email && (
-                                        <div className="flex items-center space-x-3 p-3 bg-gray-50/50 dark:bg-white/5 rounded-2xl border border-transparent group-hover:border-sky-500/10 transition-all duration-500">
-                                            <div className="p-2 bg-sky-500/10 rounded-lg">
-                                                <Mail className="w-4 h-4 text-sky-500" />
-                                            </div>
-                                            <span className="text-sm font-bold text-gray-600 dark:text-gray-300 tracking-tight truncate">{customer.email}</span>
-                                        </div>
-                                    )}
+                                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300 tracking-wide">
+                                        +91 {customer.phone}
+                                    </span>
                                 </div>
 
-                                <div className="p-5 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-white/5 dark:to-transparent rounded-[24px] border border-white dark:border-white/5 group-hover:border-blue-500/20 transition-all duration-500 mb-6">
-                                    <div className="flex items-center justify-between mb-2">
+                                {/* Liability/Actions Container */}
+                                <div className="border border-black/80 dark:border-white/80 rounded-2xl p-4 bg-gray-50/50 dark:bg-white/5 relative overflow-hidden">
+                                    <div className="flex justify-between items-start mb-1">
                                         <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Credit Portfolio</span>
-                                        <IndianRupee className="w-3 h-3 text-gray-400" />
+                                        <IndianRupee className="w-3 h-3 text-gray-300" />
                                     </div>
-                                    <div className={`text-2xl font-black rupee font-mono tracking-tighter ${customer.balance > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+
+                                    <div className={`text-xl font-bold font-mono tracking-tighter mb-3 ${customer.balance > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                                         {formatINR(Math.abs(customer.balance))}
                                     </div>
-                                    <div className="flex items-center space-x-2 mt-2">
-                                        <div className="h-1 flex-1 bg-gray-200 dark:bg-white/5 rounded-full overflow-hidden">
+
+                                    <div className="flex items-center space-x-2 mb-2">
+                                        <div className="h-1 flex-1 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full transition-all duration-1000 ${customer.balance > 0 ? 'bg-red-500' : 'bg-emerald-500'}`}
                                                 style={{ width: '40%' }}
                                             ></div>
                                         </div>
-                                        <span className={`text-[10px] font-bold ${customer.balance > 0 ? 'text-red-500' : 'text-emerald-500'} uppercase`}>
-                                            {customer.balance > 0 ? 'Account Due' : 'Account Clear'}
+                                        <span className={`text-[9px] font-bold ${customer.balance > 0 ? 'text-red-500' : 'text-emerald-500'} uppercase`}>
+                                            {customer.balance > 0 ? 'DUE' : 'CLEAR'}
                                         </span>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                                <div className="flex items-center justify-end space-x-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                     <button
                                         onClick={() => navigate(`/customers/${customer._id}/ledger`)}
-                                        className="p-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-500/20 transition-all"
+                                        className="p-2 text-gray-400 hover:text-indigo-500 transition-colors"
                                         title="Ledger"
                                     >
                                         <BookOpen className="w-4 h-4" />
                                     </button>
                                     <button
                                         onClick={() => handleEdit(customer)}
-                                        className="p-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all"
+                                        className="p-2 text-gray-400 hover:text-blue-500 transition-colors"
                                         title="Modify"
                                     >
                                         <Edit2 className="w-4 h-4" />
                                     </button>
                                     <button
                                         onClick={() => handleDeleteClick(customer)}
-                                        className="p-3 bg-white dark:bg-white/5 text-red-500 hover:bg-red-500 hover:text-white rounded-xl border border-red-500/10 transition-all"
+                                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
                                         title="Expunge"
                                     >
                                         <Trash2 className="w-4 h-4" />
@@ -311,7 +307,7 @@ const CustomerModal = ({ customer, onClose, onSuccess }) => {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-gray-700">
-                <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div className="p-6 border-b-[2.5px] border-black dark:border-white/90 flex items-center justify-between">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                         {customer ? 'Edit Customer' : 'Add New Customer'}
                     </h2>
@@ -387,7 +383,7 @@ const CustomerModal = ({ customer, onClose, onSuccess }) => {
                         />
                     </div>
 
-                    <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-end space-x-3 pt-4 border-t-[2.5px] border-black dark:border-white/90">
                         <button
                             type="button"
                             onClick={onClose}

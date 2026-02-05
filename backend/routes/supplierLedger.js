@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/:supplierId', protect, getSupplierLedger);
 router.post('/recalculate/:supplierId', protect, recalculateSupplierLedger);
 router.post('/record-purchase', protect, upload.single('billFile'), recordPurchase);
-router.put('/:id', protect, updateLedgerEntry);
+router.put('/:id', protect, upload.single('billFile'), updateLedgerEntry);
 router.delete('/:id', protect, deleteLedgerEntry);
 
 export default router;

@@ -46,7 +46,7 @@ export const ModernTemplate = ({ data, settings }) => {
                     </div>
                 </div>
 
-                <div className="flex justify-between items-end border-t border-gray-100 pt-6">
+                <div className="flex justify-between items-end border-t-[2.5px] border-black pt-6">
                     <div>
                         <span className="text-[10px] font-black uppercase tracking-widest block mb-2" style={{ color: brandColor }}>Bill To</span>
                         <div className="font-bold text-sm">{customerName || 'Walk-in Customer'}</div>
@@ -67,7 +67,7 @@ export const ModernTemplate = ({ data, settings }) => {
                             <th className="text-right py-3 px-4 text-[10px] font-black uppercase tracking-wider rounded-r-lg" style={{ color: brandColor }}>Total</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-brand-500/70">
                         {items.map((item, i) => (
                             <tr key={i}>
                                 <td className="py-3 px-4">
@@ -98,7 +98,7 @@ export const ModernTemplate = ({ data, settings }) => {
                             <span className="font-bold opacity-80">{formatINR(tax)}</span>
                         </div>
                     )}
-                    <div className="flex justify-between items-center pt-3 mt-3 border-t border-dashed border-gray-200">
+                    <div className="flex justify-between items-center pt-3 mt-3 border-t border-dashed border-brand-500/80">
                         <span className="font-black text-sm uppercase tracking-wide" style={{ color: brandColor }}>Grand Total</span>
                         <span className="font-black text-lg" style={{ color: brandColor }}>{formatINR(total)}</span>
                     </div>
@@ -107,11 +107,11 @@ export const ModernTemplate = ({ data, settings }) => {
 
             <div className="flex-1"></div>
 
-            <div className="bg-gray-50 p-6 md:p-8 border-t border-gray-100">
+            <div className="bg-gray-50 p-6 md:p-8 border-t-[2.5px] border-black">
                 <div className="flex flex-col md:flex-row justify-between gap-6">
                     <div className="flex-1 space-y-4">
                         {fieldVisibility.qrCode && upiId && (
-                            <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-gray-100 w-fit">
+                            <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-brand-500/10 w-fit">
                                 <QRCodeSVG value={`upi://pay?pa=${upiId}&pn=${encodeURIComponent(shopName)}&am=${total}`} size={64} level="M" />
                                 <div className="text-[9px] font-mono opacity-60">{upiId}</div>
                             </div>
@@ -129,7 +129,7 @@ export const ModernTemplate = ({ data, settings }) => {
                                 {digitalSignature ? (
                                     <img src={digitalSignature.startsWith('http') ? digitalSignature : `${BACKEND_URL}${digitalSignature}`} alt="Signature" className="h-12 object-contain mb-1" />
                                 ) : (
-                                    <div className="h-16 w-32 border-b border-dashed border-gray-300 mb-1"></div>
+                                    <div className="h-16 w-32 border-b border-dashed border-brand-500/30 mb-1"></div>
                                 )}
                                 <span className="text-[10px] font-bold opacity-60">{authSignLabel || 'Authorized Signatory'}</span>
                             </div>
@@ -203,13 +203,13 @@ export const ModernTemplateV2 = ({ data, settings }) => {
                 </table>
                 <div className="flex justify-end mb-12">
                     <div className="w-64 space-y-3">
-                        <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                        <div className="flex justify-between items-center pt-4 border-t-[2.5px] border-black">
                             <span className="font-black text-sm uppercase" style={{ color: brandColor }}>Total Due</span>
                             <span className="font-black text-xl" style={{ color: brandColor }}>{formatINR(total)}</span>
                         </div>
                     </div>
                 </div>
-                <div className="flex justify-between items-end mt-8 border-t border-gray-100 pt-8">
+                <div className="flex justify-between items-end mt-8 border-t-[2.5px] border-black pt-8">
                     <div className="w-1/2">
                         {fieldVisibility.qrCode && upiId && (
                             <QRCodeSVG value={`upi://pay?pa=${upiId}&pn=${encodeURIComponent(shopName)}&am=${total}`} size={56} />
@@ -267,7 +267,7 @@ export const ModernTemplateV3 = ({ data, settings }) => {
                 <div className="bg-gray-50 rounded-xl p-2 mb-8">
                     <table className="w-full">
                         <thead>
-                            <tr className="text-[10px] uppercase text-gray-400 border-b border-gray-200">
+                            <tr className="text-[10px] uppercase text-gray-400 border-b-[2.5px] border-black">
                                 <th className="py-3 px-4 text-left font-bold tracking-wider">Product</th>
                                 <th className="py-3 px-4 text-center font-bold tracking-wider">Qty</th>
                                 <th className="py-3 px-4 text-right font-bold tracking-wider">Amount</th>
@@ -291,14 +291,14 @@ export const ModernTemplateV3 = ({ data, settings }) => {
                             <span>Subtotal</span>
                             <span>{formatINR(subtotal)}</span>
                         </div>
-                        <div className="flex justify-between items-center pt-4 border-t border-gray-700 mt-2">
+                        <div className="flex justify-between items-center pt-4 border-t-[2.5px] border-black mt-2">
                             <span className="font-bold">TOTAL</span>
                             <span className="font-bold text-xl text-green-400">{formatINR(total)}</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="mt-auto pt-8 border-t border-dashed border-gray-200 flex justify-between items-center">
+                <div className="mt-auto pt-8 border-t-[2.5px] border-black flex justify-between items-center">
                     <div>
                         {upiId && <div className="text-[10px] text-gray-400">Paid via UPI: <span className="font-mono text-gray-600">{upiId}</span></div>}
                     </div>
@@ -320,7 +320,7 @@ export const ModernTemplateV4 = ({ data, settings }) => {
     return (
         <div className="w-full h-full bg-slate-50 font-sans text-xs flex flex-col p-6">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 flex-1 flex flex-col">
-                <div className="flex justify-between items-center mb-8 border-b border-dashed border-slate-200 pb-8">
+                <div className="flex justify-between items-center mb-8 border-b-[2.5px] border-black pb-8">
                     <div className="flex items-center gap-4">
                         <div className="h-12 w-12 rounded-full grid place-items-center text-white text-xl font-black" style={{ backgroundColor: brandColor }}>
                             {shopName?.[0] || 'S'}
@@ -412,7 +412,7 @@ export const ModernTemplateV5 = ({ data, settings }) => {
                 </div>
 
                 <table className="w-full mb-10">
-                    <thead className="border-b-2 border-gray-900">
+                    <thead className="border-b-[2.5px] border-black">
                         <tr>
                             <th className="text-left font-bold text-gray-900 uppercase text-[10px] py-3 tracking-wider">Item Description</th>
                             <th className="text-center font-bold text-gray-900 uppercase text-[10px] py-3 tracking-wider w-20">Qty</th>

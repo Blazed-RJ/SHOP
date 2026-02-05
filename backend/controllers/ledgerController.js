@@ -255,9 +255,17 @@ export const updateLedgerEntry = async (req, res) => {
         }
 
         // Update fields
+        // Update fields
         if (date) entry.date = date;
         if (description) entry.description = description;
-        if (refNo) entry.refNo = refNo;
+        if (refNo !== undefined) entry.refNo = refNo; // Allow clearing refNo
+
+        // Handle File Attachment
+        if (req.file) {
+            entry.billAttachment = `/uploads/bills/${req.file.filename}`;
+        } else if (req.body.deleteAttachment === 'true') {
+            entry.billAttachment = '';
+        }
 
         // Handle Debit/Credit changes securely
         if (debit !== undefined) entry.debit = parseFloat(debit) || 0;

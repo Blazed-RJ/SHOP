@@ -33,6 +33,10 @@ const settingsSchema = mongoose.Schema({
         type: String,
         default: ''
     },
+    whatsappNumber: {
+        type: String,
+        default: ''
+    },
     gstNumber: {
         type: String,
         default: ''

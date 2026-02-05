@@ -4,9 +4,10 @@ import api, { BACKEND_URL } from '../utils/api';
 import { useSettings } from '../context/SettingsContext';
 import { formatINR } from '../utils/currency';
 import { formatDate } from '../utils/date';
-import { Printer, ArrowLeft, Download, Share2, Mail } from 'lucide-react';
+import { Printer, ArrowLeft, Download, Share2, Mail, FileText, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
+import { sharePdf } from '../utils/pdfShare';
 
 const InvoiceView = ({ isPublic = false }) => {
     const { id } = useParams();
@@ -16,46 +17,47 @@ const InvoiceView = ({ isPublic = false }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        loadInvoice();
-    }, [id]);
+        const fetchInvoice = async () => {
+            try {
+                const endpoint = isPublic ? `/public/invoices/${id}` : `/invoices/${id}`;
+                const { data } = await api.get(endpoint);
+                setInvoice(data);
+                setLoading(false);
+            } catch (error) {
+                console.error('Error fetching invoice:', error);
+                if (!isPublic) toast.error('Failed to load invoice');
+                setLoading(false);
+            }
+        };
 
-    const loadInvoice = async () => {
-        try {
-            const { data } = await api.get(`/invoices/${id}`);
-            setInvoice(data);
-            setLoading(false);
-        } catch (error) {
-            console.error('Failed to load invoice:', error);
-            toast.error('Failed to load invoice');
-            navigate('/invoices');
+        if (id) {
+            fetchInvoice();
         }
+    }, [id, isPublic]);
+
+    const handleShare = async (platform) => {
+        if (!invoice) return;
+        const fileName = `Invoice_${invoice.invoiceNo}.pdf`;
+        const title = `Invoice ${invoice.invoiceNo}`;
+        const text = `Please find attached invoice ${invoice.invoiceNo} from ${seller.storeName}`;
+
+        // Passing platform is schematic here - Web Share API handles the choice on mobile
+        // But we trigger the same generic share flow
+        await sharePdf('invoice-content', fileName, title, text);
     };
 
     const handleWhatsAppShare = () => {
         if (!invoice) return;
-
-        const phone = invoice.customer?.phone || invoice.customerPhone || '';
-        const cleanPhone = phone.replace(/\D/g, ''); // Remove non-digits
-
-        // Use public link if available, otherwise fallback to current URL (though public link is preferred)
         const shareUrl = `${window.location.origin}/share/invoice/${invoice._id}`;
+        const text = `Here is your Invoice PDF link for ${invoice.invoiceNo} from ${seller.storeName}: ${shareUrl}`;
 
-        // Construct Message
-        const message = `Hello ${invoice.customer?.name || 'Customer'},\n\nHere is your invoice *${invoice.invoiceNo}* from *${invoice.sellerDetails?.storeName || settings?.storeName}*.\n\nYou can view and download it here:\n${shareUrl}\n\nDate: ${formatDate(invoice.invoiceDate)}\nTotal Amount: *₹${formatINR(invoice.grandTotal)}*\n\nThank you for your business!`;
+        // Use whatsappNumber from settings if available, otherwise open WhatsApp without recipient
+        const whatsappNumber = settings?.whatsappNumber || '';
+        const waLink = whatsappNumber
+            ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`
+            : `https://wa.me/?text=${encodeURIComponent(text)}`;
 
-        const url = `https://wa.me/${cleanPhone.length > 10 ? cleanPhone : ''}?text=${encodeURIComponent(message)}`;
-
-        window.open(url, '_blank');
-    };
-
-    const handleEmailShare = () => {
-        if (!invoice) return;
-
-        const shareUrl = `${window.location.origin}/share/invoice/${invoice._id}`;
-        const subject = `Invoice ${invoice.invoiceNo} from ${invoice.sellerDetails?.storeName || settings?.storeName}`;
-        const body = `Hello ${invoice.customer?.name || 'Customer'},\n\nPlease find attached your invoice ${invoice.invoiceNo}.\n\nYou can view it online here:\n${shareUrl}\n\nTotal Amount: ₹${formatINR(invoice.grandTotal)}\n\nThank you for your business!`;
-
-        window.location.href = `mailto:${invoice.customer?.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.open(waLink, '_blank');
     };
 
     if (loading) {
@@ -103,23 +105,21 @@ const InvoiceView = ({ isPublic = false }) => {
                     )}
                 </div>
                 <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => handleShare()}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                    >
+                        <Share2 className="w-4 h-4" />
+                        Share PDF
+                    </button>
                     {!isPublic && (
-                        <>
-                            <button
-                                onClick={handleWhatsAppShare}
-                                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-                            >
-                                <Share2 className="w-4 h-4" />
-                                WhatsApp
-                            </button>
-                            <button
-                                onClick={handleEmailShare}
-                                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
-                            >
-                                <Mail className="w-4 h-4" />
-                                Email
-                            </button>
-                        </>
+                        <button
+                            onClick={handleWhatsAppShare}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-sm"
+                        >
+                            <MessageCircle className="w-4 h-4" />
+                            WhatsApp
+                        </button>
                     )}
                     <button
                         onClick={() => window.print()}
@@ -132,7 +132,7 @@ const InvoiceView = ({ isPublic = false }) => {
             </div>
 
             {/* Invoice Paper */}
-            <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-xl overflow-hidden print:shadow-none print:rounded-none print:a4-page-container transition-all duration-300 text-gray-900">
+            <div id="invoice-content" className="max-w-4xl mx-auto bg-white shadow-xl rounded-xl overflow-hidden print:shadow-none print:rounded-none print:a4-page-container transition-all duration-300 text-gray-900">
                 {/* Header - Modern Clean Design */}
                 <div className="p-4 bg-white print:bg-white transition-colors">
                     <div className="flex justify-between items-start mb-2">
@@ -197,15 +197,14 @@ const InvoiceView = ({ isPublic = false }) => {
                         </div>
                     </div>
 
-                    {/* Custom Divider Line */}
                     <div className="flex items-center mt-2 mb-1">
-                        <div className="h-1.5 rounded-l-full w-1/3" style={{ backgroundColor: settings?.brandColor || '#EF4444' }}></div>
-                        <div className="h-0.5 bg-gray-800 w-2/3 rounded-r-full"></div>
+                        <div className="h-2 rounded-l-full w-1/3" style={{ backgroundColor: settings?.brandColor || '#EF4444' }}></div>
+                        <div className="h-1 bg-black w-2/3 rounded-r-full"></div>
                     </div>
                 </div>
 
                 {/* From/To Section */}
-                <div className="p-3 grid grid-cols-2 gap-3 border-b border-gray-100 print:border-gray-200">
+                <div className="p-3 grid grid-cols-2 gap-3 border-b-[2.5px] border-black">
                     <div>
                         <div className="text-[8px] font-semibold text-gray-600 mb-0.5">From:</div>
                         <p className="text-[10px] font-semibold text-gray-900">{seller.storeName || ''}</p>
@@ -273,7 +272,7 @@ const InvoiceView = ({ isPublic = false }) => {
                 </div>
 
                 {/* Totals Section - Right Aligned */}
-                <div className="p-3 flex justify-end border-t border-gray-100 print:border-gray-200">
+                <div className="p-3 flex justify-end border-t-[2.5px] border-black">
                     <div className="w-48 space-y-0.5">
                         <div className="flex justify-between text-[9px] text-gray-700">
                             <span>Subtotal:</span>
@@ -367,7 +366,7 @@ const InvoiceView = ({ isPublic = false }) => {
             <div className="p-4 border-t border-gray-100 dark:border-gray-800 text-center text-[10px] text-gray-400 dark:text-gray-500 print:block hidden">
                 <p>Computer Generated Invoice • {seller.storeName}</p>
             </div>
-        </div>
+        </div >
     );
 
 };

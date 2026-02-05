@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
 import { OAuth2Client } from 'google-auth-library';
+import { sendEmail } from '../utils/email.js';
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -88,7 +89,7 @@ const createStaff = async (req, res) => {
 // @access  Public
 const authUser = async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, deviceId } = req.body;
 
         // Demo Mode Bypass
         if (username === 'demo' && password === 'demo') {
@@ -104,14 +105,66 @@ const authUser = async (req, res) => {
         const user = await User.findOne({ username });
 
         if (user && (await user.matchPassword(password))) {
-            res.json({
-                _id: user._id,
-                name: user.name,
-                username: user.username,
-                role: user.role,
-                ownerId: user.ownerId,
-                token: generateToken(user._id),
+            // Demo Bypass
+            if (user._id === 'demo123') {
+                return res.json({
+                    _id: user._id,
+                    name: user.name,
+                    username: user.username,
+                    role: user.role,
+                    ownerId: user.ownerId,
+                    token: generateToken(user._id),
+                });
+            }
+
+            // Check Trusted Device
+            if (deviceId && user.trustedDevices && user.trustedDevices.includes(deviceId)) {
+                return res.json({
+                    _id: user._id,
+                    name: user.name,
+                    username: user.username,
+                    role: user.role,
+                    ownerId: user.ownerId,
+                    token: generateToken(user._id),
+                });
+            }
+
+            // Device Not Trusted: Generate OTP
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            // OTP Expires in 10 minutes
+            const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+            user.otp = otp;
+            user.otpExpires = otpExpires;
+            await user.save();
+
+            // Send OTP Email
+            const emailConfigured = process.env.EMAIL_USER && process.env.EMAIL_PASS;
+
+            if (emailConfigured && user.email) {
+                try {
+                    await sendEmail({
+                        to: user.email,
+                        subject: 'Login Verification Code - Shop App',
+                        html: `<h3>Your Verification Code is: ${otp}</h3><p>This code expires in 10 minutes.</p>`
+                    });
+                } catch (emailError) {
+                    console.error("Failed to send OTP email", emailError);
+                    return res.status(500).json({ message: 'Failed to send verification email' });
+                }
+            } else if (process.env.NODE_ENV !== 'production') {
+                console.log(`[DEV MODE] OTP for ${username}: ${otp}`);
+            } else {
+                return res.status(500).json({ message: 'Email configuration missing on server.' });
+            }
+
+            return res.json({
+                message: 'Device verification required',
+                requireOtp: true,
+                userId: user._id,
+                emailMasked: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
             });
+
         } else {
             res.status(401).json({ message: 'Invalid username or password' });
         }
@@ -190,4 +243,46 @@ const getStaff = async (req, res) => {
     }
 };
 
-export { registerUser, authUser, googleLogin, createStaff, getStaff };
+// @desc    Verify OTP and Trust Device
+// @route   POST /api/auth/verify-otp
+// @access  Public
+const verifyOTP = async (req, res) => {
+    try {
+        const { userId, otp, deviceId } = req.body;
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.otp === otp && user.otpExpires > Date.now()) {
+            // Success
+            user.otp = undefined;
+            user.otpExpires = undefined;
+
+            // Add Device to Trusted List
+            if (deviceId && (!user.trustedDevices || !user.trustedDevices.includes(deviceId))) {
+                if (!user.trustedDevices) user.trustedDevices = [];
+                user.trustedDevices.push(deviceId);
+            }
+
+            await user.save();
+
+            res.json({
+                _id: user._id,
+                name: user.name,
+                username: user.username,
+                role: user.role,
+                ownerId: user.ownerId,
+                token: generateToken(user._id),
+            });
+        } else {
+            res.status(400).json({ message: 'Invalid or expired Code' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export { registerUser, authUser, googleLogin, createStaff, getStaff, verifyOTP };

@@ -6,20 +6,32 @@ import { protect, admin, staffOrAdmin } from '../middleware/auth.js';
 // @access  Private (Staff can view but cost price hidden in response)
 export const getProducts = async (req, res) => {
     try {
-        const { search, category, limit = 50, skip = 0 } = req.query;
+        const { search, category, limit = 50, skip = 0, subCategory, subSubCategory } = req.query; // Destructure subCategory and subSubCategory
         let filters = { isActive: true, user: req.user.ownerId };
 
         if (search) {
+            const searchRegex = { $regex: search, $options: 'i' };
             filters.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { imei1: { $regex: search, $options: 'i' } },
-                { imei2: { $regex: search, $options: 'i' } },
-                { serialNo: { $regex: search, $options: 'i' } }
+                { name: searchRegex },
+                { sku: searchRegex },
+                { imei1: searchRegex },
+                { imei2: searchRegex },
+                { serialNumber: searchRegex }
             ];
         }
 
         if (category) {
             filters.category = category;
+        }
+
+        // Add subCategory filter
+        if (subCategory) {
+            filters.subCategory = subCategory;
+        }
+
+        // Add subSubCategory filter
+        if (subSubCategory) {
+            filters.subSubCategory = subSubCategory;
         }
 
         let query = Product.find(filters)
@@ -84,13 +96,25 @@ export const createProduct = async (req, res) => {
             gstPercent,
             isTaxInclusive,
             stock,
+            sku,
             imei1,
             imei2,
-            serialNo,
+            serialNumber,
             description,
             subCategory,
+            subSubCategory,
             minStockAlert
         } = req.body;
+
+        // Auto-generate SKU if missing
+        let finalSku = sku;
+        if (!finalSku || finalSku.trim() === '') {
+            const timestamp = Date.now().toString().slice(-6);
+            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            finalSku = `PROD-${timestamp}-${random}`;
+        }
+
+        console.log('📦 Creating product with categories:', { category, subCategory, subSubCategory });
 
         // Image path will be set if uploaded
         const image = req.file ? `/uploads/${req.file.filename}` : req.body.image || null;
@@ -99,6 +123,7 @@ export const createProduct = async (req, res) => {
             name,
             category,
             subCategory,
+            subSubCategory,
             costPrice,
             sellingPrice,
             margin,
@@ -107,9 +132,10 @@ export const createProduct = async (req, res) => {
             stock,
             minStockAlert,
             image,
+            sku: finalSku,
             imei1,
             imei2,
-            serialNo,
+            serialNumber,
             description,
             user: req.user.ownerId
         });
@@ -178,10 +204,11 @@ export const searchProducts = async (req, res) => {
             user: req.user.ownerId,
             $or: [
                 { name: { $regex: keyword, $options: 'i' } },
+                { sku: { $regex: keyword, $options: 'i' } },
                 { category: { $regex: keyword, $options: 'i' } },
                 { imei1: { $regex: keyword, $options: 'i' } },
                 { imei2: { $regex: keyword, $options: 'i' } },
-                { serialNo: { $regex: keyword, $options: 'i' } }
+                { serialNumber: { $regex: keyword, $options: 'i' } }
             ]
         });
 

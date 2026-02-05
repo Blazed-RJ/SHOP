@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +7,7 @@ import Layout from '../components/Layout/Layout';
 import CategoryManagementModal from '../components/CategoryManagementModal';
 import api from '../utils/api';
 import { formatINR } from '../utils/currency';
+import { debounce } from '../utils/debounce';
 import {
     Package,
     Search,
@@ -37,32 +38,65 @@ const Inventory = () => {
     const [subCategoryFilter, setSubCategoryFilter] = useState('All Sub-Categories');
     const [allCategories, setAllCategories] = useState([]);
     const [subCategories, setSubCategories] = useState(['All Sub-Categories']);
+    const [allSubCategories, setAllSubCategories] = useState([]); // Store objects to find IDs
+    const [subSubCategories, setSubSubCategories] = useState(['All Sub-Sub-Categories']);
+    const [subSubCategoryFilter, setSubSubCategoryFilter] = useState('All Sub-Sub-Categories');
 
     // Delete Confirmation State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [productToDelete, setProductToDelete] = useState(null);
 
-    useEffect(() => {
-        loadProducts();
-        loadCategories();
-    }, []);
+    const loadProducts = useCallback(async (currentSearch = searchQuery, currentCategory = categoryFilter, currentSubCategory = subCategoryFilter, currentSubSubCategory = subSubCategoryFilter) => {
+        try {
+            setLoading(true);
 
-    const loadCategories = async () => {
+            // Build query parameters
+            let url = '/products?limit=1000';
+            if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
+            if (currentCategory && currentCategory !== 'All Categories') {
+                url += `&category=${encodeURIComponent(currentCategory)}`;
+            }
+            if (currentSubCategory && currentSubCategory !== 'All Sub-Categories') {
+                url += `&subCategory=${encodeURIComponent(currentSubCategory)}`;
+            }
+            if (currentSubSubCategory && currentSubSubCategory !== 'All Sub-Sub-Categories') {
+                url += `&subSubCategory=${encodeURIComponent(currentSubSubCategory)}`;
+            }
+
+            const { data } = await api.get(url);
+            setProducts(data.products || []);
+            setFilteredProducts(data.products || []);
+            setLoading(false);
+        } catch (error) {
+            console.error('Failed to load products:', error);
+            toast.error('Failed to load products');
+            setLoading(false);
+        }
+    }, [searchQuery, categoryFilter, subCategoryFilter, subSubCategoryFilter]);
+
+    const loadCategories = useCallback(async () => {
         try {
             const { data } = await api.get('/categories?parent=null');
             setCategories(['All Categories', ...data.map(c => c.name)]);
             setAllCategories(data);
         } catch (error) {
-            console.error('Failed to load categories');
+            console.error('Failed to load categories', error);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        loadProducts();
+        loadCategories();
+    }, [loadProducts, loadCategories]);
 
     // Handle Category Filter Change to load Sub-Categories
     useEffect(() => {
         setSubCategoryFilter('All Sub-Categories');
+        setSubSubCategoryFilter('All Sub-Sub-Categories'); // Reset level 3
+        setSubCategories(['All Sub-Categories']);
+        setSubSubCategories(['All Sub-Sub-Categories']);
 
         if (categoryFilter === 'All Categories') {
-            setSubCategories(['All Sub-Categories']);
             return;
         }
 
@@ -73,57 +107,65 @@ const Inventory = () => {
                 .then(({ data }) => {
                     if (data.subCategories && data.subCategories.length > 0) {
                         setSubCategories(['All Sub-Categories', ...data.subCategories.map(sub => sub.name)]);
+                        setAllSubCategories(data.subCategories); // Store full objects
                     } else {
                         setSubCategories(['All Sub-Categories']);
+                        setAllSubCategories([]);
                     }
                 })
                 .catch(err => {
                     console.error("Failed to load sub-categories for filter", err);
                     setSubCategories(['All Sub-Categories']);
+                    setAllSubCategories([]);
                 });
         }
     }, [categoryFilter, allCategories]);
 
+    // Handle Sub-Category Filter Change to load Sub-Sub-Categories
     useEffect(() => {
-        let filtered = products;
+        setSubSubCategoryFilter('All Sub-Sub-Categories');
+        setSubSubCategories(['All Sub-Sub-Categories']);
 
-        // Search filter
-        if (searchQuery) {
-            filtered = filtered.filter(p =>
-                p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.imei1?.includes(searchQuery) ||
-                p.imei2?.includes(searchQuery) ||
-                p.serialNumber?.includes(searchQuery)
-            );
+        if (subCategoryFilter === 'All Sub-Categories') {
+            return;
         }
 
-        // Category filter
-        if (categoryFilter !== 'All Categories') {
-            filtered = filtered.filter(p => p.category === categoryFilter);
+        const selectedSubCat = allSubCategories.find(c => c.name === subCategoryFilter);
+        if (selectedSubCat) {
+            api.get(`/categories/${selectedSubCat._id}`)
+                .then(({ data }) => {
+                    if (data.subCategories && data.subCategories.length > 0) {
+                        setSubSubCategories(['All Sub-Sub-Categories', ...data.subCategories.map(sub => sub.name)]);
+                    } else {
+                        setSubSubCategories(['All Sub-Sub-Categories']);
+                    }
+                })
+                .catch(err => {
+                    console.error("Failed to load sub-sub-categories for filter", err);
+                    setSubSubCategories(['All Sub-Sub-Categories']);
+                });
         }
+    }, [subCategoryFilter, allSubCategories]);
 
-        // Sub-Category filter
-        if (subCategoryFilter !== 'All Sub-Categories') {
-            filtered = filtered.filter(p => p.subCategory === subCategoryFilter);
-        }
+    // Debounced search function
+    const debouncedLoad = React.useCallback(
+        debounce((search, cat, subCat, subSubCat) => {
+            loadProducts(search, cat, subCat, subSubCat);
+        }, 500),
+        []
+    );
 
-        setFilteredProducts(filtered);
-    }, [searchQuery, categoryFilter, subCategoryFilter, products]);
+    // Effect for search query changes
+    useEffect(() => {
+        debouncedLoad(searchQuery, categoryFilter, subCategoryFilter, subSubCategoryFilter);
+    }, [searchQuery]);
 
-    const loadProducts = async () => {
-        try {
-            setLoading(true);
-            const { data } = await api.get('/products?limit=1000'); // Fetch a reasonable amount for inventory view
-            setProducts(data.products || []);
-            setFilteredProducts(data.products || []);
-            setLoading(false);
-        } catch (error) {
-            console.error('Failed to load products:', error);
-            toast.error('Failed to load products');
-            setLoading(false);
-        }
-    };
+    // Effect for category/sub-category changes (immediate)
+    useEffect(() => {
+        loadProducts(searchQuery, categoryFilter, subCategoryFilter, subSubCategoryFilter);
+    }, [categoryFilter, subCategoryFilter, subSubCategoryFilter]);
+
+
 
     const handleDeleteClick = (product) => {
         setProductToDelete(product);
@@ -155,9 +197,9 @@ const Inventory = () => {
 
     const handleExport = () => {
         // Define headers
-        const headers = ['Name', 'SKU', 'Category', 'Sub-Category', 'Selling Price', 'Stock', 'Min Stock Alert'];
+        const headers = ['Name', 'SKU', 'Category', 'Sub-Category', 'Sub-Sub-Category', 'Selling Price', 'Stock', 'Min Stock Alert'];
         if (!isClientView) {
-            headers.splice(4, 0, 'Cost Price');
+            headers.splice(5, 0, 'Cost Price');
         }
 
         // Map data to rows
@@ -167,13 +209,14 @@ const Inventory = () => {
                 `"${p.sku || ''}"`,
                 `"${p.category || ''}"`,
                 `"${p.subCategory || ''}"`,
+                `"${p.subSubCategory || ''}"`,
                 p.sellingPrice || 0,
                 p.stock || 0,
                 p.minStockAlert || 5
             ];
 
             if (!isClientView) {
-                row.splice(4, 0, p.costPrice || 0);
+                row.splice(5, 0, p.costPrice || 0);
             }
 
             return row;
@@ -191,7 +234,7 @@ const Inventory = () => {
         if (link.download !== undefined) {
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
-            link.setAttribute('download', `inventory_export_${new Date().toISOString().split('T')[0]}.csv`);
+            link.setAttribute('download', `inventory_export_${new Date().toLocaleDateString('en-CA')}.csv`);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
@@ -247,7 +290,7 @@ const Inventory = () => {
 
                 {/* Intelligent Filter Bar */}
                 <div className="mb-8 relative z-10">
-                    <div className="bg-white/80 dark:bg-white/2 backdrop-blur-2xl p-2 rounded-[24px] border border-white dark:border-white/5 shadow-2xl shadow-emerald-500/5">
+                    <div className="bg-white/80 dark:bg-white/2 backdrop-blur-2xl p-2 rounded-[24px] box-outline shadow-2xl shadow-emerald-500/5">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
                             {/* Search Engine */}
                             <div className="lg:col-span-5 relative group">
@@ -283,6 +326,17 @@ const Inventory = () => {
                                         ))}
                                     </select>
                                 )}
+                                {subCategoryFilter !== 'All Sub-Categories' && subSubCategories.length > 1 && (
+                                    <select
+                                        value={subSubCategoryFilter}
+                                        onChange={(e) => setSubSubCategoryFilter(e.target.value)}
+                                        className="w-full px-6 py-4 bg-gray-50/50 dark:bg-white/5 border border-transparent focus:border-emerald-500/30 rounded-[18px] text-gray-900 dark:text-white transition-all outline-none appearance-none cursor-pointer animate-in fade-in slide-in-from-left-4 duration-300"
+                                    >
+                                        {subSubCategories.map(sub => (
+                                            <option key={sub} value={sub} className="dark:bg-gray-900">{sub}</option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
 
                             {/* Management Actions */}
@@ -314,7 +368,7 @@ const Inventory = () => {
                 {/* Optimized Registry Table */}
                 <div className="relative z-10 transition-all duration-500">
                     {loading ? (
-                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 p-20 text-center">
+                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] box-outline p-20 text-center">
                             <div className="relative inline-block">
                                 <div className="w-16 h-16 border-t-2 border-emerald-500 rounded-full animate-spin mx-auto"></div>
                                 <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full"></div>
@@ -322,7 +376,7 @@ const Inventory = () => {
                             <p className="mt-4 text-emerald-600 dark:text-emerald-400 font-bold tracking-widest uppercase text-xs animate-pulse font-mono">Syncing Registry...</p>
                         </div>
                     ) : filteredProducts.length === 0 ? (
-                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 p-20 text-center group">
+                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] box-outline p-20 text-center group">
                             <div className="relative inline-block mb-6">
                                 <div className="absolute inset-0 bg-emerald-500/10 blur-3xl rounded-full group-hover:bg-emerald-500/20 transition-all duration-700"></div>
                                 <Package className="w-20 h-20 text-emerald-500/20 group-hover:text-emerald-500/40 transition-all duration-500 relative z-10 mx-auto" strokeWidth={1} />
@@ -334,16 +388,17 @@ const Inventory = () => {
                             </button>
                         </div>
                     ) : (
-                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] border border-white dark:border-white/5 overflow-hidden shadow-2xl shadow-black/5">
+                        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] box-outline overflow-hidden shadow-2xl shadow-black/5">
                             <div className="overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
-                                        <tr className="border-b border-gray-100 dark:border-white/5">
+                                        <tr className="border-b-[2.5px] border-black dark:border-white/90">
                                             <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">IMAGE</th>
                                             <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">PRODUCT NAME</th>
                                             <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">SKU</th>
                                             <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">CATEGORY</th>
                                             <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">SUB-CATEGORY</th>
+                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">SUB-SUB-CAT</th>
                                             <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">SELLING PRICE</th>
                                             {isAdmin() && !isClientView && (
                                                 <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">COST PRICE</th>
@@ -352,7 +407,7 @@ const Inventory = () => {
                                             <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">ACTIONS</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                                    <tbody className="divide-y divide-brand-500/80 dark:divide-brand-500/70">
                                         {filteredProducts.map((product) => (
                                             <tr key={product._id} className="group hover:bg-emerald-500/[0.02] transition-colors duration-300">
                                                 <td className="px-8 py-5">
@@ -364,7 +419,7 @@ const Inventory = () => {
                                                                 className="w-full h-full rounded-2xl object-cover border border-gray-200 dark:border-white/10 group-hover:scale-110 transition-transform duration-500"
                                                             />
                                                         ) : (
-                                                            <div className="w-full h-full bg-gray-100 dark:bg-white/5 rounded-2xl flex items-center justify-center border border-transparent group-hover:border-emerald-500/30 transition-all duration-500">
+                                                            <div className="w-full h-full bg-gray-100 dark:bg-white/5 rounded-2xl flex items-center justify-center border border-brand-500/80 dark:border-brand-500/70 group-hover:border-emerald-500/30 transition-all duration-500">
                                                                 <Package className="w-6 h-6 text-gray-400 dark:text-gray-500 group-hover:text-emerald-500" />
                                                             </div>
                                                         )}
@@ -395,8 +450,17 @@ const Inventory = () => {
                                                 </td>
                                                 <td className="px-8 py-5">
                                                     {product.subCategory ? (
-                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 uppercase tracking-wider">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-white/5 border border-brand-500/80 dark:border-brand-500/70 uppercase tracking-wider">
                                                             {product.subCategory}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-gray-400 dark:text-gray-600 text-[10px]">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    {product.subSubCategory ? (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 uppercase tracking-wider">
+                                                            {product.subSubCategory}
                                                         </span>
                                                     ) : (
                                                         <span className="text-gray-400 dark:text-gray-600 text-[10px]">-</span>
@@ -510,6 +574,7 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
         sku: product?.sku || '',
         category: product?.category || '',
         subCategory: product?.subCategory || '',
+        subSubCategory: product?.subSubCategory || '',
         costPrice: product?.costPrice || '',
         margin: product?.margin || '',
         sellingPrice: product?.sellingPrice || '',
@@ -524,6 +589,7 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
 
     const [categories, setCategories] = useState([]);
     const [subCategories, setSubCategories] = useState([]);
+    const [subSubCategories, setSubSubCategories] = useState([]);
     const [loading, setLoading] = useState(false);
 
     // Load categories on mount
@@ -533,7 +599,7 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
                 const { data } = await api.get('/categories?parent=null');
                 setCategories(data);
             } catch (error) {
-                console.error('Failed to load categories');
+                console.error('Failed to load categories', error);
             }
         };
         fetchCategories();
@@ -544,7 +610,8 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
         const fetchSubCategories = async () => {
             if (!formData.category) {
                 setSubCategories([]);
-                setFormData(prev => ({ ...prev, subCategory: '' })); // Clear sub-category when main category is cleared
+                setSubSubCategories([]);
+                setFormData(prev => ({ ...prev, subCategory: '', subSubCategory: '' })); // Clear sub-category when main category is cleared
                 return;
             }
 
@@ -563,25 +630,70 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
         fetchSubCategories();
     }, [formData.category, categories]);
 
-    // Auto-calculate logic
+    // Load sub-sub-categories when sub-category changes
     useEffect(() => {
-        if (formData.costPrice && formData.margin) {
-            const cp = parseFloat(formData.costPrice);
-            const margin = parseFloat(formData.margin);
-            const sp = cp + (cp * margin / 100);
-            setFormData(prev => ({ ...prev, sellingPrice: sp.toFixed(2) }));
-        }
-    }, [formData.costPrice, formData.margin]);
+        const fetchSubSubCategories = async () => {
+            if (!formData.subCategory) {
+                setSubSubCategories([]);
+                setFormData(prev => ({ ...prev, subSubCategory: '' }));
+                return;
+            }
+
+            // Find sub-category ID
+            const selectedSubCat = subCategories.find(c => c.name === formData.subCategory);
+            console.log('🔍 Selected sub-category:', formData.subCategory, 'Found:', selectedSubCat);
+            if (!selectedSubCat) return;
+
+            try {
+                console.log('📡 Fetching sub-sub-categories for:', selectedSubCat._id);
+                const { data } = await api.get(`/categories/${selectedSubCat._id}`);
+                console.log('✅ Received data:', data);
+                console.log('✅ Sub-sub-categories:', data.subCategories);
+                setSubSubCategories(data.subCategories || []);
+            } catch (error) {
+                console.error('❌ Failed to load sub-sub-categories', error);
+                setSubSubCategories([]);
+            }
+        };
+        fetchSubSubCategories();
+    }, [formData.subCategory, subCategories]);
+
+    // Simplified Price Calculation Handlers
+    const handleCostPriceChange = (e) => {
+        const cp = e.target.value;
+        setFormData(prev => {
+            const newFormData = { ...prev, costPrice: cp };
+            if (cp && prev.margin) {
+                const sp = parseFloat(cp) + (parseFloat(cp) * parseFloat(prev.margin) / 100);
+                newFormData.sellingPrice = sp.toFixed(2);
+            }
+            return newFormData;
+        });
+    };
+
+    const handleMarginChange = (e) => {
+        const margin = e.target.value;
+        setFormData(prev => {
+            const newFormData = { ...prev, margin: margin };
+            if (prev.costPrice && margin) {
+                const sp = parseFloat(prev.costPrice) + (parseFloat(prev.costPrice) * parseFloat(margin) / 100);
+                newFormData.sellingPrice = sp.toFixed(2);
+            }
+            return newFormData;
+        });
+    };
 
     const handleSellingPriceChange = (e) => {
-        const sp = parseFloat(e.target.value);
-        setFormData(prev => ({ ...prev, sellingPrice: e.target.value }));
-
-        if (formData.costPrice && sp) {
-            const cp = parseFloat(formData.costPrice);
-            const margin = ((sp - cp) / cp) * 100;
-            setFormData(prev => ({ ...prev, margin: margin.toFixed(2) }));
-        }
+        const sp = e.target.value;
+        setFormData(prev => {
+            const newFormData = { ...prev, sellingPrice: sp };
+            if (prev.costPrice && sp) {
+                const cp = parseFloat(prev.costPrice);
+                const margin = ((parseFloat(sp) - cp) / cp) * 100;
+                newFormData.margin = margin.toFixed(2);
+            }
+            return newFormData;
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -623,8 +735,8 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-100 dark:border-gray-700">
-                <div className="px-8 py-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800 z-10">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-brand-500/40 dark:border-brand-500/30">
+                <div className="px-8 py-6 border-b border-brand-500/40 dark:border-brand-500/30 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800 z-10">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                             {product ? 'Edit Product' : 'Add New Product'}
@@ -671,7 +783,7 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
                                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Category</label>
                                 <select
                                     value={formData.category}
-                                    onChange={(e) => setFormData({ ...formData, category: e.target.value, subCategory: '' })}
+                                    onChange={(e) => setFormData({ ...formData, category: e.target.value, subCategory: '', subSubCategory: '' })}
                                     className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-all outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                     required
                                 >
@@ -688,7 +800,7 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
                                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Sub-Category</label>
                                 <select
                                     value={formData.subCategory}
-                                    onChange={(e) => setFormData({ ...formData, subCategory: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, subCategory: e.target.value, subSubCategory: '' })}
                                     className={`w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-all outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${!formData.category ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     disabled={!formData.category}
                                 >
@@ -699,11 +811,29 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
                                 </select>
                             </div>
                             <div>
+                                {/* Sub-Sub-Category field - Third level of categorization */}
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Sub-Sub-Category</label>
+                                <select
+                                    value={formData.subSubCategory}
+                                    onChange={(e) => setFormData({ ...formData, subSubCategory: e.target.value })}
+                                    className={`w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-all outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${!formData.subCategory || subSubCategories.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={!formData.subCategory || subSubCategories.length === 0}
+                                >
+                                    <option value="">Select sub-sub-category</option>
+                                    {subSubCategories.map(subSub => (
+                                        <option key={subSub._id} value={subSub.name}>{subSub.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
                                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Cost Price (₹)</label>
                                 <input
                                     type="number"
                                     value={formData.costPrice}
-                                    onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+                                    onChange={handleCostPriceChange}
                                     className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-all outline-none bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
                                     placeholder="Enter cost price"
                                     required
@@ -720,7 +850,7 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
                                     <input
                                         type="number"
                                         value={formData.margin}
-                                        onChange={(e) => setFormData({ ...formData, margin: e.target.value })}
+                                        onChange={handleMarginChange}
                                         className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-all outline-none bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
                                         placeholder="e.g., 20"
                                         step="0.1"

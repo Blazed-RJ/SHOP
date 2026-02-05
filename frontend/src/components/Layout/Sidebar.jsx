@@ -49,13 +49,13 @@ const Sidebar = ({ isOpen, onClose }) => {
 
     return (
         <aside className={`
-            fixed inset-y-0 left-0 z-50 w-64 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-r border-gray-200 dark:border-white/10
+            fixed inset-y-0 left-0 z-50 w-64 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-r border-brand-500/80 dark:border-brand-500/70
             transform transition-transform duration-300 ease-in-out h-screen flex flex-col
             md:translate-x-0 md:sticky md:top-0 md:inset-auto
             ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
             {/* Logo & Brand */}
-            <div className="p-6 border-b border-gray-200 dark:border-white/10 relative overflow-hidden">
+            <div className="p-6 border-b border-brand-500/40 dark:border-brand-500/30 relative overflow-hidden">
                 {/* Gold Glow Effect */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-brand-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
@@ -105,11 +105,11 @@ const Sidebar = ({ isOpen, onClose }) => {
             </nav>
 
             {/* Bottom Actions */}
-            <div className="p-4 border-t border-gray-200 dark:border-white/10 space-y-2 bg-gray-50/50 dark:bg-black/20">
+            <div className="p-4 border-t border-brand-500/40 dark:border-brand-500/30 space-y-2 bg-gray-50/50 dark:bg-black/20">
                 {/* Theme Toggle */}
                 <button
                     onClick={toggleTheme}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors border bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:border-brand-500/50"
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors border bg-white dark:bg-white/5 border-brand-500/40 dark:border-brand-500/30 text-gray-700 dark:text-gray-200 hover:border-brand-500/50"
                 >
                     <div className="flex items-center space-x-3">
                         {theme === 'dark' ? (
@@ -135,7 +135,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                     onClick={toggleClientView}
                     className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all border ${isClientView
                         ? 'bg-brand-900/20 border-brand-500/50 text-brand-600 dark:text-brand-400'
-                        : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10'
+                        : 'bg-white dark:bg-white/5 border-brand-500/40 dark:border-brand-500/30 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10'
                         }`}
                 >
                     <div className="flex items-center space-x-3">
@@ -148,7 +148,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 </button>
 
                 {/* User Profile */}
-                <div className="flex items-center space-x-3 px-4 py-3 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-brand-500/30 transition-all cursor-pointer group">
+                <div className="flex items-center space-x-3 px-4 py-3 rounded-xl bg-white dark:bg-white/5 border border-brand-500/40 dark:border-brand-500/30 hover:border-brand-500/30 transition-all cursor-pointer group">
                     {(settings?.profilePicture || user?.avatar) ? (
                         <img
                             src={settings?.profilePicture

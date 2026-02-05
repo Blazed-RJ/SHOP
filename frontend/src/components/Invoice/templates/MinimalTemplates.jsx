@@ -12,14 +12,14 @@ export const MinimalTemplate = ({ data, settings }) => {
         <div className="w-full h-full bg-white font-mono text-xs p-6 text-gray-800 flex flex-col">
             <h1 className="text-xl font-bold mb-6">{shopName}</h1>
 
-            <div className="mb-8 border-l-2 border-gray-800 pl-4">
+            <div className="mb-8 border-l-2 border-brand-500/30 pl-4">
                 <p>INV: {invoiceNo}</p>
                 <p>DAT: {formatInvoiceDate(date)}</p>
                 <p>CUS: {customerName}</p>
             </div>
 
             <div className="mb-8">
-                <div className="border-b border-gray-800 pb-2 mb-2 flex justify-between font-bold">
+                <div className="border-b border-brand-500/30 pb-2 mb-2 flex justify-between font-bold">
                     <span>ITEM</span>
                     <span>AMT</span>
                 </div>
@@ -33,7 +33,7 @@ export const MinimalTemplate = ({ data, settings }) => {
                 ))}
             </div>
 
-            <div className="border-t-2 border-gray-800 pt-2 flex justify-between font-bold text-lg mb-8">
+            <div className="border-t-2 border-brand-500/30 pt-2 flex justify-between font-bold text-lg mb-8">
                 <span>TOTAL</span>
                 <span>{formatINR(total)}</span>
             </div>
@@ -75,7 +75,7 @@ export const MinimalTemplateV2 = ({ data, settings }) => {
             </div>
 
             <div className="mb-12">
-                <div className="grid grid-cols-12 opacity-40 mb-4 pb-2 border-b border-gray-100">
+                <div className="grid grid-cols-12 opacity-40 mb-4 pb-2 border-b border-brand-500/20">
                     <div className="col-span-8">ITEM</div>
                     <div className="col-span-1 text-center">QTY</div>
                     <div className="col-span-3 text-right">TOTAL</div>
@@ -116,7 +116,7 @@ export const MinimalTemplateV3 = ({ data, settings }) => {
 
             <div className="mb-12">
                 {items.map((item, i) => (
-                    <div key={i} className="mb-4 pb-4 border-b border-gray-100">
+                    <div key={i} className="mb-4 pb-4 border-b border-brand-500/10">
                         <p className="font-bold text-lg">{item.name}</p>
                         <p className="text-gray-400">{item.quantity} x {formatINR(item.price)}</p>
                         <p className="font-mono mt-1">{formatINR(item.total)}</p>

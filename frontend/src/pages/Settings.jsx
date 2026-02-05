@@ -29,6 +29,7 @@ const Settings = () => {
         address: '',
         phone: '',
         email: '',
+        whatsappNumber: '',
         gstNumber: '',
         bankName: '',
         accountNumber: '',
@@ -73,6 +74,7 @@ const Settings = () => {
                 address: currentSettings.address || '',
                 phone: currentSettings.phone || '',
                 email: currentSettings.email || '',
+                whatsappNumber: currentSettings.whatsappNumber || '',
                 gstNumber: currentSettings.gstNumber || '',
                 bankName: currentSettings.bankName || '',
                 accountNumber: currentSettings.accountNumber || '',
@@ -119,6 +121,7 @@ const Settings = () => {
             const { data } = await api.get('/auth/staff');
             setStaffList(data);
         } catch (error) {
+            console.error('Staff fetch error:', error);
             toast.error('Failed to load staff');
         }
     };
@@ -147,6 +150,7 @@ const Settings = () => {
                 toast.error(result.error);
             }
         } catch (error) {
+            console.error('Settings update error:', error);
             toast.error('Failed to update settings');
         } finally {
             setLoading(false);
@@ -167,6 +171,7 @@ const Settings = () => {
             toast.success(`${field} uploaded successfully`);
             refreshSettings();
         } catch (error) {
+            console.error(`Upload error for ${field}:`, error);
             toast.error(`Failed to upload ${field}`);
         }
     };
@@ -210,28 +215,24 @@ const Settings = () => {
         '#F59E0B', '#06B6D4', '#F97316', '#EC4899'
     ];
 
-    const darkColorPresets = [
-        '#1F2937', '#374151', '#4B5563', '#6B7280',
-        '#1E40AF', '#047857', '#B91C1C', '#5B21B6'
-    ];
+
 
     return (
         <Layout>
-            <div className="p-4 md:p-8 min-h-screen relative z-0 bg-white dark:bg-gray-900">
-                {/* <LiquidBackground /> Removed for white background preference */}
+            <div className="p-4 md:p-8 min-h-screen relative z-0 bg-gray-50/50 dark:bg-[#050505] transition-colors duration-500">
                 {/* Header Section */}
                 <div className="mb-10 relative">
-                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-slate-500/10 blur-[120px] rounded-full pointer-events-none"></div>
+                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-amber-500/10 blur-[120px] rounded-full pointer-events-none"></div>
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
                         <div>
                             <div className="flex items-center space-x-3 mb-2">
-                                <div className="p-2 bg-slate-500/10 rounded-lg">
-                                    <Store className="w-5 h-5 text-slate-500" />
+                                <div className="p-2 bg-amber-500/10 rounded-lg">
+                                    <Store className="w-5 h-5 text-amber-500" />
                                 </div>
-                                <span className="text-slate-600 dark:text-slate-400 text-xs font-black uppercase tracking-[0.3em]">System Core</span>
+                                <span className="text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-[0.3em]">System Core</span>
                             </div>
                             <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
-                                Workspace <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-600 to-gray-500">Control</span>
+                                Workspace <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-500">Control</span>
                             </h1>
                             <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium max-w-md">
                                 Define your business identity and orchestrate operational parameters.
@@ -240,7 +241,7 @@ const Settings = () => {
                         <button
                             onClick={handleSubmit}
                             disabled={loading}
-                            className={`flex items-center space-x-2 px-8 py-4 ${loading ? 'bg-gray-400' : 'bg-slate-800 dark:bg-slate-700'} hover:bg-slate-900 text-white rounded-2xl shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group`}
+                            className={`flex items-center space-x-2 px-8 py-4 ${loading ? 'bg-gray-400' : 'bg-amber-600 hover:bg-amber-500'} text-white rounded-2xl shadow-[0_20px_40px_rgba(217,119,6,0.2)] hover:shadow-[0_25px_50px_rgba(217,119,6,0.3)] transition-all duration-300 transform hover:-translate-y-1 group`}
                         >
                             <Save className={`${loading ? 'animate-pulse' : 'group-hover:scale-110'} w-6 h-6 transition-transform`} />
                             <span className="font-black tracking-tight text-lg">{loading ? 'Syncing...' : 'Save All Changes'}</span>
@@ -250,7 +251,7 @@ const Settings = () => {
 
                 {/* Intelligence Navigation */}
                 <div className="mb-8 relative z-10">
-                    <div className="bg-white/80 dark:bg-white/2 backdrop-blur-2xl p-2 rounded-[28px] border border-white dark:border-white/5 shadow-2xl shadow-slate-500/5">
+                    <div className="bg-white/80 dark:bg-white/2 backdrop-blur-2xl p-2 rounded-[28px] border-[2.5px] border-amber-500/30 shadow-xl shadow-amber-900/5 transition-all duration-300">
                         <nav className="flex space-x-1 px-2 overflow-x-auto scrollbar-hide no-scrollbar" aria-label="Tabs">
                             {tabs.map((tab) => {
                                 const Icon = tab.icon;
@@ -259,8 +260,8 @@ const Settings = () => {
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`flex items-center space-x-3 py-4 px-6 rounded-[22px] font-black text-xs uppercase tracking-widest transition-all duration-500 whitespace-nowrap ${activeTab === tab.id
-                                            ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 translate-y-0 opacity-100'
-                                            : 'text-gray-500 dark:text-gray-400 hover:bg-slate-500/10 hover:text-slate-900 dark:hover:text-white opacity-60 hover:opacity-100'
+                                            ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/20 translate-y-0 opacity-100'
+                                            : 'text-gray-500 dark:text-gray-400 hover:bg-amber-500/5 hover:text-amber-600 dark:hover:text-amber-200 opacity-60 hover:opacity-100'
                                             }`}
                                     >
                                         <Icon className={`w-4 h-4 ${activeTab === tab.id ? 'animate-pulse' : ''}`} />
@@ -276,7 +277,7 @@ const Settings = () => {
                     {/* Left Side - Forms - Adjusted for wider invoice tab */}
                     <div className={activeTab === 'letterheadTemplate' ? "lg:col-span-3" : "lg:col-span-2"}>
                         <form onSubmit={handleSubmit}>
-                            <div className="bg-white/80 dark:bg-white/5 backdrop-blur-xl rounded-[32px] p-8 border border-white dark:border-white/5 shadow-2xl">
+                            <div className="bg-white/80 dark:bg-white/5 backdrop-blur-xl rounded-[32px] p-8 border-[2.5px] border-amber-500/30 shadow-2xl transition-all duration-300">
                                 {/* General Tab */}
                                 {activeTab === 'general' && (
                                     <div className="space-y-4">
@@ -391,6 +392,22 @@ const Settings = () => {
                                                     placeholder="contact@yourbusiness.com"
                                                 />
                                             </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                WhatsApp Number (for Share Buttons)
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                value={formData.whatsappNumber}
+                                                onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
+                                                className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 focus:border-slate-500 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
+                                                placeholder="919876543210"
+                                            />
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                Format: Country code + number (no spaces, no +). When set, share buttons will open WhatsApp directly to this number. Example: 919876543210
+                                            </p>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1415,10 +1432,12 @@ const Settings = () => {
                         {/* Dynamic Invoice Preview */}
                         {activeTab === 'invoice' && (
                             <div className="sticky top-6">
-                                <div className="bg-gray-800 rounded-[28px] p-2 shadow-2xl border-4 border-gray-700 backdrop-blur-md">
-                                    <div className="bg-gray-900 rounded-[24px] overflow-hidden aspect-[1/1.414] relative">
-                                        <div className="absolute inset-0 overflow-y-auto custom-scrollbar">
-                                            <SettingsInvoicePreview settings={currentSettings} formData={formData} />
+                                <div className="bg-slate-900 dark:bg-black rounded-[32px] p-8 box-outline shadow-2xl transition-all duration-300 relative overflow-hidden group">
+                                    <div className="relative z-10">
+                                        <div className="bg-gray-900 rounded-[24px] overflow-hidden aspect-[1/1.414] relative">
+                                            <div className="absolute inset-0 overflow-y-auto custom-scrollbar">
+                                                <SettingsInvoicePreview settings={currentSettings} formData={formData} />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
