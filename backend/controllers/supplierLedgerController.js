@@ -73,7 +73,7 @@ export const recalculateSupplierBalance = async (supplierId, userId = null) => {
 // @access  Private
 export const recordPurchase = async (req, res) => {
     try {
-        const { supplierId, amount, billNo, notes } = req.body;
+        const { supplierId, amount, billNo, notes, date } = req.body;
 
         if (!supplierId || !amount || amount <= 0) {
             return res.status(400).json({ message: 'Supplier ID and valid amount are required' });
@@ -87,10 +87,13 @@ export const recordPurchase = async (req, res) => {
         // Generate unique bill reference
         const refNo = billNo || `PURCH-${Date.now().toString().slice(-8)}`;
 
+        // Use custom date or current date
+        const transactionDate = date ? new Date(date) : new Date();
+
         // Create supplier ledger entry (Credit - increases our liability)
         await SupplierLedgerEntry.create({
             supplier: supplierId,
-            date: new Date(),
+            date: transactionDate,
             refType: 'Purchase',
             refId: null,
             refNo: refNo,

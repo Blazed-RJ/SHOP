@@ -27,7 +27,7 @@ const paymentSchema = mongoose.Schema({
     },
     method: {
         type: String,
-        enum: ['Cash', 'UPI', 'Card', 'Bank Transfer', 'Credit'],
+        enum: ['Cash', 'UPI', 'Card', 'Cheque', 'Bank Transfer', 'Online', 'Credit'],
         required: true
     },
     reference: {

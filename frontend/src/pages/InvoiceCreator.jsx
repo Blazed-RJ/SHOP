@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ErrorBoundary from '../components/ErrorBoundary';
 import Layout from '../components/Layout/Layout';
@@ -22,6 +22,7 @@ import {
 import toast from 'react-hot-toast';
 
 import { InvoiceRenderer } from '../components/Invoice/InvoiceTemplates';
+import InvoiceItemRow from '../components/Invoice/InvoiceItemRow';
 
 const InvoiceCreator = () => {
     const navigate = useNavigate();
@@ -269,34 +270,36 @@ const InvoiceCreator = () => {
     };
 
     // Update Item
-    const updateItem = (index, field, value) => {
-        const updatedItems = [...items];
-        const item = { ...updatedItems[index] };
+    const updateItem = useCallback((index, field, value) => {
+        setItems(prevItems => {
+            const updatedItems = [...prevItems];
+            const item = { ...updatedItems[index] };
 
-        if (field === 'quantity') item.quantity = parseFloat(value) || 0;
-        if (field === 'pricePerUnit') item.pricePerUnit = parseFloat(value) || 0;
-        if (field === 'gstPercent') item.gstPercent = parseFloat(value) || 0;
-        if (field === 'name') item.name = value;
-        if (field === 'imei') item.imei = value;
-        if (field === 'imei2') item.imei2 = value;
-        if (field === 'serialNumber') item.serialNumber = value;
-        if (field === 'showImei') item.showImei = value;
+            if (field === 'quantity') item.quantity = parseFloat(value) || 0;
+            if (field === 'pricePerUnit') item.pricePerUnit = parseFloat(value) || 0;
+            if (field === 'gstPercent') item.gstPercent = parseFloat(value) || 0;
+            if (field === 'name') item.name = value;
+            if (field === 'imei') item.imei = value;
+            if (field === 'imei2') item.imei2 = value;
+            if (field === 'serialNumber') item.serialNumber = value;
+            if (field === 'showImei') item.showImei = value;
 
-        // Recalculate
-        const totals = calculateLineTotal(
-            item.quantity,
-            item.pricePerUnit,
-            item.gstPercent,
-            true // Inclusive tax calculation preferred for retail
-        );
+            // Recalculate
+            const totals = calculateLineTotal(
+                item.quantity,
+                item.pricePerUnit,
+                item.gstPercent,
+                true // Inclusive tax calculation preferred for retail
+            );
 
-        updatedItems[index] = { ...item, ...totals };
-        setItems(updatedItems);
-    };
+            updatedItems[index] = { ...item, ...totals };
+            return updatedItems;
+        });
+    }, []);
 
-    const removeItem = (index) => {
-        setItems(items.filter((_, i) => i !== index));
-    };
+    const removeItem = useCallback((index) => {
+        setItems(prevItems => prevItems.filter((_, i) => i !== index));
+    }, []);
 
     // Calculations
     const summary = calculateInvoiceSummary(items);

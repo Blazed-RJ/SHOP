@@ -13,7 +13,7 @@ import moment from 'moment-timezone';
 // @access  Private
 export const recordPayment = async (req, res) => {
     try {
-        const { customerId, amount, method, notes } = req.body;
+        const { customerId, amount, method, notes, date } = req.body;
 
         if (!customerId || !amount || amount <= 0) {
             return res.status(400).json({ message: 'Customer ID and valid amount are required' });
@@ -47,9 +47,12 @@ export const recordPayment = async (req, res) => {
 
         const newBalance = await incrementCustomerBalance(customerId, -amount); // Credit reduces balance
 
+        // Use custom date or current date
+        const transactionDate = date ? moment(date).tz("Asia/Kolkata").toDate() : moment().tz("Asia/Kolkata").toDate();
+
         await LedgerEntry.create({
             customer: customerId,
-            date: moment().tz("Asia/Kolkata").toDate(),
+            date: transactionDate,
             refType: 'Payment',
             refId: payment._id,
             refNo: `PAY-${payment._id.toString().slice(-8).toUpperCase()}`,
@@ -78,7 +81,7 @@ export const recordPayment = async (req, res) => {
 // @access  Private
 export const recordSupplierPayment = async (req, res) => {
     try {
-        const { supplierId, amount, method, notes } = req.body;
+        const { supplierId, amount, method, notes, date } = req.body;
 
         if (!supplierId || !amount || amount <= 0) {
             return res.status(400).json({ message: 'Supplier ID and valid amount are required' });
@@ -107,10 +110,13 @@ export const recordSupplierPayment = async (req, res) => {
             $inc: { balance: -amount }
         });
 
+        // Use custom date or current date
+        const transactionDate = date ? moment(date).tz("Asia/Kolkata").toDate() : moment().tz("Asia/Kolkata").toDate();
+
         // Create supplier ledger entry (Debit - reduces our liability)
         await SupplierLedgerEntry.create({
             supplier: supplierId,
-            date: moment().tz("Asia/Kolkata").toDate(),
+            date: transactionDate,
             refType: 'Payment',
             refId: payment._id,
             refNo: `PAY-${payment._id.toString().slice(-8).toUpperCase()}`,

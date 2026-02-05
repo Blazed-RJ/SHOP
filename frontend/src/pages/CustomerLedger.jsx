@@ -18,6 +18,7 @@ const CustomerLedger = ({ isPublic = false }) => {
     const [payment, setPayment] = useState({
         amount: '',
         method: 'Cash',
+        date: new Date().toISOString().split('T')[0],
         notes: ''
     });
 
@@ -75,12 +76,13 @@ const CustomerLedger = ({ isPublic = false }) => {
                 customerId: id,
                 amount: parseFloat(payment.amount),
                 method: payment.method,
+                date: payment.date,
                 notes: payment.notes || 'Direct payment recorded'
             });
 
             toast.success('Payment recorded successfully');
             setShowPaymentModal(false);
-            setPayment({ amount: '', method: 'Cash', notes: '' });
+            setPayment({ amount: '', method: 'Cash', date: new Date().toISOString().split('T')[0], notes: '' });
             loadData();
         } catch (error) {
             console.error('Payment error:', error);
@@ -351,6 +353,18 @@ const CustomerLedger = ({ isPublic = false }) => {
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Date *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={payment.date}
+                                        onChange={(e) => setPayment({ ...payment, date: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Amount *
                                     </label>
                                     <input
@@ -377,7 +391,9 @@ const CustomerLedger = ({ isPublic = false }) => {
                                         <option value="Credit">Credit</option>
                                         <option value="UPI">UPI</option>
                                         <option value="Card">Card</option>
+                                        <option value="Cheque">Cheque</option>
                                         <option value="Bank Transfer">Bank Transfer</option>
+                                        <option value="Online">Online</option>
                                     </select>
                                 </div>
 

@@ -20,12 +20,14 @@ const SupplierLedger = ({ isPublic = false }) => {
     const [payment, setPayment] = useState({
         amount: '',
         method: 'Cash',
+        date: new Date().toISOString().split('T')[0],
         notes: '',
         billFile: null
     });
     const [purchase, setPurchase] = useState({
         amount: '',
         billNo: '',
+        date: new Date().toISOString().split('T')[0],
         notes: '',
         billFile: null
     });
@@ -81,6 +83,7 @@ const SupplierLedger = ({ isPublic = false }) => {
             formData.append('supplierId', id);
             formData.append('amount', parseFloat(payment.amount));
             formData.append('method', payment.method);
+            formData.append('date', payment.date);
             formData.append('notes', payment.notes || 'Payment to supplier');
             if (payment.billFile) {
                 formData.append('billFile', payment.billFile);
@@ -94,7 +97,7 @@ const SupplierLedger = ({ isPublic = false }) => {
 
             toast.success('Payment recorded successfully');
             setShowPaymentModal(false);
-            setPayment({ amount: '', method: 'Cash', notes: '', billFile: null });
+            setPayment({ amount: '', method: 'Cash', date: new Date().toISOString().split('T')[0], notes: '', billFile: null });
             loadData();
         } catch (error) {
             console.error('Payment error:', error);
@@ -112,6 +115,7 @@ const SupplierLedger = ({ isPublic = false }) => {
             formData.append('supplierId', id);
             formData.append('amount', parseFloat(purchase.amount));
             formData.append('billNo', purchase.billNo || '');
+            formData.append('date', purchase.date);
             formData.append('notes', purchase.notes || 'Purchase recorded');
             if (purchase.billFile) {
                 formData.append('billFile', purchase.billFile);
@@ -125,7 +129,7 @@ const SupplierLedger = ({ isPublic = false }) => {
 
             toast.success('Purchase recorded successfully');
             setShowPurchaseModal(false);
-            setPurchase({ amount: '', billNo: '', notes: '', billFile: null });
+            setPurchase({ amount: '', billNo: '', date: new Date().toISOString().split('T')[0], notes: '', billFile: null });
             loadData();
         } catch (error) {
             console.error('Purchase error:', error);
@@ -426,6 +430,18 @@ const SupplierLedger = ({ isPublic = false }) => {
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Date *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={payment.date}
+                                        onChange={(e) => setPayment({ ...payment, date: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Amount *
                                     </label>
                                     <input
@@ -518,6 +534,18 @@ const SupplierLedger = ({ isPublic = false }) => {
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 border-b-[2.5px] border-black dark:border-white/90 pb-2">Record Purchase</h3>
 
                             <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Date *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={purchase.date}
+                                        onChange={(e) => setPurchase({ ...purchase, date: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                                    />
+                                </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Amount *

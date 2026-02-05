@@ -109,8 +109,8 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess }) => {
                     <button
                         onClick={() => setActiveTab('supplier')}
                         className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all ${activeTab === 'supplier'
-                                ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                             }`}
                     >
                         <Building className="w-4 h-4" /> Supplier
@@ -118,8 +118,8 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess }) => {
                     <button
                         onClick={() => setActiveTab('drawing')}
                         className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all ${activeTab === 'drawing'
-                                ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                             }`}
                     >
                         <User className="w-4 h-4" /> Drawing
@@ -127,8 +127,8 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess }) => {
                     <button
                         onClick={() => setActiveTab('expense')}
                         className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all ${activeTab === 'expense'
-                                ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                             }`}
                     >
                         <Receipt className="w-4 h-4" /> Expense
@@ -179,8 +179,10 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess }) => {
                             >
                                 <option value="Cash">Cash</option>
                                 <option value="UPI">UPI</option>
-                                <option value="Bank Transfer">Bank Transfer</option>
                                 <option value="Card">Card</option>
+                                <option value="Cheque">Cheque</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Online">Online</option>
                             </select>
                         </div>
                     </div>
