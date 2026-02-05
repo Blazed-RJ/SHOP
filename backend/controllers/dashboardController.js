@@ -3,13 +3,14 @@ import Product from '../models/Product.js';
 import Customer from '../models/Customer.js';
 import Payment from '../models/Payment.js';
 import moment from 'moment-timezone';
+import mongoose from 'mongoose';
 
 // @desc    Get dashboard statistics
 // @route   GET /api/dashboard/stats
 // @access  Private
 export const getDashboardStats = async (req, res) => {
     try {
-        const ownerId = req.user.ownerId;
+        const ownerId = new mongoose.Types.ObjectId(req.user.ownerId);
         const todayStart = moment().tz("Asia/Kolkata").startOf('day').toDate();
         const todayEnd = moment().tz("Asia/Kolkata").endOf('day').toDate();
         const yesterdayStart = moment().tz("Asia/Kolkata").subtract(1, 'days').startOf('day').toDate();
