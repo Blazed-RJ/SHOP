@@ -89,63 +89,97 @@ const Inventory = () => {
         loadCategories();
     }, [loadProducts, loadCategories]);
 
-    // Handle Category Filter Change to load Sub-Categories
-    useEffect(() => {
-        setSubCategoryFilter('All Sub-Categories');
-        setSubSubCategoryFilter('All Sub-Sub-Categories'); // Reset level 3
-        setSubCategories(['All Sub-Categories']);
-        setSubSubCategories(['All Sub-Sub-Categories']);
+    // Definitions for category fetchers
 
-        if (categoryFilter === 'All Categories') {
+    const fetchSubCategories = useCallback(async (catName) => {
+        if (catName === 'All Categories') {
+            setSubCategories(['All Sub-Categories']);
+            setAllSubCategories([]);
             return;
         }
 
-        const selectedCat = allCategories.find(c => c.name === categoryFilter);
+        const selectedCat = allCategories.find(c => c.name === catName);
         if (selectedCat) {
-            // Fetch sub-categories for the selected category
-            api.get(`/categories/${selectedCat._id}`)
-                .then(({ data }) => {
-                    if (data.subCategories && data.subCategories.length > 0) {
-                        setSubCategories(['All Sub-Categories', ...data.subCategories.map(sub => sub.name)]);
-                        setAllSubCategories(data.subCategories); // Store full objects
-                    } else {
-                        setSubCategories(['All Sub-Categories']);
-                        setAllSubCategories([]);
-                    }
-                })
-                .catch(err => {
-                    console.error("Failed to load sub-categories for filter", err);
+            try {
+                const { data } = await api.get(`/categories/${selectedCat._id}`);
+                if (data.subCategories && data.subCategories.length > 0) {
+                    setSubCategories(['All Sub-Categories', ...data.subCategories.map(sub => sub.name)]);
+                    setAllSubCategories(data.subCategories);
+                } else {
                     setSubCategories(['All Sub-Categories']);
                     setAllSubCategories([]);
-                });
+                }
+            } catch (err) {
+                console.error("Failed to load sub-categories for filter", err);
+                setSubCategories(['All Sub-Categories']);
+                setAllSubCategories([]);
+            }
         }
-    }, [categoryFilter, allCategories]);
+    }, [allCategories]);
 
-    // Handle Sub-Category Filter Change to load Sub-Sub-Categories
+    const fetchSubSubCategories = useCallback(async (subCatName) => {
+        console.log('[DEBUG] fetchSubSubCategories called with:', subCatName);
+        console.log('[DEBUG] allSubCategories array:', allSubCategories);
+
+        if (subCatName === 'All Sub-Categories') {
+            setSubSubCategories(['All Sub-Sub-Categories']);
+            return;
+        }
+
+        const selectedSubCat = allSubCategories.find(c => c.name === subCatName);
+        console.log('[DEBUG] selectedSubCat found:', selectedSubCat);
+
+        if (selectedSubCat) {
+            try {
+                console.log('[DEBUG] Fetching sub-sub-categories for ID:', selectedSubCat._id);
+                const { data } = await api.get(`/categories/${selectedSubCat._id}`);
+                console.log('[DEBUG] API response:', data);
+                if (data.subCategories && data.subCategories.length > 0) {
+                    const subSubNames = data.subCategories.map(sub => sub.name);
+                    console.log('[DEBUG] Setting sub-sub-categories:', subSubNames);
+                    setSubSubCategories(['All Sub-Sub-Categories', ...subSubNames]);
+                } else {
+                    console.log('[DEBUG] No sub-sub-categories found');
+                    setSubSubCategories(['All Sub-Sub-Categories']);
+                }
+            } catch (err) {
+                console.error("Failed to load sub-sub-categories for filter", err);
+                setSubSubCategories(['All Sub-Sub-Categories']);
+            }
+        } else {
+            console.warn('[DEBUG] selectedSubCat NOT FOUND in allSubCategories');
+            console.warn('[DEBUG] Looking for:', subCatName);
+            console.warn('[DEBUG] Available names:', allSubCategories.map(c => c.name));
+        }
+    }, [allSubCategories]);
+
+    // Handle Category Filter Change
+    useEffect(() => {
+        setSubCategoryFilter('All Sub-Categories');
+        setSubCategories(['All Sub-Categories']);
+        // derived state reset
+        setSubSubCategoryFilter('All Sub-Sub-Categories');
+        setSubSubCategories(['All Sub-Sub-Categories']);
+
+        fetchSubCategories(categoryFilter);
+    }, [categoryFilter]); // Removed fetchSubCategories from dependencies to prevent loops
+
+    // Handle Sub-Category Filter Change
     useEffect(() => {
         setSubSubCategoryFilter('All Sub-Sub-Categories');
         setSubSubCategories(['All Sub-Sub-Categories']);
 
-        if (subCategoryFilter === 'All Sub-Categories') {
-            return;
-        }
+        fetchSubSubCategories(subCategoryFilter);
+    }, [subCategoryFilter]); // Removed fetchSubSubCategories from dependencies to prevent loops
 
-        const selectedSubCat = allSubCategories.find(c => c.name === subCategoryFilter);
-        if (selectedSubCat) {
-            api.get(`/categories/${selectedSubCat._id}`)
-                .then(({ data }) => {
-                    if (data.subCategories && data.subCategories.length > 0) {
-                        setSubSubCategories(['All Sub-Sub-Categories', ...data.subCategories.map(sub => sub.name)]);
-                    } else {
-                        setSubSubCategories(['All Sub-Sub-Categories']);
-                    }
-                })
-                .catch(err => {
-                    console.error("Failed to load sub-sub-categories for filter", err);
-                    setSubSubCategories(['All Sub-Sub-Categories']);
-                });
+    const refreshFilters = useCallback(() => {
+        if (categoryFilter !== 'All Categories') {
+            fetchSubCategories(categoryFilter);
         }
-    }, [subCategoryFilter, allSubCategories]);
+        if (subCategoryFilter !== 'All Sub-Categories') {
+            fetchSubSubCategories(subCategoryFilter);
+        }
+    }, [categoryFilter, subCategoryFilter, fetchSubCategories, fetchSubSubCategories]);
 
     // Debounced search function
     const debouncedLoad = React.useCallback(
@@ -326,15 +360,22 @@ const Inventory = () => {
                                         ))}
                                     </select>
                                 )}
-                                {subCategoryFilter !== 'All Sub-Categories' && subSubCategories.length > 1 && (
+                                {categoryFilter !== 'All Categories' && subCategories.length > 1 && (
                                     <select
                                         value={subSubCategoryFilter}
                                         onChange={(e) => setSubSubCategoryFilter(e.target.value)}
-                                        className="w-full px-6 py-4 bg-gray-50/50 dark:bg-white/5 border border-transparent focus:border-emerald-500/30 rounded-[18px] text-gray-900 dark:text-white transition-all outline-none appearance-none cursor-pointer animate-in fade-in slide-in-from-left-4 duration-300"
+                                        disabled={subCategoryFilter === 'All Sub-Categories'}
+                                        className={`w-full px-6 py-4 bg-gray-50/50 dark:bg-white/5 border border-transparent focus:border-emerald-500/30 rounded-[18px] text-gray-900 dark:text-white transition-all outline-none appearance-none cursor-pointer animate-in fade-in slide-in-from-left-4 duration-300 ${subCategoryFilter === 'All Sub-Categories' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
-                                        {subSubCategories.map(sub => (
-                                            <option key={sub} value={sub} className="dark:bg-gray-900">{sub}</option>
-                                        ))}
+                                        {subCategoryFilter === 'All Sub-Categories' ? (
+                                            <option>Select Sub-Sub-Category</option>
+                                        ) : subSubCategories.length <= 1 ? (
+                                            <option>No Sub-Sub-Categories</option>
+                                        ) : (
+                                            subSubCategories.map(sub => (
+                                                <option key={sub} value={sub} className="dark:bg-gray-900">{sub}</option>
+                                            ))
+                                        )}
                                     </select>
                                 )}
                             </div>
@@ -398,7 +439,7 @@ const Inventory = () => {
                                             <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">SKU</th>
                                             <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">CATEGORY</th>
                                             <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">SUB-CATEGORY</th>
-                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">SUB-SUB-CAT</th>
+                                            <th className="px-8 py-6 text-left text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">SUB-SUB CATEGORY</th>
                                             <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">SELLING PRICE</th>
                                             {isAdmin() && !isClientView && (
                                                 <th className="px-8 py-6 text-right text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">COST PRICE</th>
@@ -713,6 +754,7 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
             toast.error(error.response?.data?.message || 'Failed to save product');
         } finally {
             setLoading(false);
+            refreshFilters(); // Refresh filters to show new categories if any
         }
     };
 
