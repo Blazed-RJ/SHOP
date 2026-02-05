@@ -26,16 +26,22 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
     // Reset on Open
     useEffect(() => {
         if (isOpen) {
-            setActiveTab(defaultTab); // Ensure simple sync
-            if (defaultTab === 'supplier') fetchSuppliers(); // Use defaultTab here
-            if (defaultTab === 'customer') fetchCustomers(); // Use defaultTab here
+            setActiveTab(defaultTab);
 
             // Sync date if provided
             if (defaultDate) {
                 setFormData(prev => ({ ...prev, date: defaultDate }));
             }
         }
-    }, [isOpen, defaultTab, defaultDate]); // Removing activeTab from dependency to avoid loop, handled inside logic if needed
+    }, [isOpen, defaultTab, defaultDate]);
+
+    // Fetch Data on Tab Change
+    useEffect(() => {
+        if (isOpen) {
+            if (activeTab === 'supplier') fetchSuppliers();
+            if (activeTab === 'customer') fetchCustomers();
+        }
+    }, [isOpen, activeTab]);
 
     const fetchSuppliers = async () => {
         try {
