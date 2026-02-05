@@ -61,7 +61,7 @@ const Expenses = () => {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Expenses & Drawings</h1>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Expenses</h1>
                         <p className="text-gray-500 dark:text-gray-400">Track your business spending and personal withdrawals</p>
                     </div>
                     <button
