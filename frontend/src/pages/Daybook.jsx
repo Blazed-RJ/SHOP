@@ -66,7 +66,7 @@ const Daybook = () => {
     const getTotalCashIn = () => {
         if (!daybookData?.transactions) return 0;
         return daybookData.transactions
-            .filter(t => t.type === 'Sale')
+            .filter(t => t.type === 'Sale' || t.type === 'Invoice')
             .reduce((sum, t) => sum + t.amount, 0);
     };
 
