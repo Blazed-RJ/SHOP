@@ -219,107 +219,108 @@ const Daybook = () => {
                                     <p className="text-lg">No transactions for this date</p>
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="bg-gray-50 dark:bg-gray-700/50 border-b-[2.5px] border-black dark:border-white/90">
+                            ): (
+                                    <div className = "overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar">
+                                    <table className = "w-full relative">
+                                        <thead className = "bg-gray-50 dark:bg-gray-700/50 border-b-[2.5px] border-black dark:border-white/90 sticky top-0 z-10 shadow-sm">
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                                <th className = "px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
                                                     Type
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                    Description
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                    Party
-                                                </th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                    Cash In
-                                                </th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                    Cash Out
-                                                </th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                    Balance
-                                                </th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                    Actions
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                            {daybookData.transactions.map((transaction, index) => {
-                                                const isCashIn = transaction.type === 'Sale' || transaction.type === 'Invoice';
-                                                const runningBalance = daybookData.openingBalance +
-                                                    daybookData.transactions
-                                                        .slice(0, index + 1)
-                                                        .reduce((sum, t) => {
-                                                            const isInc = t.type === 'Sale' || t.type === 'Invoice';
-                                                            return sum + (isInc ? t.amount : -t.amount);
-                                                        }, 0);
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                            Description
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                            Party
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                            Cash In
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                            Cash Out
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                            Balance
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                            Actions
+                        </th>
+                    </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {daybookData.transactions.map((transaction, index) => {
+                    const isCashIn = transaction.type === 'Sale' || transaction.type === 'Invoice';
+                    const runningBalance = daybookData.openingBalance +
+                        daybookData.transactions
+                            .slice(0, index + 1)
+                            .reduce((sum, t) => {
+                                const isInc = t.type === 'Sale' || t.type === 'Invoice';
+                                return sum + (isInc ? t.amount : -t.amount);
+                            }, 0);
 
-                                                return (
-                                                    <tr key={transaction._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                                        <td className="px-6 py-4">
-                                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${transaction.type === 'Sale' || transaction.type === 'Invoice'
-                                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                                : transaction.type === 'Purchase' || transaction.type === 'Expense' || transaction.type === 'Drawing'
-                                                                    ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-                                                                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                                                }`}>
-                                                                {transaction.type}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                                                            {transaction.description}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                                                            {transaction.party?.name || '-'}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right text-sm font-semibold text-green-600 dark:text-green-400 rupee">
-                                                            {isCashIn ? formatINR(transaction.amount) : '-'}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right text-sm font-semibold text-red-600 dark:text-red-400 rupee">
-                                                            {!isCashIn ? formatINR(transaction.amount) : '-'}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right text-sm font-bold text-gray-900 dark:text-white rupee">
-                                                            {formatINR(runningBalance)}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right">
-                                                            <button
-                                                                onClick={() => handleDelete(transaction._id)}
-                                                                className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                                                title="Delete Transaction"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
+                    return (
+                        <tr key={transaction._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <td className="px-6 py-4">
+                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${transaction.type === 'Sale' || transaction.type === 'Invoice'
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                    : transaction.type === 'Purchase' || transaction.type === 'Expense' || transaction.type === 'Drawing'
+                                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                    }`}>
+                                    {transaction.type}
+                                </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                                {transaction.description}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                {transaction.party?.name || '-'}
+                            </td>
+                            <td className="px-6 py-4 text-right text-sm font-semibold text-green-600 dark:text-green-400 rupee">
+                                {isCashIn ? formatINR(transaction.amount) : '-'}
+                            </td>
+                            <td className="px-6 py-4 text-right text-sm font-semibold text-red-600 dark:text-red-400 rupee">
+                                {!isCashIn ? formatINR(transaction.amount) : '-'}
+                            </td>
+                            <td className="px-6 py-4 text-right text-sm font-bold text-gray-900 dark:text-white rupee">
+                                {formatINR(runningBalance)}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                                <button
+                                    onClick={() => handleDelete(transaction._id)}
+                                    className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                    title="Delete Transaction"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </td>
+                        </tr>
+                    );
+                })}
 
-                                            {/* Closing Balance Row */}
-                                            <tr className="bg-gray-100 dark:bg-gray-700 font-bold">
-                                                <td colSpan="3" className="px-6 py-4 text-right text-gray-900 dark:text-white">
-                                                    Closing Balance:
-                                                </td>
-                                                <td className="px-6 py-4 text-right text-green-600 dark:text-green-400 rupee">
-                                                    {formatINR(getTotalCashIn())}
-                                                </td>
-                                                <td className="px-6 py-4 text-right text-red-600 dark:text-red-400 rupee">
-                                                    {formatINR(getTotalCashOut())}
-                                                </td>
-                                                <td className="px-6 py-4 text-right text-purple-600 dark:text-purple-400 rupee">
-                                                    {formatINR(getClosingBalance())}
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                {/* Closing Balance Row */}
+                <tr className="bg-gray-100 dark:bg-gray-700 font-bold">
+                    <td colSpan="3" className="px-6 py-4 text-right text-gray-900 dark:text-white">
+                        Closing Balance:
+                    </td>
+                    <td className="px-6 py-4 text-right text-green-600 dark:text-green-400 rupee">
+                        {formatINR(getTotalCashIn())}
+                    </td>
+                    <td className="px-6 py-4 text-right text-red-600 dark:text-red-400 rupee">
+                        {formatINR(getTotalCashOut())}
+                    </td>
+                    <td className="px-6 py-4 text-right text-purple-600 dark:text-purple-400 rupee">
+                        {formatINR(getClosingBalance())}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+                                </div >
                             )}
-                        </div>
+                        </div >
                     </>
                 )}
-            </div>
+            </div >
 
             <ConfirmationModal
                 isOpen={isDeleteModalOpen}
@@ -340,7 +341,7 @@ const Daybook = () => {
                 onSuccess={loadDaybook}
                 defaultDate={selectedDate}
             />
-        </Layout>
+        </Layout >
     );
 };
 
