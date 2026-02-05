@@ -69,7 +69,7 @@ const Expenses = () => {
                         className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-200 dark:shadow-none"
                     >
                         <Plus className="w-5 h-5" />
-                        <span className="font-semibold">Record Expense</span>
+                        <span className="font-semibold">Add Expense</span>
                     </button>
                 </div>
 
