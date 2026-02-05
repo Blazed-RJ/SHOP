@@ -128,14 +128,16 @@ export const getDaybook = async (req, res) => {
         // Cash In = Payments from Customers
         // Cash Out = Payments to Suppliers, Expenses, Drawings
         const Payment = (await import('../models/Payment.js')).default;
+        const Invoice = (await import('../models/Invoice.js')).default;
 
+        // REFACTORED: Use 'date' (business date) instead of 'createdAt' for accurate Daybook
         const previousIn = await Payment.aggregate([
-            { $match: { user: req.user.ownerId, createdAt: { $lt: startDate }, type: 'Debit' } },
+            { $match: { user: req.user.ownerId, date: { $lt: startDate }, type: 'Debit' } },
             { $group: { _id: null, total: { $sum: '$amount' } } }
         ]);
 
         const previousOut = await Payment.aggregate([
-            { $match: { user: req.user.ownerId, createdAt: { $lt: startDate }, type: 'Credit' } },
+            { $match: { user: req.user.ownerId, date: { $lt: startDate }, type: 'Credit' } },
             { $group: { _id: null, total: { $sum: '$amount' } } }
         ]);
 
@@ -144,15 +146,15 @@ export const getDaybook = async (req, res) => {
         // Get all transactions for the day
         const transactions = [];
 
-        // 1. Get customer payments (Cash IN) -  optimized query
+        // 1. Get customer payments (Cash IN) - using 'date' query
         const customerPayments = await Payment.find({
             customer: { $ne: null },
             type: 'Debit', // Customer paid us
-            createdAt: { $gte: startDate, $lte: endDate },
+            date: { $gte: startDate, $lte: endDate },
             user: req.user.ownerId
         })
             .populate('customer', 'name')
-            .lean(); // Use lean() for better performance
+            .lean();
 
         customerPayments.forEach(payment => {
             transactions.push({
@@ -161,14 +163,16 @@ export const getDaybook = async (req, res) => {
                 description: payment.notes || `Payment from ${payment.customer?.name || 'Customer'}`,
                 party: payment.customer,
                 amount: payment.amount,
+                date: payment.date,
                 createdAt: payment.createdAt
             });
         });
 
-        // 2. Get supplier payments (Cash OUT)
+        // 2. Get supplier payments (Cash OUT) - using 'date' query
         const supplierPayments = await Payment.find({
             supplier: { $ne: null },
-            createdAt: { $gte: startDate, $lte: endDate },
+            type: 'Credit', // We paid supplier
+            date: { $gte: startDate, $lte: endDate },
             user: req.user.ownerId
         }).populate('supplier', 'name');
 
@@ -179,14 +183,15 @@ export const getDaybook = async (req, res) => {
                 description: `Payment to ${payment.supplier?.name || 'Supplier'}`,
                 party: payment.supplier,
                 amount: payment.amount,
+                date: payment.date,
                 createdAt: payment.createdAt
             });
         });
 
-        // 2b. Get Expenses and Drawings (Cash OUT)
+        // 2b. Get Expenses and Drawings (Cash OUT) - using 'date' query
         const expenses = await Payment.find({
             category: { $in: ['Expense', 'Drawing'] },
-            createdAt: { $gte: startDate, $lte: endDate },
+            date: { $gte: startDate, $lte: endDate },
             user: req.user.ownerId
         });
 
@@ -197,14 +202,14 @@ export const getDaybook = async (req, res) => {
                 description: exp.notes || exp.category,
                 party: null, // No party for expenses
                 amount: exp.amount,
+                date: exp.date,
                 createdAt: exp.createdAt
             });
         });
 
-        // 3. Get invoices created (Sales)
-        const Invoice = (await import('../models/Invoice.js')).default;
+        // 3. Get invoices created (Sales) - using 'invoiceDate' to match Daybook logic
         const invoices = await Invoice.find({
-            createdAt: { $gte: startDate, $lte: endDate },
+            invoiceDate: { $gte: startDate, $lte: endDate },
             status: { $ne: 'Void' }, // Exclude voided invoices
             user: req.user.ownerId
         }).populate('customer', 'name');
@@ -217,16 +222,36 @@ export const getDaybook = async (req, res) => {
                 party: inv.customer,
                 amount: inv.grandTotal,
                 status: inv.status, // Paid, Partial, Due
+                date: inv.invoiceDate,
                 createdAt: inv.createdAt
             });
         });
 
-        // Sort by time (Newest First usually better for daybook, or Oldest First? Code had a-b, which is Oldest First)
-        transactions.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        // Sort by time (Newest First)
+        transactions.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
+
+        // Calculate totals for the day
+        let totalIn = 0;
+        let totalOut = 0;
+
+        transactions.forEach(t => {
+            // Determine visual "type" for calculation
+            const isOut = t.type === 'Purchase' || t.type === 'Expense' || t.type === 'Drawing';
+            if (isOut) {
+                totalOut += t.amount;
+            } else {
+                totalIn += t.amount;
+            }
+        });
+
+        const closingBalance = openingBalance + totalIn - totalOut;
 
         res.json({
             openingBalance,
             transactions,
+            totalIn,
+            totalOut,
+            closingBalance,
             date
         });
     } catch (error) {
@@ -312,4 +337,3 @@ export const deleteLedgerEntry = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-
