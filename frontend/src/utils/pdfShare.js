@@ -1,4 +1,3 @@
-
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import toast from 'react-hot-toast';
@@ -34,7 +33,7 @@ export const sharePdf = async (elementId, fileName, title, text) => {
         return;
     }
 
-    const loadToast = toast.loading('Generating PDF...');
+    const loadToast = toast.loading('Preparing PDF...');
 
     try {
         // 1. Capture Content
@@ -47,12 +46,18 @@ export const sharePdf = async (elementId, fileName, title, text) => {
         await handleShareOrDownload(pdfFile, fileName, title, text);
 
         toast.dismiss(loadToast);
-        toast.success({
-            duration: 3000,
-            message: navigator.canShare && navigator.canShare({ files: [pdfFile] })
-                ? 'Shared successfully!'
-                : 'PDF Downloaded'
-        });
+
+        // Check if it was shared or downloaded (heuristic)
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const isMobile = isAndroid || isIOS;
+
+        if (isMobile && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+            // Likely shared, but we can't be 100% sure if user cancelled. 
+            // We just won't show a "Downloaded" toast if we attempted share.
+        } else {
+            toast.success('PDF Downloaded');
+        }
 
     } catch (error) {
         console.error('PDF Process Error:', error);
@@ -76,19 +81,16 @@ export const sharePdf = async (elementId, fileName, title, text) => {
  */
 const captureContent = async (element) => {
     try {
-        // Optimization: Reduce scale to avoid "White Screen" OOM crashes
-        // WAS: Math.min(window.devicePixelRatio || 2, 2)
-        // NOW: Fixed 1.5 for balance, or 1 if very large
-        const isLarge = element.scrollHeight > 2000;
-        const scale = isLarge ? 1 : 1.5;
+        // PERMANENT FIX: Force Scale 1.0 to prevent OOM Crashes on complex pages
+        const scale = 1;
 
-        console.log(`Capturing content: ${element.id} (${element.offsetWidth}x${element.offsetHeight}), Scale: ${scale}`);
+        console.log(`Capturing content: ${element.id}, Scale: ${scale}`);
 
         return await html2canvas(element, {
             scale: scale,
             useCORS: true,
             allowTaint: true,
-            logging: true,
+            logging: false, // Turn off logging to save memory
             backgroundColor: '#ffffff',
             imageTimeout: 10000,
             removeContainer: true,
@@ -98,7 +100,7 @@ const captureContent = async (element) => {
             onclone: (clonedDoc) => {
                 const clonedElement = clonedDoc.getElementById(element.id);
                 if (clonedElement) {
-                    // CRITICAL FIX: Remove heavy CSS filters that crash html2canvas
+                    // Aggressive cleaning to prevent rendering crashes due to specific CSS properties
                     clonedElement.style.margin = '0';
                     clonedElement.style.padding = '20px';
                     clonedElement.style.filter = 'none';
@@ -111,26 +113,19 @@ const captureContent = async (element) => {
                     clonedElement.style.backgroundColor = '#ffffff';
                     clonedElement.style.color = '#000000';
 
-                    // Ensure images load
+                    // Force images to load
                     const images = clonedElement.getElementsByTagName('img');
                     Array.from(images).forEach(img => {
-                        if (!img.complete) {
-                            img.crossOrigin = 'anonymous';
-                        }
-                        // Fix for some external images causing taint
-                        try {
-                            // img.src = img.src; // Trigger reload? No, risky.
-                        } catch (e) { }
+                        if (!img.complete) img.crossOrigin = 'anonymous';
                     });
                 }
             }
         });
     } catch (error) {
-        console.error('Canvas capture error details:', error);
-        throw error; // Re-throw to be caught by main handler
+        console.error('Canvas capture error:', error);
+        throw error;
     }
 };
-
 
 /**
  * Converts canvas to PDF Blob/File.
@@ -161,8 +156,7 @@ const generatePdfBox = (canvas, fileName) => {
             throw new Error(`Invalid image dimensions: ${imgProps.width}x${imgProps.height}. Content may be hidden or empty.`);
         }
 
-        // Add image to PDF (Standard one-page or cut-off for now, as per simple invoice requirements)
-        // For multi-page, we would compare imgHeight > pdfHeight and loop.
+        // Add image to PDF
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
 
         const pdfBlob = pdf.output('blob');
@@ -183,24 +177,28 @@ const generatePdfBox = (canvas, fileName) => {
  * Handles the logic to specific Web Share API or fallback to download.
  */
 const handleShareOrDownload = async (file, fileName, title, text) => {
-    // Check if device is mobile using User Agent
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    // STRICT CHECK: Only enable Share Sheet for Android or iOS
+    // This ignores Windows/Mac "Web Share" which is often buggy with files
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isMobile = isAndroid || isIOS;
 
-    // Force download on Desktop/Laptop to avoid Windows Web Share API issues (e.g. Adobe "Zero length file" error)
+    console.log(`Device Detection: Android=${isAndroid}, iOS=${isIOS}, Mobile=${isMobile}`);
+
+    // If NOT explicitly Android/iOS, enforce download
     if (!isMobile) {
         console.log('Detected Desktop: Forcing download');
-        // toast('Starting download...', { icon: '⬇️' }); // Debug feedback
         downloadFile(file);
         return;
     }
 
-    // On Mobile, try Web Share API for native experience
+    // Attempt Share for Mobile
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
             await navigator.share({
                 files: [file],
-                title: title || 'Shared Document',
-                text: text || 'Please find the attached PDF document.',
+                title: title,
+                text: text,
             });
         } catch (error) {
             if (error.name === 'AbortError') {
@@ -212,7 +210,6 @@ const handleShareOrDownload = async (file, fileName, title, text) => {
             downloadFile(file);
         }
     } else {
-        // Fallback for unsupported devices
         downloadFile(file);
     }
 };
