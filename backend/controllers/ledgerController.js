@@ -164,8 +164,8 @@ export const getDaybook = async (req, res) => {
         const transactions = [];
 
         // 1. Get customer payments (Cash IN) - using 'date' query
+        // 1. Get customer payments (Cash IN) - using 'date' query
         const customerPayments = await Payment.find({
-            customer: { $ne: null },
             type: 'Debit', // Customer paid us
             date: { $gte: startDate, $lte: endDate },
             user: req.user.ownerId
@@ -190,9 +190,10 @@ export const getDaybook = async (req, res) => {
         });
 
         // 2. Get supplier payments (Cash OUT) - using 'date' query
+        // 2. Get supplier payments (Cash OUT) - using 'date' query
         const supplierPayments = await Payment.find({
-            supplier: { $ne: null },
             type: 'Credit', // We paid supplier
+            category: { $nin: ['Expense', 'Drawing', 'Receipt'] }, // Exclude Items handled by expenses query
             date: { $gte: startDate, $lte: endDate },
             user: req.user.ownerId
         }).populate('supplier', 'name');
