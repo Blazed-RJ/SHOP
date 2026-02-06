@@ -268,3 +268,40 @@ export const deletePayment = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// @desc    Record capital adjustment (Receipt/Drawing)
+// @route   POST /api/payments/adjust
+// @access  Private
+export const recordAdjustment = async (req, res) => {
+    try {
+        const { amount, type, category, date, notes } = req.body;
+
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ message: 'Valid amount is required' });
+        }
+        if (!['Debit', 'Credit'].includes(type) || !['Receipt', 'Drawing'].includes(category)) {
+            return res.status(400).json({ message: 'Invalid type or category' });
+        }
+
+        const transactionDate = date ? moment(date).tz("Asia/Kolkata").toDate() : moment().tz("Asia/Kolkata").toDate();
+
+        const payment = await Payment.create({
+            customer: null,
+            supplier: null,
+            invoice: null,
+            type, // Debit (IN) or Credit (OUT)
+            category, // Receipt or Drawing
+            amount,
+            method: 'Cash', // Adjustments usually affect Cash
+            notes: notes || 'Capital Adjustment',
+            recordedBy: req.user._id,
+            user: req.user.ownerId,
+            date: transactionDate
+        });
+
+        res.status(201).json(payment);
+    } catch (error) {
+        console.error('Record Adjustment Error:', error);
+        res.status(500).json({ message: error.message });
+    }
+};

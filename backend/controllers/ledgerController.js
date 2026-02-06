@@ -1,5 +1,6 @@
 import LedgerEntry from '../models/LedgerEntry.js';
 import Customer from '../models/Customer.js';
+import mongoose from 'mongoose';
 import moment from 'moment-timezone';
 
 // @desc    Get customer ledger
@@ -131,17 +132,33 @@ export const getDaybook = async (req, res) => {
         const Invoice = (await import('../models/Invoice.js')).default;
 
         // REFACTORED: Use 'date' (business date) instead of 'createdAt' for accurate Daybook
+        const ownerId = new mongoose.Types.ObjectId(req.user.ownerId);
+
         const previousIn = await Payment.aggregate([
-            { $match: { user: req.user.ownerId, date: { $lt: startDate }, type: 'Debit' } },
+            { $match: { user: ownerId, date: { $lt: startDate }, type: 'Debit' } },
             { $group: { _id: null, total: { $sum: '$amount' } } }
         ]);
 
         const previousOut = await Payment.aggregate([
-            { $match: { user: req.user.ownerId, date: { $lt: startDate }, type: 'Credit' } },
+            { $match: { user: ownerId, date: { $lt: startDate }, type: 'Credit' } },
             { $group: { _id: null, total: { $sum: '$amount' } } }
         ]);
 
-        const openingBalance = (previousIn[0]?.total || 0) - (previousOut[0]?.total || 0);
+        // Also include invoices in opening balance (invoices = sales = cash in)
+        const previousInvoices = await Invoice.aggregate([
+            { $match: { user: ownerId, invoiceDate: { $lt: startDate }, status: { $ne: 'Void' } } },
+            { $group: { _id: null, total: { $sum: '$grandTotal' } } }
+        ]);
+
+        // DEBUG: Log aggregation results
+        console.log('Opening Balance Calculation:');
+        console.log(`  startDate (looking for < this): ${startDate.toISOString()}`);
+        console.log(`  Previous IN (Debit):`, previousIn);
+        console.log(`  Previous OUT (Credit):`, previousOut);
+        console.log(`  Previous Invoices:`, previousInvoices);
+        console.log(`  Calculated Opening Balance: ${(previousIn[0]?.total || 0)} + ${(previousInvoices[0]?.total || 0)} - ${(previousOut[0]?.total || 0)}`);
+
+        const openingBalance = (previousIn[0]?.total || 0) + (previousInvoices[0]?.total || 0) - (previousOut[0]?.total || 0);
 
         // Get all transactions for the day
         const transactions = [];
@@ -196,9 +213,9 @@ export const getDaybook = async (req, res) => {
             });
         });
 
-        // 2b. Get Expenses and Drawings (Cash OUT) - using 'date' query
+        // 2b. Get Expenses, Drawings and Receipts (Cash OUT/IN) - using 'date' query
         const expenses = await Payment.find({
-            category: { $in: ['Expense', 'Drawing'] },
+            category: { $in: ['Expense', 'Drawing', 'Receipt'] },
             date: { $gte: startDate, $lte: endDate },
             user: req.user.ownerId
         });

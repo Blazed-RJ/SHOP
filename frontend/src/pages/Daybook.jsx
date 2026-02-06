@@ -21,10 +21,12 @@ import {
     CreditCard,
     Smartphone,
     Building2,
-    Wallet
+    Wallet,
+    Edit
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import RecordPaymentModal from '../components/RecordPaymentModal';
+import AdjustBalanceModal from '../components/AdjustBalanceModal';
 
 
 const Daybook = () => {
@@ -36,6 +38,7 @@ const Daybook = () => {
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState(null);
 
     const loadDaybook = useCallback(async () => {
@@ -197,7 +200,16 @@ const Daybook = () => {
                                 <div className="relative z-10 w-full">
                                     <div className="flex items-start justify-between">
                                         <div>
-                                            <p className="text-sm font-medium text-blue-800/60 dark:text-blue-200 uppercase tracking-widest">Opening Balance</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-sm font-medium text-blue-800/60 dark:text-blue-200 uppercase tracking-widest">Opening Balance</p>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setIsAdjustModalOpen(true); }}
+                                                    className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900 rounded text-blue-500 transition-colors"
+                                                    title="Adjust Opening Balance"
+                                                >
+                                                    <Edit className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
                                             <p className="text-2xl lg:text-3xl font-bold mt-2 text-blue-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-blue-100 dark:via-blue-300 dark:to-blue-500 font-mono">
                                                 {formatINR(daybookData?.openingBalance || 0)}
                                             </p>
@@ -522,6 +534,16 @@ const Daybook = () => {
                 onSuccess={loadDaybook}
                 defaultDate={selectedDate}
             />
+
+            {isAdjustModalOpen && (
+                <AdjustBalanceModal
+                    isOpen={isAdjustModalOpen}
+                    onClose={() => setIsAdjustModalOpen(false)}
+                    onSuccess={loadDaybook}
+                    currentBalance={daybookData?.openingBalance || 0}
+                    date={selectedDate}
+                />
+            )}
         </Layout >
     );
 };
