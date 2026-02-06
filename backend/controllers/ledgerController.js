@@ -162,6 +162,10 @@ export const getDaybook = async (req, res) => {
                 type: 'Sale',
                 description: payment.notes || `Payment from ${payment.customer?.name || 'Customer'}`,
                 party: payment.customer,
+                partyType: 'Customer',
+                paymentMode: payment.method, // Fixed: Payment schema uses 'method' not 'paymentMode'
+                notes: payment.notes,
+                billNumber: payment.reference || null, // Fixed: Payment schema uses 'reference' not 'billNumber'
                 amount: payment.amount,
                 date: payment.date,
                 createdAt: payment.createdAt
@@ -182,6 +186,10 @@ export const getDaybook = async (req, res) => {
                 type: 'Purchase',
                 description: `Payment to ${payment.supplier?.name || 'Supplier'}`,
                 party: payment.supplier,
+                partyType: 'Supplier',
+                paymentMode: payment.method, // Fixed: Payment schema uses 'method' not 'paymentMode'
+                notes: payment.notes,
+                billNumber: payment.reference || null, // Fixed: Payment schema uses 'reference' not 'billNumber'
                 amount: payment.amount,
                 date: payment.date,
                 createdAt: payment.createdAt
@@ -199,8 +207,12 @@ export const getDaybook = async (req, res) => {
             transactions.push({
                 _id: exp._id,
                 type: exp.category, // 'Expense' or 'Drawing'
-                description: exp.notes || exp.category,
-                party: null, // No party for expenses
+                description: exp.name || exp.notes || exp.category,
+                party: exp.supplier || null,
+                partyType: exp.supplier ? 'Expense' : null,
+                paymentMode: exp.method, // Fixed: Payment schema uses 'method' not 'paymentMode'
+                notes: exp.notes,
+                billNumber: exp.reference || null, // Fixed: Payment schema uses 'reference' not 'billNumber'
                 amount: exp.amount,
                 date: exp.date,
                 createdAt: exp.createdAt
@@ -220,6 +232,10 @@ export const getDaybook = async (req, res) => {
                 type: 'Invoice',
                 description: `Invoice #${inv.invoiceNo} - ${inv.customerName || inv.customer?.name || 'Cash Sale'}`,
                 party: inv.customer,
+                partyType: 'Customer',
+                paymentMode: null,
+                notes: inv.notes || null,
+                billNumber: inv.invoiceNo,
                 amount: inv.grandTotal,
                 status: inv.status, // Paid, Partial, Due
                 date: inv.invoiceDate,

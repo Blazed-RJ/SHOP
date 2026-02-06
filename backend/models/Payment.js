@@ -47,6 +47,11 @@ const paymentSchema = mongoose.Schema({
         enum: ['Payment', 'Receipt', 'Expense', 'Drawing'],
         default: 'Payment'
     },
+    date: {
+        type: Date,
+        required: true,
+        default: Date.now
+    },
     recordedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'

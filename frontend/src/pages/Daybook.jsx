@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout/Layout';
 import ConfirmationModal from '../components/ConfirmationModal';
 import api from '../utils/api';
@@ -12,15 +13,26 @@ import {
     IndianRupee,
     ArrowUpCircle,
     ArrowDownCircle,
-    Trash2
+    Trash2,
+    ChevronDown,
+    ChevronRight,
+    Eye,
+    Banknote,
+    CreditCard,
+    Smartphone,
+    Building2,
+    Wallet
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import RecordPaymentModal from '../components/RecordPaymentModal';
 
+
 const Daybook = () => {
+    const navigate = useNavigate();
     const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
     const [daybookData, setDaybookData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [expandedRows, setExpandedRows] = useState(new Set());
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -29,7 +41,9 @@ const Daybook = () => {
     const loadDaybook = useCallback(async () => {
         try {
             setLoading(true);
-            const { data } = await api.get(`/ledger/daybook?date=${selectedDate}`);
+            // Safety check: use today's date if selectedDate is empty
+            const dateToFetch = selectedDate || new Date().toLocaleDateString('en-CA');
+            const { data } = await api.get(`/ledger/daybook?date=${dateToFetch}`);
             setDaybookData(data);
             setLoading(false);
         } catch (error) {
@@ -82,6 +96,64 @@ const Daybook = () => {
         const cashIn = getTotalCashIn();
         const cashOut = getTotalCashOut();
         return opening + cashIn - cashOut;
+    };
+
+    const toggleRowExpand = (transactionId) => {
+        const newExpanded = new Set(expandedRows);
+        if (newExpanded.has(transactionId)) {
+            newExpanded.delete(transactionId);
+        } else {
+            newExpanded.add(transactionId);
+        }
+        setExpandedRows(newExpanded);
+    };
+
+    const getPaymentModeIcon = (mode) => {
+        switch (mode?.toLowerCase()) {
+            case 'cash':
+                return <Banknote className="w-4 h-4" />;
+            case 'bank transfer':
+            case 'bank':
+                return <Building2 className="w-4 h-4" />;
+            case 'card':
+            case 'credit card':
+            case 'debit card':
+                return <CreditCard className="w-4 h-4" />;
+            case 'upi':
+            case 'online':
+                return <Smartphone className="w-4 h-4" />;
+            default:
+                return <Wallet className="w-4 h-4" />;
+        }
+    };
+
+    const getPaymentModeColor = (mode) => {
+        switch (mode?.toLowerCase()) {
+            case 'cash':
+                return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+            case 'bank transfer':
+            case 'bank':
+                return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+            case 'card':
+            case 'credit card':
+            case 'debit card':
+                return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+            case 'upi':
+            case 'online':
+                return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400';
+            default:
+                return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
+        }
+    };
+
+    const navigateToPartyLedger = (party, type) => {
+        if (!party?._id) return;
+
+        if (type === 'Customer') {
+            navigate(`/customers/${party._id}/ledger`);
+        } else if (type === 'Supplier' || type === 'Expense') {
+            navigate(`/expenses/${party._id}/ledger`);
+        }
     };
 
     return (
@@ -219,102 +291,211 @@ const Daybook = () => {
                                     <p className="text-lg">No transactions for this date</p>
                                 </div>
                             ) : (
-                            ): (
-                                    <div className = "overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar">
-                                    <table className = "w-full relative">
-                                        <thead className = "bg-gray-50 dark:bg-gray-700/50 border-b-[2.5px] border-black dark:border-white/90 sticky top-0 z-10 shadow-sm">
+                                <div className="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar">
+                                    <table className="w-full relative">
+                                        <thead className="bg-gray-50 dark:bg-gray-700/50 border-b-[2.5px] border-black dark:border-white/90 sticky top-0 z-10 shadow-sm">
                                             <tr>
-                                                <th className = "px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700 w-12">
+                                                    {/* Expand icon */}
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
                                                     Type
                                                 </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
-                            Description
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
-                            Party
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
-                            Cash In
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
-                            Cash Out
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
-                            Balance
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
-                            Actions
-                        </th>
-                    </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {daybookData.transactions.map((transaction, index) => {
-                    const isCashIn = transaction.type === 'Sale' || transaction.type === 'Invoice';
-                    const runningBalance = daybookData.openingBalance +
-                        daybookData.transactions
-                            .slice(0, index + 1)
-                            .reduce((sum, t) => {
-                                const isInc = t.type === 'Sale' || t.type === 'Invoice';
-                                return sum + (isInc ? t.amount : -t.amount);
-                            }, 0);
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                                                    Description
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                                                    Party
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                                                    Payment Mode
+                                                </th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                                                    Cash In
+                                                </th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                                                    Cash Out
+                                                </th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                                                    Balance
+                                                </th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-700">
+                                                    Actions
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                            {daybookData.transactions.map((transaction, index) => {
+                                                const isCashIn = transaction.type === 'Sale' || transaction.type === 'Invoice';
+                                                const runningBalance = daybookData.openingBalance +
+                                                    daybookData.transactions
+                                                        .slice(0, index + 1)
+                                                        .reduce((sum, t) => {
+                                                            const isInc = t.type === 'Sale' || t.type === 'Invoice';
+                                                            return sum + (isInc ? t.amount : -t.amount);
+                                                        }, 0);
+                                                const isExpanded = expandedRows.has(transaction._id);
+                                                const hasDetails = transaction.notes || transaction.billNumber;
 
-                    return (
-                        <tr key={transaction._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                            <td className="px-6 py-4">
-                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${transaction.type === 'Sale' || transaction.type === 'Invoice'
-                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                    : transaction.type === 'Purchase' || transaction.type === 'Expense' || transaction.type === 'Drawing'
-                                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                    }`}>
-                                    {transaction.type}
-                                </span>
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                                {transaction.description}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                                {transaction.party?.name || '-'}
-                            </td>
-                            <td className="px-6 py-4 text-right text-sm font-semibold text-green-600 dark:text-green-400 rupee">
-                                {isCashIn ? formatINR(transaction.amount) : '-'}
-                            </td>
-                            <td className="px-6 py-4 text-right text-sm font-semibold text-red-600 dark:text-red-400 rupee">
-                                {!isCashIn ? formatINR(transaction.amount) : '-'}
-                            </td>
-                            <td className="px-6 py-4 text-right text-sm font-bold text-gray-900 dark:text-white rupee">
-                                {formatINR(runningBalance)}
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                                <button
-                                    onClick={() => handleDelete(transaction._id)}
-                                    className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                    title="Delete Transaction"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </td>
-                        </tr>
-                    );
-                })}
+                                                return (
+                                                    <React.Fragment key={transaction._id}>
+                                                        <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                                            {/* Expand Icon */}
+                                                            <td className="px-4 py-4">
+                                                                {hasDetails && (
+                                                                    <button
+                                                                        onClick={() => toggleRowExpand(transaction._id)}
+                                                                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                                                                        title={isExpanded ? "Collapse details" : "View details"}
+                                                                    >
+                                                                        {isExpanded ? (
+                                                                            <ChevronDown className="w-4 h-4" />
+                                                                        ) : (
+                                                                            <ChevronRight className="w-4 h-4" />
+                                                                        )}
+                                                                    </button>
+                                                                )}
+                                                            </td>
 
-                {/* Closing Balance Row */}
-                <tr className="bg-gray-100 dark:bg-gray-700 font-bold">
-                    <td colSpan="3" className="px-6 py-4 text-right text-gray-900 dark:text-white">
-                        Closing Balance:
-                    </td>
-                    <td className="px-6 py-4 text-right text-green-600 dark:text-green-400 rupee">
-                        {formatINR(getTotalCashIn())}
-                    </td>
-                    <td className="px-6 py-4 text-right text-red-600 dark:text-red-400 rupee">
-                        {formatINR(getTotalCashOut())}
-                    </td>
-                    <td className="px-6 py-4 text-right text-purple-600 dark:text-purple-400 rupee">
-                        {formatINR(getClosingBalance())}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                                                            {/* Type */}
+                                                            <td className="px-6 py-4">
+                                                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${transaction.type === 'Sale' || transaction.type === 'Invoice'
+                                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                    : transaction.type === 'Purchase' || transaction.type === 'Expense' || transaction.type === 'Drawing'
+                                                                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                                                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                                                    }`}>
+                                                                    {transaction.type}
+                                                                </span>
+                                                            </td>
+
+                                                            {/* Description */}
+                                                            <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                                                                {transaction.description}
+                                                            </td>
+
+                                                            {/* Party - Clickable */}
+                                                            <td className="px-6 py-4 text-sm">
+                                                                {transaction.party?.name ? (
+                                                                    <button
+                                                                        onClick={() => navigateToPartyLedger(transaction.party, transaction.partyType)}
+                                                                        className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                                                                        title={`View ${transaction.party.name}'s ledger`}
+                                                                    >
+                                                                        {transaction.party.name}
+                                                                    </button>
+                                                                ) : (
+                                                                    <span className="text-gray-400">-</span>
+                                                                )}
+                                                            </td>
+
+                                                            {/* Payment Mode */}
+                                                            <td className="px-6 py-4">
+                                                                {transaction.paymentMode ? (
+                                                                    <span className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold ${getPaymentModeColor(transaction.paymentMode)}`}>
+                                                                        {getPaymentModeIcon(transaction.paymentMode)}
+                                                                        <span>{transaction.paymentMode}</span>
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-gray-400 text-xs">-</span>
+                                                                )}
+                                                            </td>
+
+                                                            {/* Cash In */}
+                                                            <td className="px-6 py-4 text-right text-sm font-semibold text-green-600 dark:text-green-400 rupee">
+                                                                {isCashIn ? formatINR(transaction.amount) : '-'}
+                                                            </td>
+
+                                                            {/* Cash Out */}
+                                                            <td className="px-6 py-4 text-right text-sm font-semibold text-red-600 dark:text-red-400 rupee">
+                                                                {!isCashIn ? formatINR(transaction.amount) : '-'}
+                                                            </td>
+
+                                                            {/* Balance */}
+                                                            <td className="px-6 py-4 text-right text-sm font-bold text-gray-900 dark:text-white rupee">
+                                                                {formatINR(runningBalance)}
+                                                            </td>
+
+                                                            {/* Actions */}
+                                                            <td className="px-6 py-4 text-right">
+                                                                <div className="flex items-center justify-end space-x-2">
+                                                                    {hasDetails && (
+                                                                        <button
+                                                                            onClick={() => toggleRowExpand(transaction._id)}
+                                                                            className="text-gray-400 hover:text-indigo-500 p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                                                                            title="View Details"
+                                                                        >
+                                                                            <Eye className="w-4 h-4" />
+                                                                        </button>
+                                                                    )}
+                                                                    <button
+                                                                        onClick={() => handleDelete(transaction._id)}
+                                                                        className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                                        title="Delete Transaction"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+
+                                                        {/* Expandable Detail Row */}
+                                                        {isExpanded && hasDetails && (
+                                                            <tr className="bg-gray-50 dark:bg-gray-800/50">
+                                                                <td colSpan="9" className="px-6 py-4">
+                                                                    <div className="bg-white dark:bg-gray-700/30 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                                                                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
+                                                                            <Eye className="w-4 h-4 mr-2" />
+                                                                            Transaction Details
+                                                                        </h4>
+                                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                            {transaction.billNumber && (
+                                                                                <div>
+                                                                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                                                                        Bill Number
+                                                                                    </p>
+                                                                                    <p className="text-sm text-gray-900 dark:text-white font-mono">
+                                                                                        {transaction.billNumber}
+                                                                                    </p>
+                                                                                </div>
+                                                                            )}
+                                                                            {transaction.notes && (
+                                                                                <div className={transaction.billNumber ? '' : 'md:col-span-2'}>
+                                                                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                                                                        Notes / Remarks
+                                                                                    </p>
+                                                                                    <p className="text-sm text-gray-900 dark:text-white">
+                                                                                        {transaction.notes}
+                                                                                    </p>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </React.Fragment>
+                                                );
+                                            })}
+
+                                            {/* Closing Balance Row */}
+                                            <tr className="bg-gray-100 dark:bg-gray-700 font-bold">
+                                                <td colSpan="5" className="px-6 py-4 text-right text-gray-900 dark:text-white">
+                                                    Closing Balance:
+                                                </td>
+                                                <td className="px-6 py-4 text-right text-green-600 dark:text-green-400 rupee">
+                                                    {formatINR(getTotalCashIn())}
+                                                </td>
+                                                <td className="px-6 py-4 text-right text-red-600 dark:text-red-400 rupee">
+                                                    {formatINR(getTotalCashOut())}
+                                                </td>
+                                                <td className="px-6 py-4 text-right text-purple-600 dark:text-purple-400 rupee">
+                                                    {formatINR(getClosingBalance())}
+                                                </td>
+                                                <td></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div >
                             )}
                         </div >
