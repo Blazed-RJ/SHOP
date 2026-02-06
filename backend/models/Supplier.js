@@ -14,9 +14,14 @@ const supplierSchema = mongoose.Schema({
         type: String,
         default: ''
     },
+    type: {
+        type: String,
+        enum: ['Supplier', 'Expense'],
+        default: 'Supplier'
+    },
     phone: {
         type: String,
-        required: true
+        required: false // Optional for Expenses
     },
     email: {
         type: String,

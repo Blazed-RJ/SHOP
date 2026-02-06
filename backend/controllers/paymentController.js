@@ -86,13 +86,12 @@ export const recordSupplierPayment = async (req, res) => {
 
         // Create payment record
         const payment = await Payment.create({
-            customer: null,
-            supplier: supplierId, // Link to supplier
             invoice: null,
             type: 'Credit', // We paid OUT (Credit from payment perspective)
             amount: amount,
             method: method || 'Cash',
             notes: notes || 'Payment to supplier',
+            category: supplier.type === 'Expense' ? 'Expense' : undefined, // Categorize if it's an Expense Head
             recordedBy: req.user._id,
             user: req.user.ownerId,
             date: transactionDate // FIX: Save business date

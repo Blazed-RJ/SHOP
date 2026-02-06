@@ -39,7 +39,7 @@ export const getSupplierById = async (req, res) => {
 // @access  Private/Admin
 export const createSupplier = async (req, res) => {
     try {
-        const { name, company, phone, email, address, gstNumber } = req.body;
+        const { name, company, phone, email, address, gstNumber, type } = req.body;
 
         const supplier = await Supplier.create({
             name,
@@ -48,6 +48,7 @@ export const createSupplier = async (req, res) => {
             email,
             address,
             gstNumber,
+            type,
             user: req.user.ownerId
         });
 

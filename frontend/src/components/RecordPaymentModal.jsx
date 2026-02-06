@@ -39,7 +39,7 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
     // Fetch Data on Tab Change
     useEffect(() => {
         if (isOpen) {
-            if (activeTab === 'supplier') fetchSuppliers();
+            if (activeTab === 'supplier' || activeTab === 'expense') fetchSuppliers();
             if (activeTab === 'customer') fetchCustomers();
         }
     }, [isOpen, activeTab]);
@@ -71,56 +71,59 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
 
         try {
             const amount = parseFloat(formData.amount);
-            if (!amount || amount <= 0) {
-                toast.error('Please enter a valid amount');
-                setLoading(false);
-                return;
-            }
+            let finalPartyId = formData.partyId;
 
             // --- CUSTOMER PAYMENT (IN) ---
             if (activeTab === 'customer') {
-                if (!formData.partyId) {
-                    toast.error('Please select a customer');
-                    setLoading(false);
-                    return;
-                }
+                if (!finalPartyId) return toast.error('Please select a customer');
+                if (!amount || amount <= 0) return toast.error('Please enter a valid amount');
+
                 await api.post('/payments', {
-                    customerId: formData.partyId,
+                    customerId: finalPartyId,
                     amount,
                     method: formData.paymentMode,
                     notes: formData.remarks,
                     date: formData.date
                 });
             }
-            // --- SUPPLIER PAYMENT (OUT) ---
-            else if (activeTab === 'supplier') {
-                if (!formData.partyId) {
-                    toast.error('Please select a supplier');
-                    setLoading(false);
-                    return;
+            // --- SUPPLIER/EXPENSE PAYMENT (OUT) ---
+            else if (activeTab === 'supplier' || activeTab === 'expense') {
+
+                // HANDLE NEW EXPENSE HEAD CREATION
+                if (activeTab === 'expense' && formData.isNew) {
+                    if (!formData.name) return toast.error('Please enter an expense name');
+
+                    // 1. Create the new Expense Head (Supplier type 'Expense')
+                    const { data: newSupplier } = await api.post('/suppliers', {
+                        name: formData.name,
+                        type: 'Expense',
+                        phone: '0000000000', // Optional but safer to send dummy
+                    });
+
+                    finalPartyId = newSupplier._id;
+                    // Optimistically add to list (optional but good for UX if we stayed open)
+                    setSuppliers(prev => [...prev, newSupplier]);
                 }
+
+                if (!finalPartyId) return toast.error(`Please select a ${activeTab === 'expense' ? 'expense head' : 'supplier'}`);
+                if (!amount || amount <= 0) return toast.error('Please enter a valid amount');
+
+                // Both use the same endpoint now, distinguished by the ID's type in the backend
                 await api.post('/payments/supplier', {
-                    supplierId: formData.partyId,
+                    supplierId: finalPartyId,
                     amount,
                     method: formData.paymentMode,
                     notes: formData.remarks,
-                    date: formData.date
-                });
-            }
-            // --- EXPENSE (OUT) ---
-            else {
-                await api.post('/payments/expense', {
-                    amount,
-                    method: formData.paymentMode,
-                    notes: formData.remarks,
-                    name: formData.name, // Send Name
-                    category: 'Expense',
                     date: formData.date
                 });
             }
 
             toast.success('Transaction Recorded!');
-            onSuccess(); // Refresh Daybook
+            if (onSuccess) onSuccess(); // Refresh Daybook
+            if (activeTab === 'expense' && formData.isNew) {
+                // Keep modal open or reset specific fields if rapid entry is needed?
+                // For now, close standardized
+            }
             handleClose();
 
         } catch (error) {
@@ -138,6 +141,7 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
             paymentMode: 'Cash',
             sourceAccount: 'Cash Drawer',
             remarks: '',
+            name: '',
             date: defaultDate || new Date().toISOString().split('T')[0]
         });
         // Reset to default tab
@@ -147,6 +151,10 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
 
     if (!isOpen) return null;
 
+    // Filter suppliers for Expense Tab
+    const expenseHeads = suppliers.filter(s => s.type === 'Expense');
+    const regularSuppliers = suppliers.filter(s => s.type !== 'Expense');
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 backdrop-blur-sm">
             <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in border border-gray-100 dark:border-gray-700 ${variant === 'dedicated' ? '' : ''}`}>
@@ -154,7 +162,7 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
                 <div className={`p-6 flex items-center justify-between bg-white dark:bg-gray-800 ${variant === 'dedicated' ? 'border-b-[2.5px] border-black dark:border-white/90' : 'border-b border-gray-100 dark:border-gray-700 p-4'}`}>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                         {activeTab === 'customer' ? 'Receive Payment' :
-                            activeTab === 'expense' ? 'Add New Expense' : 'Record Payment'}
+                            activeTab === 'expense' ? 'Record Expense' : 'Record Payment'}
                     </h2>
                     <button onClick={handleClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
                         <X className="w-6 h-6" />
@@ -198,7 +206,7 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
                 {/* Body */}
                 <form onSubmit={handleSubmit} className={`space-y-4 ${variant === 'dedicated' ? 'p-6' : 'p-6 pt-2'}`}>
 
-                    {/* Date Selection */}
+                    {/* Date Selection (Unified for All) */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date</label>
                         <div className="relative">
@@ -211,20 +219,6 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
                             />
                         </div>
                     </div>
-
-                    {/* EXPENSE NAME (Only for Expense Tab) */}
-                    {activeTab === 'expense' && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Expense Name *</label>
-                            <input
-                                type="text"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none"
-                                placeholder="e.g. Electricity Bill, Rent, Office Supplies"
-                            />
-                        </div>
-                    )}
 
                     {/* CUSTOMER SELECT */}
                     {activeTab === 'customer' && (
@@ -246,7 +240,7 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
                         </div>
                     )}
 
-                    {/* SUPPLIER SELECT */}
+                    {/* SUPPLIER SELECT (Filtered) */}
                     {activeTab === 'supplier' && (
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Supplier *</label>
@@ -256,87 +250,90 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
                                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none transition-all"
                             >
                                 <option value="">Choose supplier...</option>
-                                {suppliers.map(s => (
+                                {regularSuppliers.map(s => (
                                     <option key={s._id} value={s._id}>{s.name}</option>
                                 ))}
                             </select>
-                            {suppliers.length === 0 && (
-                                <p className="text-[10px] text-orange-500 mt-1">No suppliers found.</p>
+                        </div>
+                    )}
+
+                    {/* EXPENSE HEAD SELECT (Filtered) */}
+                    {activeTab === 'expense' && (
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    {formData.isNew ? 'New Expense Name *' : 'Select Expense Head *'}
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData(p => ({ ...p, isNew: !p.isNew, partyId: '', name: '' }))}
+                                    className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                                >
+                                    {formData.isNew ? 'Select Existing' : '+ Create New'}
+                                </button>
+                            </div>
+
+                            {formData.isNew ? (
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none"
+                                    placeholder="e.g. Office Rent"
+                                    autoFocus
+                                />
+                            ) : (
+                                <>
+                                    <select
+                                        value={formData.partyId}
+                                        onChange={(e) => setFormData({ ...formData, partyId: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none transition-all"
+                                    >
+                                        <option value="">Choose expense head...</option>
+                                        {expenseHeads.map(s => (
+                                            <option key={s._id} value={s._id}>{s.name}</option>
+                                        ))}
+                                    </select>
+                                    {expenseHeads.length === 0 && (
+                                        <p className="text-[10px] text-red-500 mt-1">No expense heads found. Click '+ Create New' to add one.</p>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount *</label>
-                            <input
-                                type="number"
-                                value={formData.amount}
-                                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none"
-                                placeholder="0.00"
-                                min="0"
-                                step="0.01"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Payment Mode</label>
-                            <select
-                                value={formData.paymentMode}
-                                onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}
-                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none"
-                            >
-                                <option value="Cash">Cash</option>
-                                <option value="UPI">UPI</option>
-                                <option value="Card">Card</option>
-                                <option value="Cheque">Cheque</option>
-                                <option value="Bank Transfer">Bank Transfer</option>
-                                <option value="Online">Online</option>
-                            </select>
-                        </div>
+                    {/* Amount */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount *</label>
+                        <input
+                            type="number"
+                            value={formData.amount}
+                            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none"
+                            placeholder="0.00"
+                            min="0"
+                            step="0.01"
+                        />
                     </div>
 
-                    {/* Source Account Visual */}
-                    {activeTab === 'customer' ? (
-                        <div className="p-3 bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/30 rounded-xl relative overflow-hidden">
-                            <div className="flex items-center gap-2 mb-2 text-xs font-bold text-green-800 dark:text-green-500">
-                                <span className="text-lg">📥</span> Money In: Where is it going?
-                            </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
-                                Adding <span className="font-bold text-gray-900 dark:text-white">{formData.paymentMode}</span> payment from Customer.
-                                <br />Increases Cash/Bank Balance.
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/30 rounded-xl relative overflow-hidden">
-                            <div className="flex items-center gap-2 mb-2 text-xs font-bold text-amber-800 dark:text-amber-500">
-                                <span className="text-lg">📤</span> Money Out: Source Account
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div
-                                    onClick={() => setFormData({ ...formData, sourceAccount: 'Cash Drawer' })}
-                                    className={`p-2 rounded-lg border cursor-pointer transition-all ${formData.paymentMode === 'Cash'
-                                        ? 'bg-white dark:bg-gray-800 border-blue-500 dark:border-blue-500 shadow-sm ring-1 ring-blue-500'
-                                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 opacity-50'
-                                        }`}
-                                >
-                                    <div className="font-semibold text-gray-800 dark:text-white text-sm">Cash Drawer</div>
-                                    <div className="text-[10px] text-gray-500 dark:text-gray-400">Reduces Cash in Hand</div>
-                                </div>
-                                <div
-                                    onClick={() => setFormData({ ...formData, sourceAccount: 'Bank' })}
-                                    className={`p-2 rounded-lg border cursor-pointer transition-all ${formData.paymentMode !== 'Cash'
-                                        ? 'bg-white dark:bg-gray-800 border-blue-500 dark:border-blue-500 shadow-sm ring-1 ring-blue-500'
-                                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 opacity-50'
-                                        }`}
-                                >
-                                    <div className="font-semibold text-gray-800 dark:text-white text-sm">Bank / UPI</div>
-                                    <div className="text-[10px] text-gray-500 dark:text-gray-400">Reduces Bank Balance</div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {/* Payment Mode */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Payment Mode</label>
+                        <select
+                            value={formData.paymentMode}
+                            onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none"
+                        >
+                            <option value="Cash">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Card">Card</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Online">Online</option>
+                        </select>
+                    </div>
 
+                    {/* Remarks - Always Show */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Remarks (Optional)</label>
                         <input
@@ -364,14 +361,14 @@ const RecordPaymentModal = ({ isOpen, onClose, onSuccess, defaultDate, defaultTa
                                 : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200 dark:shadow-none'
                                 }`}
                         >
-                            {loading ? 'Recording...' :
+                            {loading ? 'Processing...' :
                                 activeTab === 'customer' ? 'Receive Payment' :
-                                    activeTab === 'expense' ? 'Add Expense' : 'Record Supplier Payment'}
+                                    activeTab === 'expense' ? 'Record Expense' : 'Record Payment'}
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

@@ -122,6 +122,13 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
+      <Route path="/expenses/:id/ledger" element={
+        <ProtectedRoute>
+          <SupplierLedger />
+        </ProtectedRoute>
+      } />
+
+
       <Route path="/settings" element={
         <ProtectedRoute>
           <Settings />

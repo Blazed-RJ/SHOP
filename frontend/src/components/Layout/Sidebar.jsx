@@ -18,7 +18,7 @@ import {
     Sun,
     Moon,
     Monitor,
-    Receipt
+    IndianRupee
 } from 'lucide-react';
 import { useClientView } from '../../context/ClientViewContext.jsx';
 import { BACKEND_URL } from '../../utils/api';
@@ -36,13 +36,13 @@ const Sidebar = ({ isOpen, onClose }) => {
 
     const navItems = [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', admin: false },
-        { name: 'Inventory', icon: Package, path: '/inventory', admin: false },
+        { name: 'Daybook', icon: BookOpen, path: '/daybook', admin: false },
         { name: 'New Invoice', icon: FileText, path: '/invoice/new', admin: false },
         { name: 'Invoice History', icon: BookOpen, path: '/invoices', admin: false },
         { name: 'Customers', icon: Users, path: '/customers', admin: false },
         { name: 'Suppliers', icon: TruckIcon, path: '/suppliers', admin: false }, // Everyone
-        { name: 'Daybook', icon: BookOpen, path: '/daybook', admin: false },
-        { name: 'Expenses', icon: Receipt, path: '/expenses', admin: false },
+        { name: 'Expenses', icon: IndianRupee, path: '/expenses', admin: false },
+        { name: 'Inventory', icon: Package, path: '/inventory', admin: false },
         { name: 'Letterheads', icon: ScrollText, path: '/letterheads', admin: false },
         { name: 'Settings', icon: Settings, path: '/settings', admin: true }, // Admin Only
     ];
