@@ -1,4 +1,5 @@
-import express from 'express';
+import express from 'express'; // Force restart
+
 import dotenv from 'dotenv';
 import cors from 'cors';
 import path from 'path';
@@ -17,6 +18,9 @@ import supplierLedgerRoutes from './routes/supplierLedger.js';
 import letterheadRoutes from './routes/letterheadRoutes.js';
 import dashboardRoutes from './routes/dashboard.js';
 import publicRoutes from './routes/publicRoutes.js';
+import accountingRoutes from './routes/accountingRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
+import purchaseRoutes from './routes/purchaseRoutes.js';
 
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -90,6 +94,9 @@ app.use('/api/supplier-ledger', supplierLedgerRoutes);
 app.use('/api/letterheads', letterheadRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/accounting', accountingRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/purchases', purchaseRoutes);
 
 // Serve Static Assets in Production
 if (process.env.NODE_ENV === 'production') {

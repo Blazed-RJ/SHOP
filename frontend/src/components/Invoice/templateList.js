@@ -1,0 +1,17 @@
+export const TEMPLATE_LIST = [
+    { id: 'gradient', name: 'Gradient', color: 'linear-gradient(90deg, #ffb800, #00e1ff, #7b2cbf, #ff007a)', category: 'Modern' },
+    { id: 'royal-blue', name: 'Royal Blue', color: '#2563eb', category: 'Modern' },
+    { id: 'emerald', name: 'Emerald', color: '#047857', category: 'Modern' },
+    { id: 'sunset', name: 'Sunset', color: 'linear-gradient(135deg, #e8590c, #f97316, #fbbf24)', category: 'Modern' },
+    { id: 'midnight', name: 'Midnight', color: '#0f172a', category: 'Dark' },
+    { id: 'neon', name: 'Neon Cyber', color: 'linear-gradient(90deg, #00d4ff, #a855f7, #ff007a)', category: 'Dark' },
+    { id: 'carbon', name: 'Carbon Fiber', color: '#18181b', category: 'Dark' },
+    { id: 'rose-gold', name: 'Rose Gold', color: '#be185d', category: 'Elegant' },
+    { id: 'lavender', name: 'Lavender', color: '#7c3aed', category: 'Elegant' },
+    { id: 'ocean', name: 'Ocean Wave', color: '#0d9488', category: 'Elegant' },
+    { id: 'classic', name: 'Classic Serif', color: '#1a1a2e', category: 'Classic' },
+    { id: 'earth', name: 'Earth Tone', color: '#78350f', category: 'Classic' },
+    { id: 'burgundy', name: 'Burgundy', color: '#7f1d1d', category: 'Classic' },
+    { id: 'arctic', name: 'Arctic Frost', color: '#0ea5e9', category: 'Classic' },
+    { id: 'minimal', name: 'Minimal', color: '#111111', category: 'Classic' },
+];

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import api from '../utils/api';
+import api, { BACKEND_URL } from '../utils/api';
 import {
     X,
     Plus,
@@ -18,6 +18,9 @@ const CategoryManagementModal = ({ onClose }) => {
     const [expandedCategories, setExpandedCategories] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [newCategory, setNewCategory] = useState({ name: '', description: '' });
+    const [categoryImage, setCategoryImage] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
+    const [removeImage, setRemoveImage] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
     const [isCreatingNew, setIsCreatingNew] = useState(false);
     const [selectedParent, setSelectedParent] = useState(null);
@@ -31,6 +34,25 @@ const CategoryManagementModal = ({ onClose }) => {
         isSubCategory: false
     });
     const [subInputs, setSubInputs] = useState({});
+
+    // Handle Image Selection
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setCategoryImage(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setCategoryImage(null);
+        setImagePreview(null);
+        setRemoveImage(true);
+    };
 
     const [categoryPath, setCategoryPath] = useState([]); // Array of {id, name} for breadcrumbs
 
@@ -114,18 +136,42 @@ const CategoryManagementModal = ({ onClose }) => {
         }
 
         try {
+            const formData = new FormData();
+            formData.append('name', newCategory.name);
+            formData.append('description', newCategory.description);
+            if (categoryImage) {
+                formData.append('image', categoryImage);
+            }
+            if (removeImage) {
+                formData.append('removeImage', 'true');
+            }
+
             if (editingCategory) {
-                await api.put(`/categories/${editingCategory._id}`, {
-                    name: newCategory.name,
-                    description: newCategory.description,
-                    parentCategory: editParentId
+                formData.append('parentCategory', editParentId || '');
+                // For updates, we don't send parentCategory if it's null/undefined unless we want to unset it, 
+                // but the backend logic handles "undefined" checks. 
+                // Ideally, we should be explicit. 
+                // The backend code: if (parentCategory !== undefined) category.parentCategory = parentCategory;
+                // Since FormData sends strings, we need to be careful.
+
+                // Correction: FormData appends everything as string.
+                // We should only append if it has a value or we explicitly want to send null (which becomes "null" string).
+
+                await api.put(`/categories/${editingCategory._id}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
                 });
                 toast.success('Category updated successfully');
             } else {
-                await api.post('/categories', {
-                    name: newCategory.name,
-                    description: newCategory.description,
-                    parentCategory: isCreatingNew ? null : selectedParent?._id,
+                if (isCreatingNew) {
+                    // Root category
+                } else {
+                    if (selectedParent?._id) {
+                        formData.append('parentCategory', selectedParent._id);
+                    }
+                }
+
+                await api.post('/categories', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
                 });
                 toast.success(
                     selectedParent
@@ -135,10 +181,8 @@ const CategoryManagementModal = ({ onClose }) => {
             }
 
             setNewCategory({ name: '', description: '' });
-            setEditingCategory(null);
-            setIsCreatingNew(false);
-            // We keep selectedParent if we just added a sub-category under it
-            setNewCategory({ name: '', description: '' });
+            setCategoryImage(null);
+            setImagePreview(null);
             setEditingCategory(null);
             setIsCreatingNew(false);
 
@@ -175,6 +219,9 @@ const CategoryManagementModal = ({ onClose }) => {
             name: category.name,
             description: category.description || ''
         });
+        setImagePreview(category.image ? `${BACKEND_URL}${category.image}` : null);
+        setCategoryImage(null);
+        setRemoveImage(false);
     };
 
     const handleCancelEdit = () => {
@@ -182,6 +229,9 @@ const CategoryManagementModal = ({ onClose }) => {
         setIsCreatingNew(false);
         setNewCategory({ name: '', description: '' });
         setEditParentId(null);
+        setCategoryImage(null);
+        setImagePreview(null);
+        setRemoveImage(false);
     };
 
     const initiateDelete = (cat, isSubCategory = false) => {
@@ -273,6 +323,9 @@ const CategoryManagementModal = ({ onClose }) => {
                                     setEditingCategory(null);
                                     setIsCreatingNew(true);
                                     setNewCategory({ name: '', description: '' });
+                                    setCategoryImage(null);
+                                    setImagePreview(null);
+                                    setRemoveImage(false);
                                     setSelectedParent(null);
                                 }}
                                 className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg flex items-center justify-center gap-2 shadow-sm shadow-brand-200 dark:shadow-none transition-all"
@@ -344,6 +397,45 @@ const CategoryManagementModal = ({ onClose }) => {
                                                 className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
                                                 autoFocus
                                             />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 uppercase tracking-wider">Category Image</label>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-700 relative group">
+                                                    {imagePreview ? (
+                                                        <>
+                                                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    handleRemoveImage();
+                                                                }}
+                                                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                                                title="Remove Image"
+                                                            >
+                                                                <X className="w-3 h-3" />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <FolderTree className="w-8 h-8 text-gray-400" />
+                                                    )}
+                                                    <label htmlFor="cat-image-upload" className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition-all cursor-pointer">
+                                                        <div className={`opacity-0 group-hover:opacity-100 text-white text-xs font-bold ${imagePreview ? 'mt-4' : ''}`}>Change</div>
+                                                    </label>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="file"
+                                                        id="cat-image-upload"
+                                                        accept="image/*"
+                                                        onChange={handleImageChange}
+                                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 dark:file:bg-brand-900/20 dark:file:text-brand-400"
+                                                    />
+                                                    <p className="text-xs text-gray-500 mt-1">Accepts JPG, PNG. Max 5MB.</p>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div className="flex gap-3">
                                             <button

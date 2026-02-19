@@ -199,7 +199,8 @@ const InvoiceHistory = () => {
                         </div>
                     ) : (
                         <div className="bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-[32px] box-outline overflow-hidden shadow-2xl transition-all duration-300">
-                            <div className="overflow-x-auto">
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b-[2.5px] border-black dark:border-white/90">
@@ -294,6 +295,82 @@ const InvoiceHistory = () => {
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
+
+                            {/* Mobile Card View */}
+                            <div className="md:hidden space-y-4 p-4">
+                                {filteredInvoices.map((invoice) => (
+                                    <div key={invoice._id} className="bg-white dark:bg-white/5 rounded-2xl p-5 border border-gray-100 dark:border-white/10 shadow-sm relative overflow-hidden group">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <div className="text-xl font-black text-gray-900 dark:text-white font-mono tracking-tight">
+                                                    {invoice.invoiceNo}
+                                                </div>
+                                                <div className="test-xs font-bold text-indigo-500 uppercase tracking-wider mt-1">
+                                                    {formatDate(invoice.invoiceDate || invoice.createdAt)}
+                                                </div>
+                                            </div>
+                                            <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${invoice.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                                                invoice.status === 'Partial' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
+                                                    invoice.status === 'Due' ? 'bg-red-500/10 text-red-600 border-red-500/20' :
+                                                        'bg-gray-500/10 text-gray-400 border-gray-500/20 line-through'
+                                                }`}>
+                                                {invoice.status}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center space-x-3 mb-4 p-3 bg-gray-50 dark:bg-black/20 rounded-xl">
+                                            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs">
+                                                {(invoice.customer?.name || invoice.customerName || 'W').charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold text-gray-900 dark:text-white">
+                                                    {invoice.customer?.name || invoice.customerName || 'Walk-in Partner'}
+                                                </div>
+                                                {invoice.customer?.phone && (
+                                                    <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                        +91 {invoice.customer.phone}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between items-end mb-4 border-t border-gray-100 dark:border-white/5 pt-4">
+                                            <div>
+                                                <div className="text-[10px] uppercase tracking-widest text-gray-500 dark:text-gray-400 font-bold">Total Amount</div>
+                                                <div className="text-2xl font-black text-gray-900 dark:text-white rupee font-mono">
+                                                    {formatINR(invoice.grandTotal)}
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-[10px] uppercase tracking-widest text-gray-500 dark:text-gray-400 font-bold">Paid</div>
+                                                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 rupee font-mono">
+                                                    {formatINR(invoice.paidAmount)}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <button
+                                                onClick={() => navigate(`/invoice/${invoice._id}`)}
+                                                className="flex items-center justify-center py-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+                                            >
+                                                <Eye className="w-4 h-4 mr-2" /> View
+                                            </button>
+                                            <button
+                                                className="flex items-center justify-center py-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
+                                            >
+                                                <Download className="w-4 h-4 mr-2" /> PDF
+                                            </button>
+                                            <button
+                                                onClick={() => handleVoidClick(invoice)}
+                                                className="flex items-center justify-center py-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+                                            >
+                                                <Trash2 className="w-4 h-4 mr-2" /> Void
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}

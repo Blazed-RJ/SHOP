@@ -1,35 +1,92 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { InvoiceRenderer } from '../Invoice/InvoiceTemplates';
+import QRCode from 'qrcode';
 
 const SettingsInvoicePreview = ({ settings, formData }) => {
+    const [qrCodeUrl, setQrCodeUrl] = useState(null);
+
     // 1. Merge Settings + FormData (Live Adjustments)
-    const previewSettings = useMemo(() => ({
-        ...settings,
-        ...formData,
-        // Ensure nested objects merge correctly if needed
-        invoiceTemplate: {
-            ...settings?.invoiceTemplate,
-            ...formData.invoiceTemplate
-        },
-        // Make sure style props are at top level as expected by templates
-        logo: formData.logo || settings?.logo,
-        shopName: formData.shopName || settings?.shopName,
-        address: formData.address || settings?.address,
-        phone: formData.phone || settings?.phone,
-        email: formData.email || settings?.email,
-        brandColor: formData.brandColor || settings?.brandColor,
-        primaryTextColor: formData.primaryTextColor || settings?.primaryTextColor,
-        invoiceFooterText: formData.invoiceFooterText || settings?.invoiceFooterText,
-        termsAndConditions: formData.termsAndConditions || settings?.termsAndConditions,
-        bankDetails: formData.bankDetails || `${settings?.bankName || ''}\n${settings?.accountNumber || ''}`,
-        upiId: formData.upiId || settings?.upiId,
-        digitalSignature: settings?.digitalSignature, // Signature not usually in formData unless updated there
+    const previewSettings = useMemo(() => {
+        // Resolve Bank Account (Default or First)
+        const bankAccounts = formData.bankAccounts || settings?.bankAccounts || [];
+        const defaultBank = bankAccounts.find(acc => acc.isDefault) || bankAccounts[0] || {};
 
-        // Config
-        fieldVisibility: formData.invoiceTemplate?.fieldVisibility || settings?.invoiceTemplate?.fieldVisibility || {}
-    }), [settings, formData]);
+        // Use form values if edited, else fallback to default bank, else settings
+        const bankName = formData.bankName || defaultBank.bankName || settings?.bankName;
+        const accountNumber = formData.accountNumber || defaultBank.accountNumber || settings?.accountNumber;
+        const ifscCode = formData.ifscCode || defaultBank.ifscCode || settings?.ifscCode;
+        const bankBranch = formData.bankBranch || defaultBank.bankBranch || settings?.bankBranch;
+        const bankHolderName = formData.bankHolderName || defaultBank.bankHolderName || settings?.bankHolderName;
+        const upiId = formData.upiId || defaultBank.upiId || settings?.upiId;
 
-    // 2. Prepare Mock Data (Standard Format)
+        // Construct formatted Bank Details string if not explicitly provided
+        let formattedBankDetails = settings?.bankDetails;
+        if (!formattedBankDetails && (bankName || accountNumber)) {
+            const lines = [];
+            if (bankName) lines.push(`Bank: ${bankName}`);
+            if (accountNumber) lines.push(`A/c No: ${accountNumber}`);
+            if (ifscCode) lines.push(`IFSC: ${ifscCode}`);
+            if (bankBranch) lines.push(`Branch: ${bankBranch}`);
+            if (bankHolderName) lines.push(`Holder: ${bankHolderName}`);
+            formattedBankDetails = lines.join('\n');
+        }
+
+        return {
+            ...settings,
+            ...formData,
+            // Ensure nested objects merge correctly if needed
+            invoiceTemplate: {
+                ...settings?.invoiceTemplate,
+                ...formData.invoiceTemplate
+            },
+            // Make sure style props are at top level as expected by templates
+            logo: formData.logo || settings?.logo,
+            shopName: formData.shopName || settings?.shopName,
+            address: formData.address || settings?.address,
+            phone: formData.phone || settings?.phone,
+            email: formData.email || settings?.email,
+            brandColor: formData.brandColor || settings?.brandColor,
+            primaryTextColor: formData.primaryTextColor || settings?.primaryTextColor,
+            invoiceFooterText: formData.invoiceFooterText || settings?.invoiceFooterText,
+            termsAndConditions: formData.termsAndConditions || settings?.termsAndConditions,
+
+            // BANKING
+            bankName,
+            accountNumber,
+            bankHolderName,
+            ifscCode,
+            bankBranch,
+            upiId,
+            bankDetails: formattedBankDetails, // Pass the formatted string
+
+            // Signature
+            digitalSignature: settings?.digitalSignature,
+
+            // Config
+            fieldVisibility: formData.invoiceTemplate?.fieldVisibility || settings?.invoiceTemplate?.fieldVisibility || {}
+        };
+    }, [settings, formData]);
+
+    // 2. Generate QR Code when UPI ID changes
+    useEffect(() => {
+        const generateQR = async () => {
+            if (previewSettings.upiId) {
+                try {
+                    const upiUrl = `upi://pay?pa=${previewSettings.upiId}&pn=${previewSettings.shopName || 'Merchant'}&cu=INR`;
+                    const url = await QRCode.toDataURL(upiUrl, { width: 150, margin: 1 });
+                    setQrCodeUrl(url);
+                } catch (err) {
+                    console.error("QR Generation failed", err);
+                    setQrCodeUrl(null);
+                }
+            } else {
+                setQrCodeUrl(null);
+            }
+        };
+        generateQR();
+    }, [previewSettings.upiId, previewSettings.shopName]);
+
+    // 3. Prepare Mock Data (Standard Format)
     const mockData = {
         invoiceNo: 'INV-001',
         date: new Date().toLocaleDateString(),
@@ -52,6 +109,9 @@ const SettingsInvoicePreview = ({ settings, formData }) => {
         authSignLabel: previewSettings.authSignLabel
     };
 
+    // Inject generated QR code into settings passed to renderer
+    const rendererSettings = { ...previewSettings, qrCode: qrCodeUrl };
+
     const templateId = previewSettings.invoiceTemplate?.templateId || 'modern';
 
     return (
@@ -59,7 +119,7 @@ const SettingsInvoicePreview = ({ settings, formData }) => {
             <InvoiceRenderer
                 templateId={templateId}
                 data={mockData}
-                settings={previewSettings}
+                settings={rendererSettings}
             />
         </div>
     );

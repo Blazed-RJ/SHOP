@@ -5,21 +5,27 @@ import {
     createProduct,
     updateProduct,
     deleteProduct,
-    searchProducts
+    searchProducts,
+    getProductBatches,
+    getExpiringBatches
 } from '../controllers/productController.js';
-import { protect, admin } from '../middleware/auth.js';
+import { protect } from '../middleware/auth.js';
+import { authorize } from '../middleware/rbac.js';
 import upload from '../config/multer.js';
 
 const router = express.Router();
 
 // Public routes (require authentication)
 router.get('/', protect, getProducts);
+router.get('/expiry-alert', protect, getExpiringBatches);
 router.get('/search/:keyword', protect, searchProducts);
 router.get('/:id', protect, getProductById);
+router.get('/:id/batches', protect, getProductBatches);
 
 // Admin only routes
-router.post('/', protect, admin, upload.single('image'), createProduct);
-router.put('/:id', protect, admin, upload.single('image'), updateProduct);
-router.delete('/:id', protect, admin, deleteProduct);
+// Admin & Accountant routes
+router.post('/', protect, authorize('Admin', 'Accountant'), upload.single('image'), createProduct);
+router.put('/:id', protect, authorize('Admin', 'Accountant'), upload.single('image'), updateProduct);
+router.delete('/:id', protect, authorize('Admin'), deleteProduct);
 
 export default router;

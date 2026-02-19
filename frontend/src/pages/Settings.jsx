@@ -1,17 +1,21 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import Layout from '../components/Layout/Layout';
 import api, { BACKEND_URL } from '../utils/api';
 import {
-    Store, CreditCard, FileText, Smartphone,
-    Save, Upload, Info, X, Image, Layout as LayoutIcon, Users
+    Store, FileText, Smartphone,
+    Save, Upload, Info, X, Image, Layout as LayoutIcon, Users,
+    User, MapPin, Phone, Mail, Globe, Palette, Type, ImageIcon, Briefcase, CreditCard, Shield, Check, Bell, Moon, Sun, Monitor, AlertTriangle,
+    Plus, Code, Eye, Trash2, Pencil
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { QRCodeSVG } from 'qrcode.react';
 import SettingsInvoicePreview from '../components/Settings/SettingsInvoicePreview';
+import { TEMPLATE_LIST } from '../components/Invoice/templateList';
 import LiquidBackground from '../components/UI/LiquidBackground';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 const Settings = () => {
     const navigate = useNavigate();
@@ -22,6 +26,55 @@ const Settings = () => {
     const [staffList, setStaffList] = useState([]);
     const [newStaff, setNewStaff] = useState({ name: '', email: '', username: '', password: '' });
     const [previewScale, setPreviewScale] = useState(0.55); // Default scale for A4 preview
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [fieldToDelete, setFieldToDelete] = useState(null);
+
+    // Custom HTML template editor state
+    const [showHtmlEditor, setShowHtmlEditor] = useState(false);
+    const [editingHtmlTemplate, setEditingHtmlTemplate] = useState(null);
+    const [htmlEditorName, setHtmlEditorName] = useState('');
+    const [htmlEditorCode, setHtmlEditorCode] = useState('');
+    const [htmlPreviewMode, setHtmlPreviewMode] = useState(false);
+
+    const openHtmlEditor = (template = null) => {
+        if (template) {
+            setEditingHtmlTemplate(template.id);
+            setHtmlEditorName(template.name);
+            setHtmlEditorCode(template.html);
+        } else {
+            setEditingHtmlTemplate(null);
+            setHtmlEditorName('');
+            setHtmlEditorCode('');
+        }
+        setHtmlPreviewMode(false);
+        setShowHtmlEditor(true);
+    };
+
+    const saveHtmlTemplate = () => {
+        if (!htmlEditorName.trim()) return toast.error('Please enter a template name');
+        if (!htmlEditorCode.trim()) return toast.error('Please enter HTML code');
+        setFormData(prev => {
+            const templates = [...(prev.invoiceTemplate?.customHtmlTemplates || [])];
+            if (editingHtmlTemplate) {
+                const idx = templates.findIndex(t => t.id === editingHtmlTemplate);
+                if (idx >= 0) templates[idx] = { ...templates[idx], name: htmlEditorName.trim(), html: htmlEditorCode };
+            } else {
+                templates.push({ id: `custom-${Date.now()}`, name: htmlEditorName.trim(), html: htmlEditorCode });
+            }
+            return { ...prev, invoiceTemplate: { ...prev.invoiceTemplate, customHtmlTemplates: templates } };
+        });
+        setShowHtmlEditor(false);
+        toast.success(editingHtmlTemplate ? 'Template updated' : 'Template added');
+    };
+
+    const deleteHtmlTemplate = (id) => {
+        setFormData(prev => {
+            const templates = (prev.invoiceTemplate?.customHtmlTemplates || []).filter(t => t.id !== id);
+            const newTemplateId = prev.invoiceTemplate?.templateId === id ? 'gradient' : prev.invoiceTemplate?.templateId;
+            return { ...prev, invoiceTemplate: { ...prev.invoiceTemplate, customHtmlTemplates: templates, templateId: newTemplateId } };
+        });
+        toast.success('Template deleted');
+    };
 
     const [formData, setFormData] = useState({
         shopName: '',
@@ -55,6 +108,7 @@ const Settings = () => {
                 footer: true,
                 bankDetails: true,
                 qrCode: true,
+                qrText: true,
                 terms: true
             },
             fieldOrder: ['header', 'billTo', 'items', 'payment', 'signature', 'footer']
@@ -107,7 +161,7 @@ const Settings = () => {
                 }
             });
         }
-    }, [currentSettings]);
+    }, [currentSettings, isAdmin, navigate, updateSettings]);
 
     // Fetch Staff when tab is active
     useEffect(() => {
@@ -171,39 +225,45 @@ const Settings = () => {
             toast.success(`${field} uploaded successfully`);
             refreshSettings();
         } catch (error) {
-            console.error(`Upload error for ${field}:`, error);
-            toast.error(`Failed to upload ${field}`);
+            console.error(`Upload error for ${field}: `, error);
+            toast.error(`Failed to upload ${field} `);
         }
     };
 
-    const handleRemoveFile = async (field, event) => {
-        if (event) {
-            event.preventDefault();
-            event.stopPropagation();
+    const handleRemoveFile = useCallback((field, e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
         }
+        setFieldToDelete(field);
+        setShowDeleteModal(true);
+    }, []);
 
-        if (!window.confirm('Are you sure you want to remove this image?')) return;
+    const confirmRemoveFile = async () => {
+        if (!fieldToDelete) return;
 
         try {
             // Update via Context (handles API and Context State)
-            const result = await updateSettings({ [field]: null });
+            const result = await updateSettings({ [fieldToDelete]: null });
 
             if (result.success) {
                 toast.success('Image removed successfully');
                 // Update local form state immediately to reflect change in UI
-                setFormData(prev => ({ ...prev, [field]: null }));
+                setFormData(prev => ({ ...prev, [fieldToDelete]: null }));
             } else {
                 toast.error(result.error || 'Failed to remove image');
             }
         } catch (error) {
             console.error('Error removing image:', error);
             toast.error('Failed to remove image');
+        } finally {
+            setFieldToDelete(null);
+            setShowDeleteModal(false);
         }
     };
 
     const tabs = [
         { id: 'general', name: 'General', icon: Store },
-        { id: 'banking', name: 'Banking & QR', icon: CreditCard },
         { id: 'invoice', name: 'Invoice Design', icon: FileText },
         { id: 'appearance', name: 'App Appearance', icon: Smartphone },
         { id: 'letterheadTemplate', name: 'Letterhead Design', icon: LayoutIcon },
@@ -251,7 +311,7 @@ const Settings = () => {
 
                 {/* Intelligence Navigation */}
                 <div className="mb-8 relative z-10">
-                    <div className="bg-white/80 dark:bg-white/2 backdrop-blur-2xl p-2 rounded-[28px] border-[2.5px] border-amber-500/30 shadow-xl shadow-amber-900/5 transition-all duration-300">
+                    <div className="bg-white/80 dark:bg-white/10 backdrop-blur-2xl p-2 rounded-[28px] border-[2.5px] border-amber-500/30 shadow-xl shadow-amber-900/5 transition-all duration-300">
                         <nav className="flex space-x-1 px-2 overflow-x-auto scrollbar-hide no-scrollbar" aria-label="Tabs">
                             {tabs.map((tab) => {
                                 const Icon = tab.icon;
@@ -260,8 +320,8 @@ const Settings = () => {
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`flex items-center space-x-3 py-4 px-6 rounded-[22px] font-black text-xs uppercase tracking-widest transition-all duration-500 whitespace-nowrap ${activeTab === tab.id
-                                            ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/20 translate-y-0 opacity-100'
-                                            : 'text-gray-500 dark:text-gray-400 hover:bg-amber-500/5 hover:text-amber-600 dark:hover:text-amber-200 opacity-60 hover:opacity-100'
+                                            ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/30 translate-y-0 opacity-100'
+                                            : 'text-gray-600 dark:text-gray-300 hover:bg-amber-500/5 hover:text-amber-600 dark:hover:text-amber-200 opacity-70 hover:opacity-100'
                                             }`}
                                     >
                                         <Icon className={`w-4 h-4 ${activeTab === tab.id ? 'animate-pulse' : ''}`} />
@@ -317,7 +377,7 @@ const Settings = () => {
                                                     {currentSettings?.logo ? (
                                                         <>
                                                             <img
-                                                                src={currentSettings.logo.startsWith('http') ? currentSettings.logo : `${BACKEND_URL}${currentSettings.logo}`}
+                                                                src={currentSettings.logo.startsWith('http') ? currentSettings.logo : `${BACKEND_URL}${currentSettings.logo} `}
                                                                 alt="Logo"
                                                                 className="h-full w-full object-contain p-2"
                                                             />
@@ -439,260 +499,113 @@ const Settings = () => {
                                     </div>
                                 )}
 
-                                {/* Banking & QR Tab */}
-                                {activeTab === 'banking' && (
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Bank Details (Multi-line)
-                                            </label>
-                                            <textarea
-                                                defaultValue={`Bank Name: ${formData.bankName}\nAccount No.: ${formData.accountNumber}\nIFSC Code: ${formData.ifscCode}\nBranch: ${formData.bankBranch}`}
-                                                onBlur={(e) => {
-                                                    const lines = e.target.value.split('\n');
-                                                    setFormData({
-                                                        ...formData,
-                                                        bankName: lines[0]?.replace(/^Bank Name:\s*/, '').trim() || '',
-                                                        accountNumber: lines[1]?.replace(/^Account No\.?:\s*/, '').trim() || '',
-                                                        ifscCode: lines[2]?.replace(/^IFSC Code:\s*/, '').trim() || '',
-                                                        bankBranch: lines[3]?.replace(/^Branch:\s*/, '').trim() || ''
-                                                    });
-                                                }}
-                                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
-                                                rows={4}
-                                                placeholder="Bank Name: HDFC Bank&#10;Account No.: 1234567890&#10;IFSC Code: HDFC0001234&#10;Branch: MG Road, Indore"
-                                            />
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                This will appear at the bottom of your invoices. Edit freely and click outside to save changes.
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                UPI ID (for QR Code)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={formData.upiId}
-                                                onChange={(e) => setFormData({ ...formData, upiId: e.target.value })}
-                                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
-                                                placeholder="yourstore@okicici"
-                                            />
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                QR code will be automatically generated on invoices
-                                            </p>
-                                        </div>
-
-                                        {/* QR Code Preview */}
-                                        {formData.upiId && (
-                                            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                                                    UPI QR Code Preview
-                                                </label>
-                                                <div className="flex items-start space-x-4">
-                                                    <div className="bg-white p-3 rounded-lg shadow-sm">
-                                                        <QRCodeSVG
-                                                            value={`upi://pay?pa=${formData.upiId}&pn=${encodeURIComponent(formData.shopName || 'Store')}`}
-                                                            size={128}
-                                                            level="M"
-                                                            includeMargin={true}
-                                                        />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <p className="text-sm text-gray-700 dark:text-gray-200 font-medium mb-2">
-                                                            Scan to Pay: {formData.shopName || 'Your Store'}
-                                                        </p>
-                                                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                                                            UPI ID: <span className="font-mono">{formData.upiId}</span>
-                                                        </p>
-                                                        <p className="text-xs text-green-600 dark:text-green-400 mt-3">
-                                                            ✓ This QR code will appear on all invoices
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                {/* Banking & QR Tab Removed - Moved to Catalog */}
 
                                 {/* Invoice Design Tab */}
                                 {activeTab === 'invoice' && (
                                     <div className="space-y-6">
+
                                         {/* Template Selection */}
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                                                 Choose Template
                                             </label>
-                                            <div className="space-y-6">
-                                                {/* Modern Collection */}
-                                                <div>
-                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Modern Collection</h3>
-                                                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                                                        {[
-                                                            { id: 'modern', name: 'Modern Standard', desc: 'Clean & Balanced' },
-                                                            { id: 'modern-v2', name: 'Modern Sidebar', desc: 'Bold Left Bar' },
-                                                            { id: 'modern-v3', name: 'Modern Banner', desc: 'Full Header Color' },
-                                                            { id: 'modern-v4', name: 'Modern Tech', desc: 'Geometric & Crisp' },
-                                                            { id: 'modern-v5', name: 'Modern Corp', desc: 'Professional Blue' },
-                                                        ].map((t) => (
-                                                            <button
-                                                                key={t.id}
-                                                                type="button"
-                                                                onClick={() => setFormData({ ...formData, invoiceTemplate: { ...formData.invoiceTemplate, templateId: t.id } })}
-                                                                className={`p-3 rounded-xl border-2 text-left transition-all relative overflow-hidden group ${formData.invoiceTemplate?.templateId === t.id
-                                                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-800'
-                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
-                                                                    }`}
-                                                            >
-                                                                <div className="font-bold text-xs text-gray-900 dark:text-white mb-1">{t.name}</div>
-                                                                <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">{t.desc}</div>
-                                                                {formData.invoiceTemplate?.templateId === t.id && (
-                                                                    <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-500"></div>
-                                                                )}
-                                                            </button>
-                                                        ))}
+                                            {['Modern', 'Dark', 'Elegant', 'Classic'].map(category => {
+                                                const templates = TEMPLATE_LIST.filter(t => t.category === category);
+                                                if (templates.length === 0) return null;
+                                                return (
+                                                    <div key={category} className="mb-4">
+                                                        <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">{category}</div>
+                                                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                                                            {templates.map(tpl => (
+                                                                <button
+                                                                    key={tpl.id}
+                                                                    type="button"
+                                                                    onClick={() => setFormData(prev => ({
+                                                                        ...prev,
+                                                                        invoiceTemplate: { ...prev.invoiceTemplate, templateId: tpl.id }
+                                                                    }))}
+                                                                    className={`relative flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all duration-200 ${(formData.invoiceTemplate?.templateId || 'gradient') === tpl.id
+                                                                        ? 'border-blue-500 dark:border-blue-400 ring-2 ring-blue-200 dark:ring-blue-800 scale-105 shadow-lg'
+                                                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
+                                                                        }`}
+                                                                >
+                                                                    <div style={{
+                                                                        width: '100%',
+                                                                        height: '28px',
+                                                                        borderRadius: '6px',
+                                                                        background: tpl.color,
+                                                                        border: tpl.id === 'minimal' ? '1px solid #ccc' : 'none'
+                                                                    }} />
+                                                                    <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400 leading-tight text-center">{tpl.name}</span>
+                                                                    {(formData.invoiceTemplate?.templateId || 'gradient') === tpl.id && (
+                                                                        <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                            <Check className="w-3 h-3 text-white" />
+                                                                        </div>
+                                                                    )}
+                                                                </button>
+                                                            ))}
+                                                        </div>
                                                     </div>
-                                                </div>
-
-                                                {/* Classic Collection */}
-                                                <div>
-                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Classic Collection</h3>
-                                                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                                                        {[
-                                                            { id: 'classic', name: 'Classic Standard', desc: 'Timeless Serif' },
-                                                            { id: 'classic-v2', name: 'Classic Boxed', desc: 'Double Border' },
-                                                            { id: 'classic-v3', name: 'Classic Formal', desc: 'Letter Layout' },
-                                                            { id: 'classic-v4', name: 'Classic Grid', desc: 'Structured Lines' },
-                                                            { id: 'classic-v5', name: 'Classic Times', desc: 'Minimal Serif' },
-                                                        ].map((t) => (
-                                                            <button
-                                                                key={t.id}
-                                                                type="button"
-                                                                onClick={() => setFormData({ ...formData, invoiceTemplate: { ...formData.invoiceTemplate, templateId: t.id } })}
-                                                                className={`p-3 rounded-xl border-2 text-left transition-all relative overflow-hidden group ${formData.invoiceTemplate?.templateId === t.id
-                                                                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 ring-2 ring-amber-200 dark:ring-amber-800'
-                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-700'
-                                                                    }`}
-                                                            >
-                                                                <div className="font-bold text-xs text-gray-900 dark:text-white mb-1">{t.name}</div>
-                                                                <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">{t.desc}</div>
-                                                                {formData.invoiceTemplate?.templateId === t.id && (
-                                                                    <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-amber-500"></div>
-                                                                )}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* Minimal Collection */}
-                                                <div>
-                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Minimal Collection</h3>
-                                                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                                                        {[
-                                                            { id: 'minimal', name: 'Minimal Mono', desc: 'Receipt Style' },
-                                                            { id: 'minimal-v2', name: 'Minimal Clean', desc: 'Whitespace Focus' },
-                                                            { id: 'minimal-v3', name: 'Minimal Right', desc: 'Right Aligned' },
-                                                            { id: 'minimal-v4', name: 'Minimal Divider', desc: 'Central Focus' },
-                                                            { id: 'minimal-v5', name: 'Minimal Swiss', desc: 'Grid Layout' },
-                                                        ].map((t) => (
-                                                            <button
-                                                                key={t.id}
-                                                                type="button"
-                                                                onClick={() => setFormData({ ...formData, invoiceTemplate: { ...formData.invoiceTemplate, templateId: t.id } })}
-                                                                className={`p-3 rounded-xl border-2 text-left transition-all relative overflow-hidden group ${formData.invoiceTemplate?.templateId === t.id
-                                                                    ? 'border-gray-900 bg-gray-50 dark:bg-gray-800 ring-2 ring-gray-200 dark:ring-gray-600'
-                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'
-                                                                    }`}
-                                                            >
-                                                                <div className="font-bold text-xs text-gray-900 dark:text-white mb-1">{t.name}</div>
-                                                                <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">{t.desc}</div>
-                                                                {formData.invoiceTemplate?.templateId === t.id && (
-                                                                    <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-gray-900 dark:bg-white"></div>
-                                                                )}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* Custom */}
-                                                <div>
-                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Custom</h3>
-                                                    <div className="grid grid-cols-1">
-                                                        <button
-                                                            key="custom"
-                                                            type="button"
-                                                            onClick={() => setFormData({ ...formData, invoiceTemplate: { ...formData.invoiceTemplate, templateId: 'custom' } })}
-                                                            className={`p-3 rounded-xl border-2 text-left transition-all ${formData.invoiceTemplate?.templateId === 'custom'
-                                                                ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 ring-2 ring-yellow-200 dark:ring-yellow-800'
-                                                                : 'border-gray-200 dark:border-gray-700 hover:border-yellow-300 dark:hover:border-yellow-700'
-                                                                }`}
-                                                        >
-                                                            <div className="font-bold text-xs text-gray-900 dark:text-white mb-1">Custom Template</div>
-                                                            <div className="text-[10px] text-gray-500 dark:text-gray-400">Design your own with HTML</div>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-
-                                            {/* Custom Template Editor */}
-                                            {formData.invoiceTemplate?.templateId === 'custom' && (
-                                                <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30 rounded-xl">
-                                                    <div className="flex justify-between items-center mb-2">
-                                                        <label className="block text-sm font-bold text-gray-800 dark:text-gray-200">
-                                                            Custom HTML Content
-                                                        </label>
-                                                        <label className="cursor-pointer bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-xs px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center gap-2">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                                            </svg>
-                                                            Upload HTML File
-                                                            <input
-                                                                type="file"
-                                                                accept=".html,.txt"
-                                                                className="hidden"
-                                                                onChange={(e) => {
-                                                                    const file = e.target.files[0];
-                                                                    if (!file) return;
-                                                                    const reader = new FileReader();
-                                                                    reader.onload = (event) => {
-                                                                        setFormData({
-                                                                            ...formData,
-                                                                            invoiceTemplate: {
-                                                                                ...formData.invoiceTemplate,
-                                                                                customTemplateContent: event.target.result
-                                                                            }
-                                                                        });
-                                                                        toast.success('Template loaded from file');
-                                                                    };
-                                                                    reader.readAsText(file);
-                                                                }}
-                                                            />
-                                                        </label>
-                                                    </div>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-                                                        Enter your HTML code. Use placeholders: <code className="bg-white px-1 rounded border">{'{{shopName}}'}</code>,
-                                                        <code className="bg-white px-1 rounded border">{'{{invoiceNo}}'}</code>,
-                                                        <code className="bg-white px-1 rounded border">{'{{itemsRows}}'}</code>, etc.
-                                                    </p>
-                                                    <textarea
-                                                        value={formData.invoiceTemplate?.customTemplateContent || ''}
-                                                        onChange={(e) => setFormData({
-                                                            ...formData,
-                                                            invoiceTemplate: {
-                                                                ...formData.invoiceTemplate,
-                                                                customTemplateContent: e.target.value
-                                                            }
-                                                        })}
-                                                        rows={12}
-                                                        className="w-full font-mono text-xs border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
-                                                        placeholder="<html><body><h1>{{shopName}}</h1>...</body></html>"
-                                                    />
-                                                </div>
-                                            )}
+                                                );
+                                            })}
                                         </div>
 
-                                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4"></div>
+                                        {/* Custom HTML Templates */}
+                                        {(formData.invoiceTemplate?.customHtmlTemplates || []).length > 0 && (
+                                            <div className="mb-4">
+                                                <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Custom HTML</div>
+                                                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                                                    {(formData.invoiceTemplate?.customHtmlTemplates || []).map(tpl => (
+                                                        <div key={tpl.id} className="relative group">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setFormData(prev => ({
+                                                                    ...prev,
+                                                                    invoiceTemplate: { ...prev.invoiceTemplate, templateId: tpl.id }
+                                                                }))}
+                                                                className={`w-full flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all duration-200 ${formData.invoiceTemplate?.templateId === tpl.id
+                                                                    ? 'border-blue-500 dark:border-blue-400 ring-2 ring-blue-200 dark:ring-blue-800 scale-105 shadow-lg'
+                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
+                                                                    }`}
+                                                            >
+                                                                <div style={{ width: '100%', height: '28px', borderRadius: '6px', background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                    <Code className="w-3.5 h-3.5 text-white" />
+                                                                </div>
+                                                                <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400 leading-tight text-center truncate w-full">{tpl.name}</span>
+                                                                {formData.invoiceTemplate?.templateId === tpl.id && (
+                                                                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                        <Check className="w-3 h-3 text-white" />
+                                                                    </div>
+                                                                )}
+                                                            </button>
+                                                            {/* Edit/Delete overlay */}
+                                                            <div className="absolute top-1 right-1 hidden group-hover:flex gap-0.5">
+                                                                <button type="button" onClick={(e) => { e.stopPropagation(); openHtmlEditor(tpl); }} className="w-5 h-5 bg-blue-500 rounded flex items-center justify-center hover:bg-blue-600 transition-colors">
+                                                                    <Pencil className="w-2.5 h-2.5 text-white" />
+                                                                </button>
+                                                                <button type="button" onClick={(e) => { e.stopPropagation(); deleteHtmlTemplate(tpl.id); }} className="w-5 h-5 bg-red-500 rounded flex items-center justify-center hover:bg-red-600 transition-colors">
+                                                                    <Trash2 className="w-2.5 h-2.5 text-white" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Add Custom Template Button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => openHtmlEditor()}
+                                            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-500 dark:hover:text-blue-400 transition-all duration-200 hover:bg-blue-50 dark:hover:bg-blue-900/10"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            <span className="text-sm font-medium">Add Custom HTML Template</span>
+                                        </button>
+
+                                        <div className="border-t border-gray-200 dark:border-gray-700" />
+
 
                                         {/* Field Visibility Toggles */}
                                         <div>
@@ -742,7 +655,7 @@ const Settings = () => {
                                                         {currentSettings?.digitalSignature ? (
                                                             <>
                                                                 <img
-                                                                    src={currentSettings.digitalSignature.startsWith('http') ? currentSettings.digitalSignature : `${BACKEND_URL}${currentSettings.digitalSignature}`}
+                                                                    src={currentSettings.digitalSignature.startsWith('http') ? currentSettings.digitalSignature : `${BACKEND_URL}${currentSettings.digitalSignature} `}
                                                                     alt="Signature"
                                                                     className="h-full w-full object-contain p-2"
                                                                 />
@@ -921,7 +834,7 @@ const Settings = () => {
                                                     <div className="flex items-center space-x-4">
                                                         {currentSettings?.profilePicture ? (
                                                             <img
-                                                                src={currentSettings.profilePicture.startsWith('http') ? currentSettings.profilePicture : `${BACKEND_URL}${currentSettings.profilePicture}`}
+                                                                src={currentSettings.profilePicture.startsWith('http') ? currentSettings.profilePicture : `${BACKEND_URL}${currentSettings.profilePicture} `}
                                                                 alt="Profile"
                                                                 className="w-16 h-16 rounded-full object-cover border-2 border-gray-300 dark:border-gray-600"
                                                             />
@@ -1106,7 +1019,7 @@ const Settings = () => {
                                                     {currentSettings?.letterhead ? (
                                                         <div className="relative group">
                                                             <img
-                                                                src={currentSettings.letterhead.startsWith('http') ? currentSettings.letterhead : `${BACKEND_URL}${currentSettings.letterhead}`}
+                                                                src={currentSettings.letterhead.startsWith('http') ? currentSettings.letterhead : `${BACKEND_URL}${currentSettings.letterhead} `}
                                                                 alt="Letterhead"
                                                                 className="w-24 h-32 object-cover border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-md"
                                                             />
@@ -1150,14 +1063,14 @@ const Settings = () => {
                                                             <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Margin {side} (mm)</label>
                                                             <input
                                                                 type="range" min="0" max="50" step="1"
-                                                                value={formData.letterheadConfig?.[`margin${side}`] || 20}
+                                                                value={formData.letterheadConfig?.[`margin${side} `] || 20}
                                                                 onChange={(e) => setFormData({
                                                                     ...formData,
-                                                                    letterheadConfig: { ...formData.letterheadConfig, [`margin${side}`]: parseInt(e.target.value) }
+                                                                    letterheadConfig: { ...formData.letterheadConfig, [`margin${side} `]: parseInt(e.target.value) }
                                                                 })}
                                                                 className="w-full mt-1 accent-blue-600"
                                                             />
-                                                            <div className="text-right text-xs text-blue-600 dark:text-blue-400 font-mono">{formData.letterheadConfig?.[`margin${side}`] || 20}mm</div>
+                                                            <div className="text-right text-xs text-blue-600 dark:text-blue-400 font-mono">{formData.letterheadConfig?.[`margin${side} `] || 20}mm</div>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -1174,10 +1087,10 @@ const Settings = () => {
                                                                     key={pos}
                                                                     type="button"
                                                                     onClick={() => setFormData({ ...formData, letterheadConfig: { ...formData.letterheadConfig, logoPosition: pos } })}
-                                                                    className={`flex-1 py-1.5 text-xs font-medium capitalize rounded-md transition-all ${(formData.letterheadConfig?.logoPosition || 'left') === pos
+                                                                    className={`flex - 1 py - 1.5 text - xs font - medium capitalize rounded - md transition - all ${(formData.letterheadConfig?.logoPosition || 'left') === pos
                                                                         ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-300 shadow-sm'
                                                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                                                        }`}
+                                                                        } `}
                                                                 >
                                                                     {pos}
                                                                 </button>
@@ -1283,14 +1196,14 @@ const Settings = () => {
                                                             width: '210mm',
                                                             minHeight: '297mm',
                                                             transform: `scale(${previewScale})`,
-                                                            marginBottom: `-${(1 - previewScale) * 297}mm`, // Compensate for scale white space
-                                                            border: formData.letterheadConfig?.showBorder ? `2px solid ${formData.letterheadConfig?.borderColor}` : 'none',
+                                                            marginBottom: `- ${(1 - previewScale) * 297} mm`, // Compensate for scale white space
+                                                            border: formData.letterheadConfig?.showBorder ? `2px solid ${formData.letterheadConfig?.borderColor} ` : 'none',
                                                         }}
                                                     >
                                                         {currentSettings?.letterhead && (
                                                             <div className="absolute inset-0 z-0 overflow-hidden">
                                                                 <img
-                                                                    src={currentSettings.letterhead.startsWith('http') ? currentSettings.letterhead : `${BACKEND_URL}${currentSettings.letterhead}`}
+                                                                    src={currentSettings.letterhead.startsWith('http') ? currentSettings.letterhead : `${BACKEND_URL}${currentSettings.letterhead} `}
                                                                     alt="Letterhead Background"
                                                                     className="w-full h-full object-cover"
                                                                 />
@@ -1303,7 +1216,7 @@ const Settings = () => {
                                                                     className="font-bold text-gray-900 transform -rotate-45 whitespace-nowrap select-none"
                                                                     style={{
                                                                         opacity: formData.letterheadConfig?.watermarkOpacity || 0.1,
-                                                                        fontSize: `${formData.letterheadConfig?.watermarkSize || 100}px`
+                                                                        fontSize: `${formData.letterheadConfig?.watermarkSize || 100} px`
                                                                     }}
                                                                 >
                                                                     {formData.letterheadConfig.watermarkText}
@@ -1313,10 +1226,10 @@ const Settings = () => {
 
                                                         <div className="relative z-10 flex flex-col h-full"
                                                             style={{
-                                                                paddingTop: `${formData.letterheadConfig?.marginTop || 20}mm`,
-                                                                paddingBottom: `${formData.letterheadConfig?.marginBottom || 20}mm`,
-                                                                paddingLeft: `${formData.letterheadConfig?.marginLeft || 20}mm`,
-                                                                paddingRight: `${formData.letterheadConfig?.marginRight || 20}mm`,
+                                                                paddingTop: `${formData.letterheadConfig?.marginTop || 20} mm`,
+                                                                paddingBottom: `${formData.letterheadConfig?.marginBottom || 20} mm`,
+                                                                paddingLeft: `${formData.letterheadConfig?.marginLeft || 20} mm`,
+                                                                paddingRight: `${formData.letterheadConfig?.marginRight || 20} mm`,
                                                             }}
                                                         >
                                                             {/* Liceria Header */}
@@ -1327,7 +1240,7 @@ const Settings = () => {
                                                                     alignItems: formData.letterheadConfig?.logoPosition === 'center' ? 'center' : (formData.letterheadConfig?.logoPosition === 'right' ? 'flex-end' : 'flex-start'),
                                                                     order: formData.letterheadConfig?.logoPosition === 'right' ? 2 : 1
                                                                 }}>
-                                                                    <div className={`flex ${formData.letterheadConfig?.logoPosition === 'center' ? 'flex-col text-center' : 'items-center'} gap-4 mb-2`}>
+                                                                    <div className={`flex ${formData.letterheadConfig?.logoPosition === 'center' ? 'flex-col text-center' : 'items-center'} gap - 4 mb - 2`}>
                                                                         {/* Logo Icon (Reused from Invoice Preview if no real logo) */}
                                                                         {currentSettings?.logo && (
                                                                             <img src={currentSettings.logo} className="h-16 w-auto object-contain" alt="Logo" />
@@ -1460,9 +1373,122 @@ const Settings = () => {
                             </div>
                         )}
                     </div>
-
                 </div>
-            </div>
+            </div >
+
+            {/* Custom HTML Template Editor Modal */}
+            {showHtmlEditor && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                                    <Code className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                        {editingHtmlTemplate ? 'Edit HTML Template' : 'New HTML Template'}
+                                    </h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Paste your custom HTML invoice design</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowHtmlEditor(false)} className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                                <X className="w-4 h-4 text-gray-500" />
+                            </button>
+                        </div>
+
+                        {/* Template Name */}
+                        <div className="px-6 pt-4">
+                            <input
+                                type="text"
+                                placeholder="Template Name (e.g. My Corporate Design)"
+                                value={htmlEditorName}
+                                onChange={(e) => setHtmlEditorName(e.target.value)}
+                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                            />
+                        </div>
+
+                        {/* Code / Preview Tabs */}
+                        <div className="px-6 pt-3 flex gap-2">
+                            <button
+                                onClick={() => setHtmlPreviewMode(false)}
+                                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${!htmlPreviewMode ? 'bg-blue-500 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                            >
+                                <Code className="w-3.5 h-3.5" /> HTML Code
+                            </button>
+                            <button
+                                onClick={() => setHtmlPreviewMode(true)}
+                                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${htmlPreviewMode ? 'bg-blue-500 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                            >
+                                <Eye className="w-3.5 h-3.5" /> Preview
+                            </button>
+                        </div>
+
+                        {/* Editor / Preview Body */}
+                        <div className="flex-1 overflow-hidden px-6 py-3">
+                            {!htmlPreviewMode ? (
+                                <div className="h-full flex flex-col gap-3">
+                                    <textarea
+                                        value={htmlEditorCode}
+                                        onChange={(e) => setHtmlEditorCode(e.target.value)}
+                                        placeholder={`Paste your HTML invoice template here...\n\nUse these placeholders:\n  {{shopName}}, {{address}}, {{phone}}, {{email}}\n  {{invoiceNo}}, {{date}}, {{customerName}}, {{customerPhone}}\n  {{subtotal}}, {{tax}}, {{total}}\n  {{itemsRows}} — generates <tr> rows for each item`}
+                                        className="flex-1 min-h-[300px] w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 font-mono text-xs leading-relaxed resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                        spellCheck={false}
+                                    />
+                                    {/* Placeholder Reference */}
+                                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                                        <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Available Placeholders</div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {['{{shopName}}', '{{address}}', '{{phone}}', '{{email}}', '{{brandColor}}',
+                                                '{{invoiceNo}}', '{{date}}', '{{customerName}}', '{{customerPhone}}',
+                                                '{{subtotal}}', '{{tax}}', '{{total}}', '{{itemsRows}}'].map(p => (
+                                                    <span key={p} className="px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono font-medium">{p}</span>
+                                                ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="h-full min-h-[350px] bg-white rounded-xl border border-gray-200 dark:border-gray-700 overflow-auto">
+                                    <div
+                                        className="w-full h-full"
+                                        dangerouslySetInnerHTML={{ __html: htmlEditorCode || '<div style="padding:40px;text-align:center;color:#999;font-size:14px">No HTML code to preview</div>' }}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                            <button
+                                onClick={() => setShowHtmlEditor(false)}
+                                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={saveHtmlTemplate}
+                                className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200"
+                            >
+                                {editingHtmlTemplate ? 'Update Template' : 'Save Template'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setFieldToDelete(null);
+                }}
+                onConfirm={confirmRemoveFile}
+                title="Remove Image"
+                message="Are you sure you want to remove this image? This action cannot be undone."
+                confirmText="Remove"
+                isDangerous={true}
+            />
         </Layout >
     );
 };

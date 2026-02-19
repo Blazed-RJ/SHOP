@@ -34,6 +34,43 @@ export const updateSettings = async (req, res) => {
         if (!settings) {
             settings = await Settings.create({ user: req.user.ownerId, ...req.body });
         } else {
+            // Handle invoiceTemplate merge manually to avoid overwriting nested defaults
+            if (req.body.invoiceTemplate) {
+                const { invoiceTemplate } = req.body;
+
+                // Ensure invoiceTemplate object exists
+                if (!settings.invoiceTemplate) {
+                    settings.invoiceTemplate = {};
+                }
+
+                // 1. Update primitive fields directly
+                if (invoiceTemplate.templateId) settings.invoiceTemplate.templateId = invoiceTemplate.templateId;
+                if (invoiceTemplate.customTemplateContent !== undefined) settings.invoiceTemplate.customTemplateContent = invoiceTemplate.customTemplateContent;
+                if (invoiceTemplate.accentColorOverride !== undefined) settings.invoiceTemplate.accentColorOverride = invoiceTemplate.accentColorOverride;
+
+                // 2. Update fieldOrder (arrays are usually replaced)
+                if (invoiceTemplate.fieldOrder) settings.invoiceTemplate.fieldOrder = invoiceTemplate.fieldOrder;
+
+                // 3. Deep merge fieldVisibility
+                if (invoiceTemplate.fieldVisibility) {
+                    if (!settings.invoiceTemplate.fieldVisibility) {
+                        settings.invoiceTemplate.fieldVisibility = {};
+                    }
+
+                    for (const [key, value] of Object.entries(invoiceTemplate.fieldVisibility)) {
+                        settings.invoiceTemplate.fieldVisibility[key] = value;
+                    }
+                }
+
+                // 4. Update customHtmlTemplates
+                if (invoiceTemplate.customHtmlTemplates) {
+                    settings.invoiceTemplate.customHtmlTemplates = invoiceTemplate.customHtmlTemplates;
+                }
+
+                // Remove invoiceTemplate from req.body to prevent Object.assign from overwriting it again
+                delete req.body.invoiceTemplate;
+            }
+
             Object.assign(settings, req.body);
 
             // Update image paths if uploaded

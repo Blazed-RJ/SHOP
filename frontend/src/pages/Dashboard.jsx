@@ -19,7 +19,8 @@ import {
     History,
     Activity,
     Box,
-    Sparkles
+    Sparkles,
+    AlertTriangle
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -38,17 +39,21 @@ const Dashboard = () => {
     });
     const [loading, setLoading] = useState(true);
     const [lowStockProducts, setLowStockProducts] = useState([]); // Keep this if it's still used later
+    const [expiringCount, setExpiringCount] = useState(0);
 
     const { recentInvoices } = stats;
 
     const loadDashboardData = useCallback(async () => {
         try {
             setLoading(true);
-            const statsRes = await api.get('/dashboard/stats');
-            setStats(statsRes.data);
+            const [statsRes, expiryRes] = await Promise.all([
+                api.get('/dashboard/stats'),
+                api.get('/products/expiry-alert?days=30')
+            ]);
 
             setStats(statsRes.data);
             setLowStockProducts(statsRes.data.lowStockProducts || []);
+            setExpiringCount(expiryRes.data.length);
 
             setLoading(false);
         } catch (error) {
@@ -100,7 +105,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Top 4 Stat Cards - Premium Industrial Style */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
                     {/* Total Parties (Blue) */}
                     <div className="bg-blue-100 dark:bg-gradient-to-br dark:from-blue-950 dark:via-black dark:to-black rounded-2xl p-6 box-outline shadow-sm dark:shadow-[0_0_20px_rgba(59,130,246,0.15)] relative overflow-hidden group transition-all duration-300">
                         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
@@ -206,7 +211,7 @@ const Dashboard = () => {
                         <span className="w-1 h-6 bg-brand-500 rounded-full mr-3"></span>
                         Today's Overview
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* Cash Collection (Green) */}
                         <div className="bg-gradient-to-br from-emerald-200 via-emerald-100 to-white dark:bg-gradient-to-br dark:from-emerald-950 dark:via-black dark:to-black rounded-xl p-5 box-outline shadow-lg shadow-emerald-200/50 dark:shadow-[0_0_15px_rgba(16,185,129,0.15)] relative overflow-hidden group transition-all duration-300">
                             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 dark:opacity-20 bg-repeat"></div>
@@ -295,7 +300,7 @@ const Dashboard = () => {
 
                 {/* Stock Widgets */}
                 {!isClientView && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
                         {/* Stock Value Widget */}
                         <div className="bg-sky-100 dark:bg-gradient-to-br dark:from-sky-950 dark:via-black dark:to-black p-6 rounded-2xl box-outline shadow-sm relative overflow-hidden group transition-all duration-300">
                             <div className="absolute -right-10 -top-10 w-40 h-40 bg-sky-500/10 rounded-full blur-3xl"></div>
@@ -349,11 +354,13 @@ const Dashboard = () => {
                                 );
                             })()}
                         </div>
+
+
                     </div>
                 )}
 
                 {/* Recent Invoices and Low Stock Items */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                     {/* Recent Invoices */}
                     <div className="bg-violet-100 dark:bg-gray-900 rounded-2xl box-outline shadow-sm overflow-hidden transition-all duration-300">
                         <div className="p-6 border-b-[2.5px] border-black dark:border-white/90 flex items-center justify-between bg-violet-200/50 dark:bg-violet-950/10">

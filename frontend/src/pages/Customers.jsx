@@ -71,7 +71,7 @@ const Customers = () => {
             setCustomerToDelete(null);
         } catch (error) {
             console.error('Delete error:', error);
-            toast.error('Failed to delete customer');
+            toast.error(error.response?.data?.message || 'Failed to delete customer');
         }
     };
 

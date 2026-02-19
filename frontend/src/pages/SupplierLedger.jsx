@@ -280,7 +280,14 @@ const SupplierLedger = ({ isPublic = false }) => {
                                     className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                                 >
                                     <Plus className="w-4 h-4" />
-                                    <span>Record Purchase</span>
+                                    <span>Record Purchase (Quick)</span>
+                                </button>
+                                <button
+                                    onClick={() => navigate(`/purchase-entry?supplierId=${id}`)}
+                                    className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    <span>Stock Inward</span>
                                 </button>
                                 <button
                                     onClick={() => setShowPaymentModal(true)}

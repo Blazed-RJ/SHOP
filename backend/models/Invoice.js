@@ -11,6 +11,10 @@ const invoiceSchema = mongoose.Schema({
         enum: ['Tax Invoice', 'Estimate', 'Challan', 'Bill of Supply'],
         default: 'Tax Invoice'
     },
+    templateId: {
+        type: String,
+        default: 'modern'
+    },
     invoiceDate: {
         type: Date,
         default: Date.now
@@ -79,6 +83,8 @@ const invoiceSchema = mongoose.Schema({
         serialNumber: { // For non-phone items (Watch, Buds)
             type: String
         },
+        batchNumber: String,
+        expiryDate: Date,
         taxableValue: Number,
         gstAmount: Number,
         totalAmount: Number

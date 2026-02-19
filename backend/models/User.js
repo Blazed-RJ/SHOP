@@ -13,8 +13,8 @@ const userSchema = mongoose.Schema({
     authProvider: { type: String, default: 'local' },
     role: {
         type: String,
-        enum: ['Admin', 'Staff'],
-        default: 'Admin' // New signups are Admins by default
+        enum: ['Admin', 'Accountant', 'Salesman'],
+        default: 'Admin'
     },
     ownerId: {
         type: mongoose.Schema.Types.ObjectId,

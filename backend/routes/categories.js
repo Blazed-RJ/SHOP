@@ -1,6 +1,7 @@
 import express from 'express';
 import Category from '../models/Category.js';
 import { protect, admin } from '../middleware/auth.js';
+import upload from '../config/multer.js';
 
 const router = express.Router();
 
@@ -60,7 +61,7 @@ router.get('/:id', protect, async (req, res) => {
 // @route   POST /api/categories
 // @desc    Create new category or sub-category
 // @access  Private (Admin)
-router.post('/', protect, admin, async (req, res) => {
+router.post('/', protect, admin, upload.single('image'), async (req, res) => {
     try {
         const { name, description, parentCategory } = req.body;
 
@@ -79,10 +80,13 @@ router.post('/', protect, admin, async (req, res) => {
             });
         }
 
+        const image = req.file ? `/uploads/${req.file.filename}` : null;
+
         const category = new Category({
             name,
             description,
             parentCategory: parentCategory || null,
+            image,
             createdBy: req.user._id,
             user: req.user.ownerId
         });
@@ -99,7 +103,7 @@ router.post('/', protect, admin, async (req, res) => {
 // @route   PUT /api/categories/:id
 // @desc    Update category
 // @access  Private (Admin)
-router.put('/:id', protect, admin, async (req, res) => {
+router.put('/:id', protect, admin, upload.single('image'), async (req, res) => {
     try {
         const { name, description, parentCategory } = req.body;
 
@@ -128,7 +132,17 @@ router.put('/:id', protect, admin, async (req, res) => {
         category.name = name || category.name;
         category.description = description !== undefined ? description : category.description;
         if (parentCategory !== undefined) {
-            category.parentCategory = parentCategory;
+            if (parentCategory === '' || parentCategory === 'null') {
+                category.parentCategory = null;
+            } else {
+                category.parentCategory = parentCategory;
+            }
+        }
+
+        if (req.file) {
+            category.image = `/uploads/${req.file.filename}`;
+        } else if (req.body.removeImage === 'true') {
+            category.image = null;
         }
 
         await category.save();

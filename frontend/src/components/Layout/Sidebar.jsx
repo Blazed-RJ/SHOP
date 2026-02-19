@@ -18,7 +18,12 @@ import {
     Sun,
     Moon,
     Monitor,
-    IndianRupee
+    IndianRupee,
+    Library,
+    Calculator,
+    TrendingUp,
+    Scale,
+    PieChart
 } from 'lucide-react';
 import { useClientView } from '../../context/ClientViewContext.jsx';
 import { BACKEND_URL } from '../../utils/api';
@@ -35,25 +40,31 @@ const Sidebar = ({ isOpen, onClose }) => {
     };
 
     const navItems = [
-        { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', admin: false },
-        { name: 'Daybook', icon: BookOpen, path: '/daybook', admin: false },
-        { name: 'New Invoice', icon: FileText, path: '/invoice/new', admin: false },
-        { name: 'Invoice History', icon: BookOpen, path: '/invoices', admin: false },
-        { name: 'Customers', icon: Users, path: '/customers', admin: false },
-        { name: 'Suppliers', icon: TruckIcon, path: '/suppliers', admin: false }, // Everyone
-        { name: 'Expenses', icon: IndianRupee, path: '/expenses', admin: false },
-        { name: 'Inventory', icon: Package, path: '/inventory', admin: false },
-        { name: 'Letterheads', icon: ScrollText, path: '/letterheads', admin: false },
-        { name: 'Settings', icon: Settings, path: '/settings', admin: true }, // Admin Only
+        { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['Admin', 'Accountant', 'Salesman'] },
+        { name: 'Daybook', icon: BookOpen, path: '/daybook', roles: ['Admin', 'Accountant'] },
+        { name: 'New Invoice', icon: FileText, path: '/invoice/new', roles: ['Admin', 'Accountant', 'Salesman'] },
+        { name: 'Invoice History', icon: BookOpen, path: '/invoices', roles: ['Admin', 'Accountant', 'Salesman'] },
+        { name: 'Customers', icon: Users, path: '/customers', roles: ['Admin', 'Accountant', 'Salesman'] },
+        { name: 'Suppliers', icon: TruckIcon, path: '/suppliers', roles: ['Admin', 'Accountant', 'Salesman'] },
+        { name: 'Expenses', icon: IndianRupee, path: '/expenses', roles: ['Admin', 'Accountant'] },
+        { name: 'Inventory', icon: Package, path: '/inventory', roles: ['Admin', 'Accountant', 'Salesman'] },
+        { name: 'Letterheads', icon: ScrollText, path: '/letterheads', roles: ['Admin'] },
+
+
+
+
+
+        { name: 'Cash & Bank', icon: Library, path: '/catalog', roles: ['Admin', 'Accountant'] },
+        { name: 'Settings', icon: Settings, path: '/settings', roles: ['Admin'] },
     ];
 
-    const filteredNav = navItems.filter(item => !item.admin || isAdmin());
+    const filteredNav = navItems.filter(item => user && item.roles.includes(user.role));
 
     return (
         <aside className={`
-            fixed inset-y-0 left-0 z-50 w-64 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-r border-brand-500/80 dark:border-brand-500/70
-            transform transition-transform duration-300 ease-in-out h-screen flex flex-col
-            md:translate-x-0 md:sticky md:top-0 md:inset-auto
+            fixed inset-y-0 left-0 z-50 w-72 md:w-64 bg-white/90 dark:bg-black/90 backdrop-blur-xl border-r border-brand-500/20 dark:border-brand-500/30
+            transform transition-transform duration-300 ease-out h-screen flex flex-col shadow-2xl md:shadow-none
+            md:translate-x-0 md:sticky md:top-0 md:inset-auto md:h-screen md:bg-white/50 md:dark:bg-black/50
             ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
             {/* Logo & Brand */}

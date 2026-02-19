@@ -13,6 +13,7 @@ import { sendEmail } from '../utils/email.js';
 import { runInTransaction } from '../utils/transactionWrapper.js';
 import { validateStockAvailability, deductStock, restoreStock, formatStockErrors } from '../utils/stockManager.js';
 import { ValidationError, StockError } from '../utils/errorHandler.js';
+import AuditLog from '../models/AuditLog.js';
 
 const log = (msg) => {
     // Debug logging disabled
@@ -85,6 +86,7 @@ export const createInvoice = async (req, res) => {
             const invoiceData = [{
                 invoiceNo,
                 type: invoiceType || 'Tax Invoice',
+                templateId: req.body.templateId || 'modern',
                 invoiceDate: invoiceDate ? moment(invoiceDate).tz("Asia/Kolkata").toDate() : moment().tz("Asia/Kolkata").toDate(),
                 customer: customerId,
                 items: calculatedItems,
@@ -118,7 +120,9 @@ export const createInvoice = async (req, res) => {
 
             // Update product stock using stockManager (Optimized)
             log('Checkpoint: Stock Update');
-            await deductStock(items, req.user.ownerId, session);
+            // Update product stock using stockManager (Optimized)
+            log('Checkpoint: Stock Update');
+            await deductStock(items, req.user.ownerId, session, createdInvoice._id);
 
             // Ledger Operations
             if (customerId) {
@@ -217,6 +221,16 @@ export const createInvoice = async (req, res) => {
                 // await recalculateCustomerBalance(customerId, session, req.user.ownerId);
             }
             log('Checkpoint: Success Final');
+
+            // Audit Log
+            await AuditLog.create([{
+                user: req.user._id,
+                action: 'CREATE',
+                target: 'Invoice',
+                targetId: createdInvoice._id,
+                details: { invoiceNo: createdInvoice.invoiceNo, grandTotal: createdInvoice.grandTotal },
+                ipAddress: req.ip
+            }], { session });
 
             return createdInvoice;
         });
@@ -387,6 +401,16 @@ export const updateInvoicePayment = async (req, res) => {
                 }], { session });
                 // await recalculateCustomerBalance(invoice.customer, session, req.user.ownerId);
             }
+            // Audit Log
+            await AuditLog.create([{
+                user: req.user._id,
+                action: 'UPDATE',
+                target: 'Invoice',
+                targetId: invoice._id,
+                details: { invoiceNo: invoice.invoiceNo, action: 'Payment Added', paymentTotal },
+                ipAddress: req.ip
+            }], { session });
+
             return invoice;
         });
 
@@ -456,6 +480,16 @@ export const voidInvoice = async (req, res) => {
                 // await recalculateCustomerBalance(invoice.customer, session, req.user.ownerId);
             }
 
+            // Audit Log
+            await AuditLog.create([{
+                user: req.user._id,
+                action: 'UPDATE',
+                target: 'Invoice',
+                targetId: invoice._id,
+                details: { invoiceNo: invoice.invoiceNo, action: 'Voided', reason },
+                ipAddress: req.ip
+            }], { session });
+
             return invoice;
         });
 
@@ -510,6 +544,15 @@ export const deleteInvoice = async (req, res) => {
                 }], { session });
                 // await recalculateCustomerBalance(invoice.customer, session, req.user.ownerId);
             }
+            // Audit Log
+            await AuditLog.create([{
+                user: req.user._id,
+                action: 'DELETE',
+                target: 'Invoice',
+                targetId: invoice._id,
+                details: { invoiceNo: invoice.invoiceNo, grandTotal: invoice.grandTotal },
+                ipAddress: req.ip
+            }], { session });
         });
 
         res.json({ message: 'Invoice deleted' });

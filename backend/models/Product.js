@@ -42,6 +42,11 @@ const productSchema = mongoose.Schema({
         type: Boolean,
         default: true // MRP includes tax
     },
+    isBatchTracked: {
+        type: Boolean,
+        default: false
+    },
+
     stock: {
         type: Number,
         required: true,

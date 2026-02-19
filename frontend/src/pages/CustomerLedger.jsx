@@ -7,14 +7,20 @@ import { formatDate } from '../utils/date';
 import { ArrowLeft, RefreshCw, Printer, Plus, Edit2, Trash2, Paperclip, X, Share2, Mail, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { sharePdf } from '../utils/pdfShare';
+import ConfirmationModal from '../components/ConfirmationModal';
+
+import { useSettings } from '../context/SettingsContext';
 
 const CustomerLedger = ({ isPublic = false }) => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { settings } = useSettings();
     const [customer, setCustomer] = useState(null);
     const [ledger, setLedger] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [entryToDelete, setEntryToDelete] = useState(null);
     const [payment, setPayment] = useState({
         amount: '',
         method: 'Cash',
@@ -22,11 +28,8 @@ const CustomerLedger = ({ isPublic = false }) => {
         notes: ''
     });
 
-    // Edit/Delete State
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingEntry, setEditingEntry] = useState(null);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [entryToDelete, setEntryToDelete] = useState(null);
 
     const loadData = useCallback(async () => {
         try {
@@ -127,16 +130,24 @@ const CustomerLedger = ({ isPublic = false }) => {
         }
     };
 
-    const handleDeleteClick = async (entry) => {
-        if (window.confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
-            try {
-                await api.delete(`/ledger/${entry._id}`);
-                toast.success('Entry deleted successfully');
-                loadData();
-            } catch (error) {
-                console.error('Delete error:', error);
-                toast.error('Failed to delete entry');
-            }
+    const handleDeleteClick = (entry) => {
+        setEntryToDelete(entry);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!entryToDelete) return;
+
+        try {
+            await api.delete(`/ledger/${entryToDelete._id}`);
+            toast.success('Entry deleted successfully');
+            loadData();
+        } catch (error) {
+            console.error('Delete error:', error);
+            toast.error('Failed to delete entry');
+        } finally {
+            setShowDeleteModal(false);
+            setEntryToDelete(null);
         }
     };
 
@@ -562,6 +573,17 @@ const CustomerLedger = ({ isPublic = false }) => {
                     </div>
                 )
             }
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={confirmDelete}
+                title="Delete Entry"
+                message="Are you sure you want to delete this transaction? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                isDangerous={true}
+            />
         </Layout >
     );
 };

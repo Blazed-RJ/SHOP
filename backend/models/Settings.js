@@ -46,6 +46,10 @@ const settingsSchema = mongoose.Schema({
         type: String,
         default: ''
     },
+    bankHolderName: {
+        type: String,
+        default: ''
+    },
     accountNumber: {
         type: String,
         default: ''
@@ -116,12 +120,22 @@ const settingsSchema = mongoose.Schema({
     invoiceTemplate: {
         templateId: {
             type: String,
-            enum: [
-                'modern', 'modern-v2', 'modern-v3', 'modern-v4', 'modern-v5',
-                'classic', 'classic-v2', 'classic-v3', 'classic-v4', 'classic-v5',
-                'minimal', 'minimal-v2', 'minimal-v3', 'minimal-v4', 'minimal-v5',
-                'custom'
-            ],
+            validate: {
+                validator: function (v) {
+                    const validTemplates = [
+                        'modern', 'modern-v2', 'modern-v3', 'modern-v4', 'modern-v5',
+                        'classic', 'classic-v2', 'classic-v3', 'classic-v4', 'classic-v5',
+                        'minimal', 'minimal-v2', 'minimal-v3', 'minimal-v4', 'minimal-v5',
+                        'custom',
+                        // New Templates
+                        'gradient', 'royal-blue', 'emerald', 'sunset', 'midnight',
+                        'rose-gold', 'ocean', 'neon', 'earth', 'burgundy',
+                        'arctic', 'lavender', 'carbon'
+                    ];
+                    return validTemplates.includes(v) || v.startsWith('custom-');
+                },
+                message: props => `${props.value} is not a valid template ID!`
+            },
             default: 'modern'
         },
         customTemplateContent: {
@@ -138,6 +152,11 @@ const settingsSchema = mongoose.Schema({
             qrText: { type: Boolean, default: true },
             terms: { type: Boolean, default: true }
         },
+        customHtmlTemplates: [{
+            id: String,
+            name: String,
+            html: String
+        }],
         fieldOrder: {
             type: [String],
             default: ['header', 'billTo', 'items', 'payment', 'signature', 'footer']
@@ -175,7 +194,18 @@ const settingsSchema = mongoose.Schema({
     bankBranch: {
         type: String,
         default: ''
-    }
+    },
+    // Multiple Bank Accounts Support
+    bankAccounts: [{
+        id: { type: String, required: true },
+        bankName: { type: String, default: '' },
+        bankHolderName: { type: String, default: '' },
+        accountNumber: { type: String, default: '' },
+        ifscCode: { type: String, default: '' },
+        bankBranch: { type: String, default: '' },
+        upiId: { type: String, default: '' },
+        isDefault: { type: Boolean, default: false }
+    }]
 }, {
     timestamps: true
 });

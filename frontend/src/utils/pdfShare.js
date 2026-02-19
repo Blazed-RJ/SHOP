@@ -8,9 +8,14 @@ import toast from 'react-hot-toast';
  * @param {string} fileName - The desired file name for the PDF.
  * @param {string} title - Title for the share dialog.
  * @param {string} text - Text for the share dialog.
+ * @param {object} options - Optional configuration: { scale: number, forceDownload: boolean }
  */
-export const sharePdf = async (elementId, fileName, title, text) => {
+export const sharePdf = async (elementId, fileName, title, text, options = {}) => {
+    // Default scale: 2 for desktop, 1.5 for mobile/tablet to prevent crashes
+    const isMobile = window.innerWidth < 768;
+    const { scale = isMobile ? 1.5 : 2, forceDownload = false } = options;
     const element = document.getElementById(elementId);
+
     if (!element) {
         console.error(`Element with ID '${elementId}' not found.`);
         toast.error('Content to share not found.');
@@ -25,72 +30,61 @@ export const sharePdf = async (elementId, fileName, title, text) => {
         return;
     }
 
-    // Check if element has any visible content
-    const hasContent = element.children.length > 0 || element.textContent.trim().length > 0;
-    if (!hasContent) {
-        console.error(`Element '${elementId}' appears to be empty.`);
-        toast.error('The document appears to be empty. Please ensure data is loaded before generating PDF.');
-        return;
-    }
-
-    const loadToast = toast.loading('Preparing PDF...');
+    const loadToast = toast.loading('Generating High-Quality PDF...');
 
     try {
-        // 1. Capture Content
-        const canvas = await captureContent(element);
+        // 1. Generate PDF with Retry Logic (Try high quality, fallback to low)
+        const pdfFile = await generatePdfWithRetry(element, fileName, scale);
 
-        // 2. Generate PDF
-        const pdfFile = generatePdfBox(canvas, fileName);
-
-        // 3. Share or Download
-        await handleShareOrDownload(pdfFile, fileName, title, text);
+        // 2. Share or Download
+        await handleShareOrDownload(pdfFile, title, text, forceDownload);
 
         toast.dismiss(loadToast);
-
-        // Check if it was shared or downloaded (heuristic)
-        const isAndroid = /Android/i.test(navigator.userAgent);
-        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        const isMobile = isAndroid || isIOS;
-
-        if (isMobile && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-            // Likely shared, but we can't be 100% sure if user cancelled. 
-            // We just won't show a "Downloaded" toast if we attempted share.
-        } else {
-            toast.success('PDF Downloaded');
-        }
+        toast.success(forceDownload ? 'PDF Downloaded' : 'PDF Ready');
 
     } catch (error) {
         console.error('PDF Process Error:', error);
         toast.dismiss(loadToast);
+        toast.error('Failed to generate PDF. Please try again.');
+    }
+};
 
-        let errorMessage = 'Failed to generate PDF';
-        if (error.message.includes('canvas')) errorMessage = 'Failed to capture screen';
-        else if (error.message.includes('share')) errorMessage = 'Sharing failed';
-        else if (error.message.includes('empty') || error.message.includes('dimensions')) {
-            errorMessage = 'Content is empty or not visible';
-        } else if (error.message.includes('0 bytes')) {
-            errorMessage = 'PDF generation produced empty file';
+/**
+ * Attempts to generate PDF at requested scale, retries at scale 1 if it fails (OOM/Canvas limit).
+ */
+const generatePdfWithRetry = async (element, fileName, initialScale) => {
+    // Retry strategy: Initial -> 1.5 (if higher) -> 1.0
+    const strategies = [initialScale];
+    if (initialScale > 1.5) strategies.push(1.5);
+    if (initialScale > 1.0) strategies.push(1.0);
+
+    // Deduplicate
+    const uniqueScales = [...new Set(strategies)].sort((a, b) => b - a);
+
+    for (const scale of uniqueScales) {
+        try {
+            console.log(`Attempting PDF generation at scale: ${scale}`);
+            const canvas = await captureContent(element, scale);
+            return generatePdfBox(canvas, fileName);
+        } catch (error) {
+            console.warn(`PDF generation failed at scale ${scale}.`, error);
+            // If this was the last attempt, throw
+            if (scale === uniqueScales[uniqueScales.length - 1]) throw error;
+            // Otherwise loop continues to next scale
         }
-
-        toast.error(errorMessage);
     }
 };
 
 /**
  * Captures the DOM element using html2canvas with optimized settings.
  */
-const captureContent = async (element) => {
+const captureContent = async (element, scale) => {
     try {
-        // PERMANENT FIX: Force Scale 1.0 to prevent OOM Crashes on complex pages
-        const scale = 1;
-
-        console.log(`Capturing content: ${element.id}, Scale: ${scale}`);
-
         return await html2canvas(element, {
             scale: scale,
             useCORS: true,
             allowTaint: true,
-            logging: false, // Turn off logging to save memory
+            logging: false,
             backgroundColor: '#ffffff',
             imageTimeout: 10000,
             removeContainer: true,
@@ -100,18 +94,19 @@ const captureContent = async (element) => {
             onclone: (clonedDoc) => {
                 const clonedElement = clonedDoc.getElementById(element.id);
                 if (clonedElement) {
-                    // Aggressive cleaning to prevent rendering crashes due to specific CSS properties
-                    clonedElement.style.margin = '0';
-                    clonedElement.style.padding = '20px';
-                    clonedElement.style.filter = 'none';
-                    clonedElement.style.backdropFilter = 'none'; // Remove glassmorphism
-                    clonedElement.style.boxShadow = 'none';
+                    // Reset harmful modifications
                     clonedElement.style.transform = 'none';
-                    clonedElement.style.animation = 'none';
+                    clonedElement.style.margin = '0';
+                    clonedElement.style.padding = '20px'; // Consistent padding
+                    clonedElement.style.width = '100%';
+                    clonedElement.style.height = 'auto';
 
-                    // Force visible background since we removed backdrop
+                    // Essential for vector-like quality
+                    clonedElement.style.fontSmooth = 'always';
+                    clonedElement.style.webkitFontSmoothing = 'antialiased';
+
+                    // Ensure background is white
                     clonedElement.style.backgroundColor = '#ffffff';
-                    clonedElement.style.color = '#000000';
 
                     // Force images to load
                     const images = clonedElement.getElementsByTagName('img');
@@ -132,43 +127,26 @@ const captureContent = async (element) => {
  */
 const generatePdfBox = (canvas, fileName) => {
     try {
-        // Validate canvas has content
         if (!canvas || canvas.width === 0 || canvas.height === 0) {
-            throw new Error('Canvas is empty or has no dimensions. The content may not have loaded properly.');
+            throw new Error('Canvas is empty.');
         }
 
-        const imgData = canvas.toDataURL('image/png');
-
-        // Validate image data is not empty
-        if (!imgData || imgData === 'data:,') {
-            throw new Error('Canvas captured but contains no image data. Check if the element has visible content.');
-        }
-
+        // Use JPEG for better compression and performance (0.8 quality usually sufficient for text/docs)
+        const imgData = canvas.toDataURL('image/jpeg', 0.8);
         const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = 210; // A4 Width in mm
-
-        // Calculate image dimensions to fit A4 width
+        const pdfWidth = 210;
         const imgProps = pdf.getImageProperties(imgData);
         const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-        // Validate dimensions are reasonable
-        if (imgHeight <= 0 || imgProps.width <= 0 || imgProps.height <= 0) {
-            throw new Error(`Invalid image dimensions: ${imgProps.width}x${imgProps.height}. Content may be hidden or empty.`);
-        }
-
-        // Add image to PDF
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
-
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight, undefined, 'FAST');
         const pdfBlob = pdf.output('blob');
 
-        // Final validation: Check if PDF blob is not empty
         if (!pdfBlob || pdfBlob.size === 0) {
-            throw new Error('PDF blob is empty (0 bytes). Generation failed silently.');
+            throw new Error('PDF blob is empty.');
         }
 
         return new File([pdfBlob], fileName, { type: 'application/pdf' });
     } catch (error) {
-        console.error('PDF generation error:', error);
         throw new Error(`PDF generation failed: ${error.message}`);
     }
 };
@@ -176,23 +154,16 @@ const generatePdfBox = (canvas, fileName) => {
 /**
  * Handles the logic to specific Web Share API or fallback to download.
  */
-const handleShareOrDownload = async (file, fileName, title, text) => {
-    // STRICT CHECK: Only enable Share Sheet for Android or iOS
-    // This ignores Windows/Mac "Web Share" which is often buggy with files
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isMobile = isAndroid || isIOS;
+const handleShareOrDownload = async (file, title, text, forceDownload) => {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    console.log(`Device Detection: Android=${isAndroid}, iOS=${isIOS}, Mobile=${isMobile}`);
-
-    // If NOT explicitly Android/iOS, enforce download
-    if (!isMobile) {
-        console.log('Detected Desktop: Forcing download');
+    // If download explicitly requested OR not mobile, download.
+    if (forceDownload || !isMobile) {
         downloadFile(file);
         return;
     }
 
-    // Attempt Share for Mobile
+    // Try sharing on mobile
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
             await navigator.share({
@@ -201,36 +172,23 @@ const handleShareOrDownload = async (file, fileName, title, text) => {
                 text: text,
             });
         } catch (error) {
-            if (error.name === 'AbortError') {
-                console.log('User cancelled share');
-                return;
+            if (error.name !== 'AbortError') {
+                console.warn('Share failed, falling back to download', error);
+                downloadFile(file);
             }
-            // Fallback to download if share fails
-            console.warn('Share API failed, falling back to download', error);
-            downloadFile(file);
         }
     } else {
         downloadFile(file);
     }
 };
 
-/**
- * Triggers a browser download for the file.
- */
 const downloadFile = (file) => {
-    try {
-        const url = URL.createObjectURL(file);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = file.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Clean up with a slight delay to ensure click processed
-        setTimeout(() => URL.revokeObjectURL(url), 100);
-    } catch (error) {
-        console.error('Download failed:', error);
-        toast.error('Failed to trigger download');
-    }
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
 };

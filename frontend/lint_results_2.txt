@@ -1,0 +1,24 @@
+
+D:\Software\Create\Shop\frontend\src\components\Invoice\templates\EmeraldTemplate.jsx
+   4:7   error  'emerald' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u           no-unused-vars
+  19:43  error  'primaryTextColor' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\Software\Create\Shop\frontend\src\components\Invoice\templates\MidnightTemplate.jsx
+   6:7   error  'accent' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u            no-unused-vars
+  20:43  error  'primaryTextColor' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\Software\Create\Shop\frontend\src\components\Invoice\templates\OceanTemplate.jsx
+   4:7   error  'teal' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u              no-unused-vars
+   5:7   error  'deepTeal' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u          no-unused-vars
+  19:43  error  'primaryTextColor' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\Software\Create\Shop\frontend\src\components\Invoice\templates\RoseGoldTemplate.jsx
+   4:7   error  'rose' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u              no-unused-vars
+  19:43  error  'primaryTextColor' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\Software\Create\Shop\frontend\src\components\Invoice\templates\SunsetTemplate.jsx
+   4:7   error  'sunset' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u            no-unused-vars
+  19:43  error  'primaryTextColor' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+Γ£û 11 problems (11 errors, 0 warnings)
+

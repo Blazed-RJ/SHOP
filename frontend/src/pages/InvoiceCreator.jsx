@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ErrorBoundary from '../components/ErrorBoundary';
 import Layout from '../components/Layout/Layout';
@@ -23,11 +23,17 @@ import toast from 'react-hot-toast';
 
 import { InvoiceRenderer } from '../components/Invoice/InvoiceTemplates';
 import InvoiceItemRow from '../components/Invoice/InvoiceItemRow';
+import useKeyboardNavigation from '../hooks/useKeyboardNavigation';
 
 const InvoiceCreator = () => {
     const navigate = useNavigate();
     const { settings, loading: settingsLoading } = useSettings();
     console.log('InvoiceCreator Render/Settings:', { settings, loading: settingsLoading });
+
+    // Keyboard Navigation
+    const formRef = useRef(null);
+    useKeyboardNavigation(formRef);
+
     const [loading, setLoading] = useState(false);
 
 
@@ -189,34 +195,6 @@ const InvoiceCreator = () => {
         }
     };
 
-    if (settingsLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="text-center text-gray-500">
-                    <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                    Loading invoice settings...
-                </div>
-            </div>
-        );
-    }
-
-    if (!settings) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="text-center text-red-500 p-8 bg-red-50 rounded-lg">
-                    <p className="font-semibold mb-2">Failed to load invoice settings</p>
-                    <p className="text-sm mb-4">Please check your connection and try again.</p>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                    >
-                        Retry
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
     // Add Item Logic
     const addItem = (product = null, isCustom = false) => {
         const qty = parseInt(newItemConfig.qty) || 1;
@@ -249,6 +227,10 @@ const InvoiceCreator = () => {
                 productId: product._id,
                 name: product.name,
                 category: product.category, // Store category for IMEI check
+                isBatchTracked: product.isBatchTracked, // Flag for batch tracking
+                batchNumber: '',
+                expiryDate: '',
+                availableBatches: [], // Store fetched batches
                 showImei: false, // Default to hidden for inventory unless auto-detected
                 imei: '', // Init IMEI 1
                 imei2: '', // Init IMEI 2
@@ -259,6 +241,26 @@ const InvoiceCreator = () => {
                 gstPercent: product.gstPercent,
                 ...calculateLineTotal(qty, product.sellingPrice, product.gstPercent, true)
             };
+
+            // Fetch batches if tracked
+            if (product.isBatchTracked) {
+                fetchBatches(product._id).then(batches => {
+                    setItems(currentItems => {
+                        const idx = currentItems.findIndex(i => i.productId === product._id && i.availableBatches.length === 0);
+                        if (idx >= 0) {
+                            const newItems = [...currentItems];
+                            newItems[idx].availableBatches = batches;
+                            // Auto-select first batch (FEFO) if available
+                            if (batches.length > 0) {
+                                newItems[idx].batchNumber = batches[0].batchNumber;
+                                newItems[idx].expiryDate = batches[0].expiryDate;
+                            }
+                            return newItems;
+                        }
+                        return currentItems;
+                    });
+                });
+            }
         }
 
         if (newItem) {
@@ -269,8 +271,19 @@ const InvoiceCreator = () => {
         }
     };
 
+    // Batch Fetching Logic
+    const fetchBatches = async (productId) => {
+        try {
+            const res = await api.get(`/products/${productId}/batches`);
+            return res.data || [];
+        } catch (error) {
+            console.error('Failed to fetch batches:', error);
+            return [];
+        }
+    };
+
     // Update Item
-    const updateItem = useCallback((index, field, value) => {
+    const updateItem = useCallback(async (index, field, value) => {
         setItems(prevItems => {
             const updatedItems = [...prevItems];
             const item = { ...updatedItems[index] };
@@ -283,6 +296,19 @@ const InvoiceCreator = () => {
             if (field === 'imei2') item.imei2 = value;
             if (field === 'serialNumber') item.serialNumber = value;
             if (field === 'showImei') item.showImei = value;
+
+            // Batch Logic
+            if (field === 'batchNumber') {
+                item.batchNumber = value;
+                // Find selected batch to get expiry
+                if (item.availableBatches) {
+                    const selectedBatch = item.availableBatches.find(b => b.batchNumber === value);
+                    if (selectedBatch) {
+                        item.expiryDate = selectedBatch.expiryDate;
+                    }
+                }
+            }
+            if (field === 'expiryDate') item.expiryDate = value;
 
             // Recalculate
             const totals = calculateLineTotal(
@@ -323,6 +349,7 @@ const InvoiceCreator = () => {
             setLoading(true);
             const invoicePayload = {
                 customerId: customerInfo._id || undefined, // FIXED: was 'customer', backend expects 'customerId'
+                templateId: settings?.invoiceTemplate?.templateId || 'modern',
                 invoiceType: invoiceSettings.title,
                 invoiceDate: invoiceSettings.date,
                 items: items.map(item => ({
@@ -331,10 +358,13 @@ const InvoiceCreator = () => {
                     quantity: item.quantity,
                     pricePerUnit: item.pricePerUnit,
                     gstPercent: item.gstPercent,
+
                     isTaxInclusive: true, // All items are tax-inclusive in this UI
                     imei: item.imei, // Include IMEI 1
                     imei2: item.imei2, // Include IMEI 2
-                    serialNumber: item.serialNumber // Include Serial
+                    serialNumber: item.serialNumber, // Include Serial
+                    batchNumber: item.batchNumber, // Include Batch
+                    expiryDate: item.expiryDate // Include Expiry
                 })),
                 payments: Object.entries(payment)
                     .filter(([, amount]) => amount > 0)
@@ -370,6 +400,35 @@ const InvoiceCreator = () => {
         }
     };
 
+    // Early returns for loading/error states (after all hooks)
+    if (settingsLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center text-gray-500">
+                    <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                    Loading invoice settings...
+                </div>
+            </div>
+        );
+    }
+
+    if (!settings) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center text-red-500 p-8 bg-red-50 rounded-lg">
+                    <p className="font-semibold mb-2">Failed to load invoice settings</p>
+                    <p className="text-sm mb-4">Please check your connection and try again.</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <Layout>
             <div className="p-4 md:p-8 min-h-screen bg-gray-50/50 dark:bg-black transition-colors duration-500">
@@ -404,7 +463,7 @@ const InvoiceCreator = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+                <div ref={formRef} className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
                     {/* LEFT SIDEBAR (3 cols) */}
                     <div className="lg:col-span-3 space-y-6">
 
@@ -711,7 +770,7 @@ const InvoiceCreator = () => {
                             </div>
 
                             {/* Items Table - High Fidelity */}
-                            <div className="mt-8 overflow-x-auto rounded-[32px] border-[2.5px] border-black dark:border-white/90 bg-white/50 dark:bg-black/20 backdrop-blur-md">
+                            <div className="hidden md:block mt-8 overflow-x-auto rounded-[32px] border-[2.5px] border-black dark:border-white/90 bg-white/50 dark:bg-black/20 backdrop-blur-md">
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-rose-500/5 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 font-black text-[10px] uppercase tracking-widest border-b-[2.5px] border-black dark:border-white/90">
                                         <tr>
@@ -744,6 +803,29 @@ const InvoiceCreator = () => {
                                                             className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-black text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-700 uppercase tracking-tight"
                                                             placeholder="Entity Designation"
                                                         />
+
+                                                        {/* Batch Selection */}
+                                                        {item.isBatchTracked && (
+                                                            <div className="mt-2 flex gap-2">
+                                                                <select
+                                                                    value={item.batchNumber}
+                                                                    onChange={(e) => updateItem(index, 'batchNumber', e.target.value)}
+                                                                    className="bg-rose-500/5 dark:bg-rose-500/10 border border-brand-500/20 dark:border-brand-500/10 rounded-lg px-2 py-1 text-[10px] font-black uppercase text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                                                                >
+                                                                    <option value="">Select Batch (FEFO Auto)</option>
+                                                                    {item.availableBatches && item.availableBatches.map(b => (
+                                                                        <option key={b._id} value={b.batchNumber}>
+                                                                            {b.batchNumber} (Exp: {new Date(b.expiryDate).toLocaleDateString()}, Qty: {b.quantity})
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                                {item.expiryDate && (
+                                                                    <span className="text-[10px] font-bold text-rose-500 flex items-center">
+                                                                        Exp: {new Date(item.expiryDate).toLocaleDateString()}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                         {item.isCustom && <span className="text-[9px] font-black uppercase text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded-full ml-2">Custom</span>}
 
                                                         {/* Toggle for IMEI/Serial */}
@@ -836,6 +918,115 @@ const InvoiceCreator = () => {
                                     </tbody>
                                 </table>
                             </div>
+
+                            {/* Mobile Items List (Card View) */}
+                            <div className="md:hidden mt-6 space-y-4">
+                                {items.length === 0 ? (
+                                    <div className="px-6 py-12 text-center text-gray-400 dark:text-gray-600 font-medium italic text-xs bg-white/30 dark:bg-white/5 rounded-[22px] border border-dashed border-gray-300 dark:border-white/10">
+                                        No items added. Add a product to start.
+                                    </div>
+                                ) : (
+                                    items.map((item, index) => (
+                                        <div key={index} className="bg-white dark:bg-white/5 rounded-[22px] p-5 border border-gray-100 dark:border-white/10 shadow-sm relative overflow-hidden group">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex-1 mr-2">
+                                                    <input
+                                                        type="text"
+                                                        value={item.name}
+                                                        onChange={(e) => updateItem(index, 'name', e.target.value)}
+                                                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-black text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-700 uppercase tracking-tight"
+                                                        placeholder="Item Name"
+                                                    />
+                                                    {item.isCustom && <span className="inline-block mt-1 text-[9px] font-black uppercase text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded-full">Custom</span>}
+                                                </div>
+                                                <button
+                                                    onClick={() => removeItem(index)}
+                                                    className="p-2 text-rose-400 hover:text-rose-600 bg-rose-50 dark:bg-rose-500/10 rounded-xl"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+
+                                            {/* Quantity & Price Row */}
+                                            <div className="grid grid-cols-2 gap-4 mb-3">
+                                                <div>
+                                                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Qty</label>
+                                                    <input
+                                                        type="number"
+                                                        value={item.quantity}
+                                                        onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                                                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm font-black text-gray-900 dark:text-white"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Rate (₹)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={item.pricePerUnit}
+                                                        onChange={(e) => updateItem(index, 'pricePerUnit', e.target.value)}
+                                                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm font-black text-gray-900 dark:text-white"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* GST and Total Row */}
+                                            <div className="grid grid-cols-2 gap-4 items-center bg-gray-50/50 dark:bg-black/20 p-3 rounded-xl">
+                                                <div>
+                                                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-1">GST %</label>
+                                                    <select
+                                                        value={item.gstPercent}
+                                                        onChange={(e) => updateItem(index, 'gstPercent', e.target.value)}
+                                                        className="w-full bg-transparent border-none p-0 text-sm font-black text-rose-600 dark:text-rose-400 focus:ring-0"
+                                                    >
+                                                        {[0, 5, 12, 18, 28].map(v => <option key={v} value={v}>{v}%</option>)}
+                                                    </select>
+                                                </div>
+                                                <div className="text-right">
+                                                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Total</label>
+                                                    <div className="text-lg font-black text-gray-900 dark:text-white">{formatINR(item.totalAmount)}</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Expandable IMEI Section for Mobile */}
+                                            <div className="mt-3">
+                                                {!item.showImei && (
+                                                    <button
+                                                        onClick={() => updateItem(index, 'showImei', true)}
+                                                        className="text-[9px] font-black uppercase tracking-widest text-rose-500 hover:underline flex items-center gap-1"
+                                                    >
+                                                        <Plus className="w-3 h-3" /> Add Serial/IMEI
+                                                    </button>
+                                                )}
+                                                {(item.showImei || (item.category && ['smartphone', 'mobile', 'electronics'].some(c => item.category?.toLowerCase().includes(c)))) && (
+                                                    <div className="grid grid-cols-1 gap-2 mt-2 bg-gray-50 dark:bg-white/5 p-3 rounded-xl">
+                                                        <input
+                                                            type="text"
+                                                            value={item.imei || ''}
+                                                            onChange={(e) => updateItem(index, 'imei', e.target.value)}
+                                                            className="w-full bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs"
+                                                            placeholder="IMEI 1"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            value={item.imei2 || ''}
+                                                            onChange={(e) => updateItem(index, 'imei2', e.target.value)}
+                                                            className="w-full bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs"
+                                                            placeholder="IMEI 2"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            value={item.serialNumber || ''}
+                                                            onChange={(e) => updateItem(index, 'serialNumber', e.target.value)}
+                                                            className="w-full bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs"
+                                                            placeholder="Serial Number"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -907,7 +1098,7 @@ const InvoiceCreator = () => {
                         </div>
 
                         {/* Live Preview - Premium Edition */}
-                        <div className="space-y-4">
+                        <div className="hidden lg:block space-y-4">
                             <div className="flex justify-between items-center px-2">
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 flex items-center gap-2">
                                     <Printer className="w-3 h-3 text-rose-500" />

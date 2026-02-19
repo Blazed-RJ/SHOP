@@ -20,9 +20,18 @@ import Suppliers from './pages/Suppliers';
 import SupplierLedger from './pages/SupplierLedger';
 import Daybook from './pages/Daybook';
 import Settings from './pages/Settings';
+import PurchaseEntry from './pages/PurchaseEntry';
+import ExpiryReport from './pages/ExpiryReport';
 import LetterheadList from './pages/LetterheadList';
 import LetterheadCreator from './pages/LetterheadCreator';
 import Expenses from './pages/Expenses';
+import Catalog from './pages/Catalog';
+import ChartOfAccounts from './components/Accounting/ChartOfAccounts';
+import JournalEntry from './components/Accounting/JournalEntry';
+import TrialBalance from './components/Reports/TrialBalance';
+import ProfitAndLoss from './components/Reports/ProfitAndLoss';
+import BalanceSheet from './components/Reports/BalanceSheet';
+import AuthorizeView from './components/AuthorizeView';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -110,15 +119,31 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
+      <Route path="/purchase-entry" element={
+        <ProtectedRoute>
+          <PurchaseEntry />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/expiry-report" element={
+        <ProtectedRoute>
+          <ExpiryReport />
+        </ProtectedRoute>
+      } />
+
       <Route path="/daybook" element={
         <ProtectedRoute>
-          <Daybook />
+          <AuthorizeView roles={['Admin', 'Accountant']}>
+            <Daybook />
+          </AuthorizeView>
         </ProtectedRoute>
       } />
 
       <Route path="/expenses" element={
         <ProtectedRoute>
-          <Expenses />
+          <AuthorizeView roles={['Admin', 'Accountant']}>
+            <Expenses />
+          </AuthorizeView>
         </ProtectedRoute>
       } />
 
@@ -131,13 +156,65 @@ function AppRoutes() {
 
       <Route path="/settings" element={
         <ProtectedRoute>
-          <Settings />
+          <AuthorizeView roles={['Admin']}>
+            <Settings />
+          </AuthorizeView>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/catalog" element={
+        <ProtectedRoute>
+          <AuthorizeView roles={['Admin', 'Accountant']}>
+            <Catalog />
+          </AuthorizeView>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/accounting/chart-of-accounts" element={
+        <ProtectedRoute>
+          <AuthorizeView roles={['Admin', 'Accountant']}>
+            <ChartOfAccounts />
+          </AuthorizeView>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/accounting/journal" element={
+        <ProtectedRoute>
+          <AuthorizeView roles={['Admin', 'Accountant']}>
+            <JournalEntry />
+          </AuthorizeView>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/reports/trial-balance" element={
+        <ProtectedRoute>
+          <AuthorizeView roles={['Admin', 'Accountant']}>
+            <TrialBalance />
+          </AuthorizeView>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/reports/profit-loss" element={
+        <ProtectedRoute>
+          <AuthorizeView roles={['Admin', 'Accountant']}>
+            <ProfitAndLoss />
+          </AuthorizeView>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/reports/balance-sheet" element={
+        <ProtectedRoute>
+          <AuthorizeView roles={['Admin', 'Accountant']}>
+            <BalanceSheet />
+          </AuthorizeView>
         </ProtectedRoute>
       } />
 
       <Route path="/letterheads" element={
         <ProtectedRoute>
-          <LetterheadList />
+          <AuthorizeView roles={['Admin']}>
+            <LetterheadList />
+          </AuthorizeView>
         </ProtectedRoute>
       } />
 

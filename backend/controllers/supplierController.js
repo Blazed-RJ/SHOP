@@ -1,4 +1,6 @@
 import Supplier from '../models/Supplier.js';
+import AccountGroup from '../models/AccountGroup.js';
+import AccountLedger from '../models/AccountLedger.js';
 
 // @desc    Get all suppliers
 // @route   GET /api/suppliers
@@ -52,6 +54,41 @@ export const createSupplier = async (req, res) => {
             user: req.user.ownerId
         });
 
+        // Sync with Accounting System
+        try {
+            const creditorsGroup = await AccountGroup.findOne({ name: 'Sundry Creditors' });
+            if (creditorsGroup) {
+                let ledgerName = name;
+                const existingLedger = await AccountLedger.findOne({ name: ledgerName });
+                if (existingLedger) {
+                    ledgerName = `${name} (${phone?.slice(-4) || 'SUP'})`;
+                }
+
+                // Suppliers: We owe them (Credit balance). 
+                // Initial balance for supplier is usually 0 unless opening balance logic exists?
+                // The current Supplier model doesn't explicitly take 'initialBalance' in create?
+                // Wait, it just has 'balance' default 0.
+                // Assuming 0 for now.
+
+                await AccountLedger.create({
+                    name: ledgerName,
+                    group: creditorsGroup._id,
+                    openingBalance: 0,
+                    openingBalanceType: 'Cr',
+                    currentBalance: 0,
+                    balanceType: 'Cr',
+                    linkedType: 'Supplier',
+                    linkedId: supplier._id,
+                    gstNumber,
+                    mobile: phone,
+                    email,
+                    address
+                });
+            }
+        } catch (err) {
+            console.error("Failed to create AccountLedger for supplier:", err);
+        }
+
         res.status(201).json(supplier);
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -76,6 +113,21 @@ export const updateSupplier = async (req, res) => {
 
         Object.assign(supplier, req.body);
         const updatedSupplier = await supplier.save();
+
+        // Sync Accounting Ledger
+        try {
+            const ledger = await AccountLedger.findOne({ linkedType: 'Supplier', linkedId: supplier._id });
+            if (ledger) {
+                if (req.body.name) ledger.name = req.body.name;
+                if (req.body.gstNumber) ledger.gstNumber = req.body.gstNumber;
+                if (req.body.phone) ledger.mobile = req.body.phone;
+                if (req.body.email) ledger.email = req.body.email;
+                if (req.body.address) ledger.address = req.body.address;
+                await ledger.save();
+            }
+        } catch (err) {
+            console.error("Failed to update AccountLedger:", err);
+        }
 
         res.json(updatedSupplier);
     } catch (error) {

@@ -1,139 +1,159 @@
+
 /**
  * Stock Manager Utility
  * Centralized stock validation and operations
  */
 
 import Product from '../models/Product.js';
+import Batch from '../models/Batch.js';
+import Invoice from '../models/Invoice.js';
 import { StockError } from './errorHandler.js';
 
 /**
- * Validate stock availability for invoice items
- * @param {Array} items - Invoice items to validate
- * @param {String} userId - Owner/User ID
- * @param {Object} session - Optional MongoDB session
- * @returns {Promise<Object>} - { valid: boolean, errors: Array }
+ * Validate stock availability (Basic: Only checks Total Stock for now)
+ * To be strict, we would check Batch stock if batchNumber provided.
  */
 export const validateStockAvailability = async (items, userId, session = null) => {
     const errors = [];
-    const productIds = items
-        .filter(item => item.productId)
-        .map(item => item.productId);
+    const productIds = items.filter(item => item.productId).map(item => item.productId);
 
-    if (productIds.length === 0) {
-        // No product-based items, all manual entries
-        return { valid: true, errors: [] };
-    }
+    if (productIds.length === 0) return { valid: true, errors: [] };
 
-    // Fetch all required products in one query
     const query = { _id: { $in: productIds }, user: userId };
-    const products = session
-        ? await Product.find(query).session(session)
-        : await Product.find(query);
-
-    // Create lookup map for fast access
+    const products = session ? await Product.find(query).session(session) : await Product.find(query);
     const productMap = new Map(products.map(p => [p._id.toString(), p]));
 
-    // Validate each item
     for (const item of items) {
-        if (!item.productId) continue; // Skip manual entries
-
-        const productId = item.productId.toString();
-        const product = productMap.get(productId);
+        if (!item.productId) continue;
+        const product = productMap.get(item.productId.toString());
 
         if (!product) {
-            errors.push({
-                item: item.itemName || item.name,
-                productId,
-                error: 'Product not found or does not belong to this user'
-            });
+            errors.push({ item: item.itemName || 'Item', error: 'Product not found' });
             continue;
         }
 
-        // Check stock availability
-        const currentStock = product.stock || 0;
-        const requestedQty = item.quantity || 0;
+        const requested = parseFloat(item.quantity) || 0;
+        const available = parseFloat(product.stock) || 0;
 
-        if (currentStock < requestedQty) {
+        if (available < requested) {
             errors.push({
                 item: product.name,
-                productId,
-                requested: requestedQty,
-                available: currentStock,
-                error: `Insufficient stock: requested ${requestedQty}, available ${currentStock}`
+                requested,
+                available,
+                error: `Insufficient stock`
             });
         }
     }
 
-    return {
-        valid: errors.length === 0,
-        errors
-    };
+    return { valid: errors.length === 0, errors };
 };
 
 /**
- * Update stock for invoice items (bulk operation)
- * @param {Array} items - Invoice items
- * @param {String} userId - Owner/User ID
- * @param {Number} multiplier - 1 for deduction, -1 for restoration
- * @param {Object} session - Optional MongoDB session
+ * Deduct stock (and Batches if tracked)
  */
-export const updateStockBulk = async (items, userId, multiplier = 1, session = null) => {
-    const bulkOps = items
-        .filter(item => item.productId && item.quantity)
-        .map(item => ({
-            updateOne: {
-                filter: { _id: item.productId, user: userId },
-                update: { $inc: { stock: -(item.quantity * multiplier) } }
-            }
-        }));
-
-    if (bulkOps.length === 0) {
-        return { modified: 0 };
-    }
-
+export const deductStock = async (items, userId, session = null, invoiceId = null) => {
     const options = session ? { session } : {};
-    const result = await Product.bulkWrite(bulkOps, options);
 
-    return {
-        modified: result.modifiedCount,
-        matched: result.matchedCount
-    };
+    // 1. Get all products
+    const productIds = items.filter(i => i.productId).map(i => i.productId);
+    const products = await Product.find({ _id: { $in: productIds } }).session(session);
+    const productMap = new Map(products.map(p => [p._id.toString(), p]));
+
+    for (const item of items) {
+        if (!item.productId) continue;
+        const product = productMap.get(item.productId.toString());
+        if (!product) continue;
+
+        const qtyToDeduct = parseFloat(item.quantity);
+
+        // A. General Stock Deduction
+        product.stock -= qtyToDeduct;
+        await product.save(options);
+
+        // B. Batch Deduction
+        if (product.isBatchTracked) {
+            if (item.batchNumber) {
+                // Specific Batch Requested
+                await Batch.findOneAndUpdate(
+                    { product: product._id, batchNumber: item.batchNumber, user: userId },
+                    { $inc: { quantity: -qtyToDeduct } },
+                    options
+                );
+            } else {
+                // Auto-Pick (FEFO)
+                // Find batches with quantity > 0, sorted by expiry
+                const batches = await Batch.find({
+                    product: product._id,
+                    user: userId,
+                    quantity: { $gt: 0 },
+                    isActive: true
+                }).sort({ expiryDate: 1 }).session(session);
+
+                let remaining = qtyToDeduct;
+                let usedBatch = null;
+
+                for (const batch of batches) {
+                    if (remaining <= 0) break;
+
+                    const take = Math.min(batch.quantity, remaining);
+                    batch.quantity -= take;
+                    remaining -= take;
+                    await batch.save(options);
+
+                    if (!usedBatch) usedBatch = batch.batchNumber; // Record primary batch
+                }
+
+                // If invoiceId provided, update the Invoice Item with the batch used (Best Effort)
+                if (invoiceId && usedBatch) {
+                    await Invoice.updateOne(
+                        { _id: invoiceId, "items.productId": product._id },
+                        { $set: { "items.$.batchNumber": usedBatch } }, // Updates first match, which is okay for now
+                        options
+                    );
+                }
+            }
+        }
+    }
 };
 
 /**
- * Restore stock for invoice items (used in void/delete)
- * @param {Array} items - Invoice items
- * @param {String} userId - Owner/User ID  
- * @param {Object} session - Optional MongoDB session
+ * Restore stock (Reverse of deduct)
  */
 export const restoreStock = async (items, userId, session = null) => {
-    return await updateStockBulk(items, userId, -1, session);
-};
+    const options = session ? { session } : {};
 
-/**
- * Deduct stock for invoice items (used in creation)
- * @param {Array} items - Invoice items
- * @param {String} userId - Owner/User ID
- * @param {Object} session - Optional MongoDB session
- */
-export const deductStock = async (items, userId, session = null) => {
-    return await updateStockBulk(items, userId, 1, session);
-};
+    // 1. Products
+    const productIds = items.filter(i => i.productId).map(i => i.productId);
+    const products = await Product.find({ _id: { $in: productIds } }).session(session);
+    const productMap = new Map(products.map(p => [p._id.toString(), p]));
 
-/**
- * Format stock validation errors for user-friendly display
- * @param {Array} errors - Array of stock errors
- * @returns {String} - Formatted error message
- */
-export const formatStockErrors = (errors) => {
-    if (errors.length === 0) return '';
+    for (const item of items) {
+        if (!item.productId) continue;
+        const product = productMap.get(item.productId.toString());
+        if (!product) continue;
 
-    const messages = errors.map(err => {
-        if (err.available !== undefined) {
-            return `${err.item}: Need ${err.requested}, only ${err.available} available`;
+        const qtyToRestore = parseFloat(item.quantity);
+
+        // A. General Stock
+        product.stock += qtyToRestore;
+        await product.save(options);
+
+        // B. Batch Restore
+        if (product.isBatchTracked && item.batchNumber) {
+            await Batch.findOneAndUpdate(
+                { product: product._id, batchNumber: item.batchNumber, user: userId },
+                { $inc: { quantity: qtyToRestore } },
+                options
+            );
+        } else if (product.isBatchTracked) {
+            // If no batch recorded, restore to a "General" or "Unknown" batch, or just skip batch logic?
+            // Ideally we should find the most recent batch and add it there, or create an "Adj" batch.
+            // For now, we skip batch restore if unknown, to avoid corrupting specific batches.
+            // User can manually adjust stock if needed.
         }
-        return `${err.item}: ${err.error}`;
-    });
+    }
+};
 
-    return `Stock validation failed:\n${messages.join('\n')}`;
+export const formatStockErrors = (errors) => {
+    return errors.map(e => `${e.item}: ${e.error}`).join('\n');
 };

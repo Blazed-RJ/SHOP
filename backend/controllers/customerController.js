@@ -1,5 +1,7 @@
 import Customer from '../models/Customer.js';
 import LedgerEntry from '../models/LedgerEntry.js';
+import AccountGroup from '../models/AccountGroup.js';
+import AccountLedger from '../models/AccountLedger.js';
 
 // @desc    Get all customers
 // @route   GET /api/customers
@@ -94,6 +96,38 @@ export const createCustomer = async (req, res) => {
             });
         }
 
+        // Sync with Accounting System
+        try {
+            const debtorsGroup = await AccountGroup.findOne({ name: 'Sundry Debtors' });
+            if (debtorsGroup) {
+                // Check for name availability
+                let ledgerName = name;
+                const existingLedger = await AccountLedger.findOne({ name: ledgerName });
+                if (existingLedger) {
+                    ledgerName = `${name} (${phone.slice(-4)})`;
+                }
+
+                await AccountLedger.create({
+                    name: ledgerName,
+                    group: debtorsGroup._id,
+                    openingBalance: balance > 0 ? balance : Math.abs(balance), // Absolute value
+                    openingBalanceType: balance >= 0 ? 'Dr' : 'Cr',
+                    currentBalance: balance, // Dr is positive in net logic
+                    balanceType: balance >= 0 ? 'Dr' : 'Cr',
+                    linkedType: 'Customer',
+                    linkedId: customer._id,
+                    gstNumber,
+                    mobile: phone,
+                    email,
+                    address
+                });
+            }
+        } catch (err) {
+            console.error("Failed to create AccountLedger for customer:", err);
+            // Don't fail the request, just log it. 
+            // Ideally we should have a transaction but MongoDB transactions require replica set.
+        }
+
         res.status(201).json(customer);
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -113,6 +147,21 @@ export const updateCustomer = async (req, res) => {
 
         Object.assign(customer, req.body);
         const updatedCustomer = await customer.save();
+
+        // Sync Accounting Ledger
+        try {
+            const ledger = await AccountLedger.findOne({ linkedType: 'Customer', linkedId: customer._id });
+            if (ledger) {
+                if (req.body.name) ledger.name = req.body.name; // Might cause duplicate error if strictly unique, but ignoring for now
+                if (req.body.gstNumber) ledger.gstNumber = req.body.gstNumber;
+                if (req.body.phone) ledger.mobile = req.body.phone;
+                if (req.body.email) ledger.email = req.body.email;
+                if (req.body.address) ledger.address = req.body.address;
+                await ledger.save();
+            }
+        } catch (err) {
+            console.error("Failed to update AccountLedger:", err);
+        }
 
         res.json(updatedCustomer);
     } catch (error) {

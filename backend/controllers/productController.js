@@ -1,12 +1,13 @@
 import Product from '../models/Product.js';
-import { protect, admin, staffOrAdmin } from '../middleware/auth.js';
+import Batch from '../models/Batch.js';
+import AuditLog from '../models/AuditLog.js';
 
 // @desc    Get all products
 // @route   GET /api/products
-// @access  Private (Staff can view but cost price hidden in response)
+// @access  Private (Salesman can view but cost price hidden)
 export const getProducts = async (req, res) => {
     try {
-        const { search, category, limit = 50, skip = 0, subCategory, subSubCategory } = req.query; // Destructure subCategory and subSubCategory
+        const { search, category, limit = 50, skip = 0, subCategory, subSubCategory } = req.query;
         let filters = { isActive: true, user: req.user.ownerId };
 
         if (search) {
@@ -20,27 +21,17 @@ export const getProducts = async (req, res) => {
             ];
         }
 
-        if (category) {
-            filters.category = category;
-        }
-
-        // Add subCategory filter
-        if (subCategory) {
-            filters.subCategory = subCategory;
-        }
-
-        // Add subSubCategory filter
-        if (subSubCategory) {
-            filters.subSubCategory = subSubCategory;
-        }
+        if (category) filters.category = category;
+        if (subCategory) filters.subCategory = subCategory;
+        if (subSubCategory) filters.subSubCategory = subSubCategory;
 
         let query = Product.find(filters)
             .sort({ name: 1 })
             .limit(Number(limit))
             .skip(Number(skip));
 
-        // If user is Staff, hide cost price at DB level
-        if (req.user.role === 'Staff') {
+        // Hide cost price for Salesman
+        if (req.user.role === 'Salesman') {
             query = query.select('-costPrice');
         }
 
@@ -65,8 +56,8 @@ export const getProductById = async (req, res) => {
     try {
         let query = Product.findById(req.params.id);
 
-        // Hide cost price for Staff
-        if (req.user.role === 'Staff') {
+        // Hide cost price for Salesman
+        if (req.user.role === 'Salesman') {
             query = query.select('-costPrice');
         }
 
@@ -84,29 +75,15 @@ export const getProductById = async (req, res) => {
 
 // @desc    Create product
 // @route   POST /api/products
-// @access  Private/Admin
+// @access  Private/Admin/Accountant
 export const createProduct = async (req, res) => {
     try {
         const {
-            name,
-            category,
-            costPrice,
-            sellingPrice,
-            margin,
-            gstPercent,
-            isTaxInclusive,
-            stock,
-            sku,
-            imei1,
-            imei2,
-            serialNumber,
-            description,
-            subCategory,
-            subSubCategory,
-            minStockAlert
+            name, category, costPrice, sellingPrice, margin, gstPercent,
+            isTaxInclusive, stock, sku, imei1, imei2, serialNumber,
+            description, subCategory, subSubCategory, minStockAlert
         } = req.body;
 
-        // Auto-generate SKU if missing
         let finalSku = sku;
         if (!finalSku || finalSku.trim() === '') {
             const timestamp = Date.now().toString().slice(-6);
@@ -114,30 +91,24 @@ export const createProduct = async (req, res) => {
             finalSku = `PROD-${timestamp}-${random}`;
         }
 
-        console.log('📦 Creating product with categories:', { category, subCategory, subSubCategory });
-
-        // Image path will be set if uploaded
         const image = req.file ? `/uploads/${req.file.filename}` : req.body.image || null;
 
         const product = await Product.create({
-            name,
-            category,
-            subCategory,
-            subSubCategory,
-            costPrice,
-            sellingPrice,
-            margin,
-            gstPercent,
-            isTaxInclusive,
-            stock,
-            minStockAlert,
-            image,
-            sku: finalSku,
-            imei1,
-            imei2,
-            serialNumber,
-            description,
+            name, category, subCategory, subSubCategory,
+            costPrice, sellingPrice, margin, gstPercent, isTaxInclusive,
+            stock, minStockAlert, image, sku: finalSku,
+            imei1, imei2, serialNumber, description,
             user: req.user.ownerId
+        });
+
+        // Audit Log
+        await AuditLog.create({
+            user: req.user._id,
+            action: 'CREATE',
+            target: 'Product',
+            targetId: product._id,
+            details: { name: product.name, sku: product.sku },
+            ipAddress: req.ip
         });
 
         res.status(201).json(product);
@@ -148,7 +119,7 @@ export const createProduct = async (req, res) => {
 
 // @desc    Update product
 // @route   PUT /api/products/:id
-// @access  Private/Admin
+// @access  Private/Admin/Accountant
 export const updateProduct = async (req, res) => {
     try {
         const product = await Product.findOne({ _id: req.params.id, user: req.user.ownerId });
@@ -157,15 +128,26 @@ export const updateProduct = async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
+        const previousData = { name: product.name, price: product.sellingPrice, stock: product.stock };
+
         // Update fields
         Object.assign(product, req.body);
-
-        // Update image if new file uploaded
         if (req.file) {
             product.image = `/uploads/${req.file.filename}`;
         }
 
         const updatedProduct = await product.save();
+
+        // Audit Log
+        await AuditLog.create({
+            user: req.user._id,
+            action: 'UPDATE',
+            target: 'Product',
+            targetId: product._id,
+            details: { previous: previousData, changes: req.body },
+            ipAddress: req.ip
+        });
+
         res.json(updatedProduct);
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -185,6 +167,16 @@ export const deleteProduct = async (req, res) => {
 
         product.isActive = false;
         await product.save();
+
+        // Audit Log
+        await AuditLog.create({
+            user: req.user._id,
+            action: 'DELETE',
+            target: 'Product',
+            targetId: product._id,
+            details: { name: product.name, sku: product.sku },
+            ipAddress: req.ip
+        });
 
         res.json({ message: 'Product removed' });
     } catch (error) {
@@ -212,13 +204,55 @@ export const searchProducts = async (req, res) => {
             ]
         });
 
-        // Hide cost price for Staff
-        if (req.user.role === 'Staff') {
+        // Hide cost price for Salesman
+        if (req.user.role === 'Salesman') {
             query = query.select('-costPrice');
         }
 
         const products = await query;
         res.json(products);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Get batches for a product
+// @route   GET /api/products/:id/batches
+// @access  Private
+export const getProductBatches = async (req, res) => {
+    try {
+        const batches = await Batch.find({
+            product: req.params.id,
+            user: req.user.ownerId,
+            isActive: true,
+            quantity: { $gt: 0 }
+        }).sort({ expiryDate: 1 });
+
+        res.json(batches);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Get batches expiring soon
+// @route   GET /api/products/expiry-alert
+// @access  Private
+export const getExpiringBatches = async (req, res) => {
+    try {
+        const { days = 30 } = req.query;
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() + Number(days));
+
+        const batches = await Batch.find({
+            user: req.user.ownerId,
+            isActive: true,
+            quantity: { $gt: 0 },
+            expiryDate: { $lte: cutoffDate }
+        })
+            .populate('product', 'name sku')
+            .sort({ expiryDate: 1 });
+
+        res.json(batches);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
