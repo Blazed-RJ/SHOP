@@ -114,6 +114,19 @@ const Settings = () => {
                 terms: true
             },
             fieldOrder: ['header', 'billTo', 'items', 'payment', 'signature', 'footer']
+        },
+        letterheadConfig: {
+            marginTop: 20,
+            marginBottom: 20,
+            marginLeft: 20,
+            marginRight: 20,
+            logoPosition: 'left',
+            watermarkText: '',
+            watermarkOpacity: 0.1,
+            watermarkSize: 100,
+            fontFamily: 'Inter',
+            showBorder: false,
+            borderColor: '#000000'
         }
     });
 
@@ -162,6 +175,19 @@ const Settings = () => {
                         terms: true
                     },
                     fieldOrder: ['header', 'billTo', 'items', 'payment', 'signature', 'footer']
+                },
+                letterheadConfig: currentSettings.letterheadConfig || {
+                    marginTop: 20,
+                    marginBottom: 20,
+                    marginLeft: 20,
+                    marginRight: 20,
+                    logoPosition: 'left',
+                    watermarkText: '',
+                    watermarkOpacity: 0.1,
+                    watermarkSize: 100,
+                    fontFamily: 'Inter',
+                    showBorder: false,
+                    borderColor: '#000000'
                 }
             });
         }
