@@ -221,18 +221,20 @@ const Inventory = () => {
             result = result.filter(p => p.category === selectedCategory);
         }
 
-        // 2.5 Folder View Filter (Overrides Sidebar if in folder mode and deep)
-        if (viewMode === 'folder' && categoryPath.length > 0) {
-            // If we are deep in folders, only show products belonging to the current path
-            // Path 0: Category, Path 1: SubCategory, Path 2: SubSubCategory
-            if (categoryPath.length >= 1) {
-                result = result.filter(p => p.category === categoryPath[0].name);
-            }
-            if (categoryPath.length >= 2) {
-                result = result.filter(p => p.subCategory === categoryPath[1].name);
-            }
-            if (categoryPath.length >= 3) {
-                result = result.filter(p => p.subSubCategory === categoryPath[2].name);
+        // 2.5 Folder View Filter (Overrides Sidebar if in folder mode)
+        if (viewMode === 'folder') {
+            if (categoryPath.length === 0) {
+                // Root: do not show any products, only folders
+                result = [];
+            } else if (categoryPath.length === 1) {
+                // Category level: only show products with this category, and NO subcategory
+                result = result.filter(p => p.category === categoryPath[0].name && (!p.subCategory || p.subCategory === ''));
+            } else if (categoryPath.length === 2) {
+                // SubCategory level: only show products in this subCategory, and NO subSubCategory
+                result = result.filter(p => p.category === categoryPath[0].name && p.subCategory === categoryPath[1].name && (!p.subSubCategory || p.subSubCategory === ''));
+            } else if (categoryPath.length >= 3) {
+                // SubSubCategory level: show products in this subSubCategory
+                result = result.filter(p => p.category === categoryPath[0].name && p.subCategory === categoryPath[1].name && p.subSubCategory === categoryPath[2].name);
             }
         }
 
