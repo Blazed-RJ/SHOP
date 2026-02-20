@@ -223,10 +223,10 @@ const Settings = () => {
         formDataUpload.append(field, file);
 
         try {
-            // Override the default 'application/json' header to implicitly pass boundaries
+            // Nullifying the Content-Type allows the XHR browser engine to automatically build boundaries
             await api.put('/settings', formDataUpload, {
                 headers: {
-                    'Content-Type': 'multipart/form-data'
+                    'Content-Type': undefined
                 }
             });
             toast.success(`${field} uploaded successfully`);
