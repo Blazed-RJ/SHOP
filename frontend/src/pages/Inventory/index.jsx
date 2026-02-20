@@ -351,14 +351,14 @@ const Inventory = () => {
     }, [currentSubCategories, debouncedSearch, selectedCategory, stockFilter, categoryPath, products]);
 
     const totalValue = useMemo(() => {
-        return products.reduce((sum, p) => sum + (p.stock * p.sellingPrice), 0);
-    }, [products]);
+        return filteredProducts.reduce((sum, p) => sum + (p.stock * p.sellingPrice), 0);
+    }, [filteredProducts]);
 
     return (
         <Layout>
             <div className="p-8 relative space-y-6">
                 <Header
-                    totalProducts={products.length}
+                    totalProducts={filteredProducts.length}
                     totalValue={totalValue}
                     onAddProduct={() => { setEditingProduct(null); setShowModal(true); }}
                     onImport={() => setShowImportModal(true)}
