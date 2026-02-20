@@ -23,7 +23,16 @@ router.get('/', protect, async (req, res) => {
 
         const categories = await Category.find(filter)
             .populate('parentCategory', 'name')
+            .lean()
             .sort({ name: 1 });
+
+        // Fetch all categories for this user to efficiently assign subCategories
+        const allUserCategories = await Category.find({ user: req.user.ownerId }, '_id parentCategory').lean();
+
+        for (const cat of categories) {
+            cat.id = cat._id;
+            cat.subCategories = allUserCategories.filter(c => String(c.parentCategory) === String(cat._id));
+        }
 
         res.json(categories);
     } catch (error) {
@@ -49,7 +58,15 @@ router.get('/:id', protect, async (req, res) => {
             parentCategory: req.params.id,
             user: req.user.ownerId
         })
+            .lean()
             .sort({ name: 1 });
+
+        // Fast attach sub-sub-categories for count
+        const allUserCategories = await Category.find({ user: req.user.ownerId }, '_id parentCategory').lean();
+        for (const sub of subCategories) {
+            sub.id = sub._id;
+            sub.subCategories = allUserCategories.filter(c => String(c.parentCategory) === String(sub._id));
+        }
 
         res.json({ ...category.toObject(), subCategories });
     } catch (error) {

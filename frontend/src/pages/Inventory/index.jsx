@@ -221,20 +221,35 @@ const Inventory = () => {
             result = result.filter(p => p.category === selectedCategory);
         }
 
+        const hasActiveFilter = debouncedSearch || selectedCategory !== 'All' || stockFilter !== 'all';
+
         // 2.5 Folder View Filter (Overrides Sidebar if in folder mode)
         if (viewMode === 'folder') {
-            if (categoryPath.length === 0) {
-                // Root: do not show any products, only folders
-                result = [];
-            } else if (categoryPath.length === 1) {
-                // Category level: only show products with this category, and NO subcategory
-                result = result.filter(p => p.category === categoryPath[0].name && (!p.subCategory || p.subCategory === ''));
-            } else if (categoryPath.length === 2) {
-                // SubCategory level: only show products in this subCategory, and NO subSubCategory
-                result = result.filter(p => p.category === categoryPath[0].name && p.subCategory === categoryPath[1].name && (!p.subSubCategory || p.subSubCategory === ''));
-            } else if (categoryPath.length >= 3) {
-                // SubSubCategory level: show products in this subSubCategory
-                result = result.filter(p => p.category === categoryPath[0].name && p.subCategory === categoryPath[1].name && p.subSubCategory === categoryPath[2].name);
+            if (!hasActiveFilter) {
+                if (categoryPath.length === 0) {
+                    // Root: do not show any products, only folders
+                    result = [];
+                } else if (categoryPath.length === 1) {
+                    // Category level: only show products with this category, and NO subcategory
+                    result = result.filter(p => p.category === categoryPath[0].name && (!p.subCategory || p.subCategory === ''));
+                } else if (categoryPath.length === 2) {
+                    // SubCategory level: only show products in this subCategory, and NO subSubCategory
+                    result = result.filter(p => p.category === categoryPath[0].name && p.subCategory === categoryPath[1].name && (!p.subSubCategory || p.subSubCategory === ''));
+                } else if (categoryPath.length >= 3) {
+                    // SubSubCategory level: show products in this subSubCategory
+                    result = result.filter(p => p.category === categoryPath[0].name && p.subCategory === categoryPath[1].name && p.subSubCategory === categoryPath[2].name);
+                }
+            } else {
+                // If there are filters active, restrict to current path but show ALL nested matching products
+                if (categoryPath.length > 0) {
+                    result = result.filter(p => p.category === categoryPath[0].name);
+                }
+                if (categoryPath.length > 1) {
+                    result = result.filter(p => p.subCategory === categoryPath[1].name);
+                }
+                if (categoryPath.length > 2) {
+                    result = result.filter(p => p.subSubCategory === categoryPath[2].name);
+                }
             }
         }
 
@@ -261,6 +276,28 @@ const Inventory = () => {
 
         return result;
     }, [products, debouncedSearch, selectedCategory, stockFilter, sortConfig, viewMode, categoryPath]);
+
+    // Filtered Folders
+    const filteredFolders = useMemo(() => {
+        let result = [...currentSubCategories];
+
+        if (debouncedSearch) {
+            const query = debouncedSearch.toLowerCase();
+            result = result.filter(c => c.name.toLowerCase().includes(query));
+        }
+
+        if (selectedCategory !== 'All') {
+            if (categoryPath.length === 0) {
+                result = result.filter(c => c.name === selectedCategory);
+            }
+        }
+
+        if (stockFilter !== 'all') {
+            result = []; // Folders themselves don't have stock status in this view context
+        }
+
+        return result;
+    }, [currentSubCategories, debouncedSearch, selectedCategory, stockFilter, categoryPath]);
 
     const totalValue = useMemo(() => {
         return products.reduce((sum, p) => sum + (p.stock * p.sellingPrice), 0);
@@ -310,7 +347,7 @@ const Inventory = () => {
                     </>
                 ) : (
                     <CategoryFolderView
-                        categories={currentSubCategories}
+                        categories={filteredFolders}
                         products={filteredProducts} // In folder view, filteredProducts is filtered by current path
                         currentPath={categoryPath}
                         onCategoryClick={handleCategoryClick}
