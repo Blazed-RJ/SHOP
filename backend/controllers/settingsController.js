@@ -71,6 +71,26 @@ export const updateSettings = async (req, res) => {
                 delete req.body.invoiceTemplate;
             }
 
+            // Handle letterheadConfig deep merge manually so individual margin fields
+            // don't get reset to Mongoose schema defaults by Object.assign
+            if (req.body.letterheadConfig) {
+                const { letterheadConfig } = req.body;
+
+                if (!settings.letterheadConfig) {
+                    settings.letterheadConfig = {};
+                }
+
+                // Merge each field individually into the existing subdocument
+                for (const [key, value] of Object.entries(letterheadConfig)) {
+                    settings.letterheadConfig[key] = value;
+                }
+
+                // Mark the subdocument as modified so Mongoose persists changes
+                settings.markModified('letterheadConfig');
+
+                delete req.body.letterheadConfig;
+            }
+
             Object.assign(settings, req.body);
 
             // Update image paths if uploaded
