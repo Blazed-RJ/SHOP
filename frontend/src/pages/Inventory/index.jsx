@@ -296,8 +296,22 @@ const Inventory = () => {
             result = []; // Folders themselves don't have stock status in this view context
         }
 
-        return result;
-    }, [currentSubCategories, debouncedSearch, selectedCategory, stockFilter, categoryPath]);
+        // Attach product count to each folder to fix the "0 sub-folders" UX issue
+        return result.map(folder => {
+            let count = 0;
+            if (categoryPath.length === 0) {
+                count = products.filter(p => p.category === folder.name).length;
+            } else if (categoryPath.length === 1) {
+                count = products.filter(p => p.category === categoryPath[0].name && p.subCategory === folder.name).length;
+            } else if (categoryPath.length === 2) {
+                count = products.filter(p => p.category === categoryPath[0].name && p.subCategory === categoryPath[1].name && p.subSubCategory === folder.name).length;
+            }
+            return {
+                ...folder,
+                productCount: count
+            }
+        });
+    }, [currentSubCategories, debouncedSearch, selectedCategory, stockFilter, categoryPath, products]);
 
     const totalValue = useMemo(() => {
         return products.reduce((sum, p) => sum + (p.stock * p.sellingPrice), 0);

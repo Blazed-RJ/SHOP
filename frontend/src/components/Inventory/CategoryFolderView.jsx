@@ -117,7 +117,10 @@ const CategoryFolderView = ({
                                         {category.name}
                                     </h3>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        {category.subCategories?.length || 0} sub-folders
+                                        {category.subCategories?.length > 0 && `${category.subCategories.length} sub-folder${category.subCategories.length > 1 ? 's' : ''}`}
+                                        {category.subCategories?.length > 0 && category.productCount > 0 && ' • '}
+                                        {category.productCount > 0 && `${category.productCount} product${category.productCount > 1 ? 's' : ''}`}
+                                        {(!category.subCategories?.length && !category.productCount) && 'Empty folder'}
                                     </p>
                                 </div>
                             ))}
