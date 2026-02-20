@@ -11,7 +11,7 @@ const api = axios.create({
 });
 
 // Backend URL for static file serving (images)
-export const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+export const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002';
 
 // Request interceptor to add auth token
 api.interceptors.request.use(

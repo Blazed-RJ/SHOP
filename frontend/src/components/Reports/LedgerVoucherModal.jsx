@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { X, Printer } from 'lucide-react';
 
 const LedgerVoucherModal = ({ isOpen, onClose, ledgerId, ledgerName, dateRange }) => {
@@ -7,30 +7,27 @@ const LedgerVoucherModal = ({ isOpen, onClose, ledgerId, ledgerName, dateRange }
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
+        const fetchVouchers = async () => {
+            try {
+                setLoading(true);
+                const from = dateRange?.from || dateRange?.date || new Date().toISOString().split('T')[0];
+                const to = dateRange?.to || dateRange?.date || new Date().toISOString().split('T')[0];
+
+                const { data } = await api.get(`/reports/ledger-vouchers?ledgerId=${ledgerId}&from=${from}&to=${to}`);
+                setData(data);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         if (isOpen && ledgerId) {
             fetchVouchers();
         } else {
             setData(null);
         }
     }, [isOpen, ledgerId, dateRange]);
-
-    const fetchVouchers = async () => {
-        try {
-            setLoading(true);
-            const token = localStorage.getItem('token');
-            const from = dateRange?.from || dateRange?.date || new Date().toISOString().split('T')[0];
-            const to = dateRange?.to || dateRange?.date || new Date().toISOString().split('T')[0];
-
-            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/reports/ledger-vouchers?ledgerId=${ledgerId}&from=${from}&to=${to}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setData(data);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     if (!isOpen) return null;
 

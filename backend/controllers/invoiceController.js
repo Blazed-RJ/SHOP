@@ -444,13 +444,7 @@ export const voidInvoice = async (req, res) => {
                 await restoreStock(invoice.items, req.user.ownerId, session);
             }
 
-            // 2. Revert Customer Due Balance (Cancel Debt)
-            if (invoice.dueAmount > 0 && invoice.customer) {
-                await Customer.findOneAndUpdate(
-                    { _id: invoice.customer, user: req.user.ownerId },
-                    { $inc: { balance: -invoice.dueAmount } }
-                ).session(session);
-            }
+            // 2. Revert Customer Due Balance (Cancel Debt) is handled by the Ledger Entry creation below which reverses the grandTotal.
 
             // 3. Mark as Void
             invoice.status = 'Void';
@@ -511,13 +505,7 @@ export const deleteInvoice = async (req, res) => {
                 throw new Error('Invoice not found');
             }
 
-            // Restore customer balance if there was due amount
-            if (invoice.dueAmount > 0 && invoice.customer) {
-                await Customer.findByIdAndUpdate(
-                    invoice.customer,
-                    { $inc: { balance: -invoice.dueAmount } }
-                ).session(session);
-            }
+            // Restore customer balance is handled by the Ledger Entry creation below which reverses the grandTotal.
 
             // Restore product stock (Optimized with stockManager)
             if (invoice.items && invoice.items.length > 0) {

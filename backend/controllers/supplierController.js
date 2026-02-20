@@ -151,7 +151,14 @@ export const deleteSupplier = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
-        await Supplier.findByIdAndDelete(req.params.id);
+        // Check if supplier has balance
+        if (Math.abs(supplier.balance) > 0.1) {
+            return res.status(400).json({ message: 'Cannot delete supplier with active balance' });
+        }
+
+        // Soft delete
+        supplier.isActive = false;
+        await supplier.save();
         res.json({ message: 'Supplier deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });

@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { InvoiceRenderer } from '../Invoice/InvoiceTemplates';
+import { BACKEND_URL } from '../../utils/api';
 import QRCode from 'qrcode';
 
 const SettingsInvoicePreview = ({ settings, formData }) => {
@@ -40,7 +41,10 @@ const SettingsInvoicePreview = ({ settings, formData }) => {
                 ...formData.invoiceTemplate
             },
             // Make sure style props are at top level as expected by templates
-            logo: formData.logo || settings?.logo,
+            logo: (formData.logo || settings?.logo) && typeof (formData.logo || settings?.logo) === 'string' && !(formData.logo || settings?.logo).startsWith('http') && !(formData.logo || settings?.logo).startsWith('data:')
+                ? `${BACKEND_URL}${formData.logo || settings?.logo}`
+                : (formData.logo || settings?.logo),
+
             shopName: formData.shopName || settings?.shopName,
             address: formData.address || settings?.address,
             phone: formData.phone || settings?.phone,
@@ -60,7 +64,9 @@ const SettingsInvoicePreview = ({ settings, formData }) => {
             bankDetails: formattedBankDetails, // Pass the formatted string
 
             // Signature
-            digitalSignature: settings?.digitalSignature,
+            digitalSignature: (settings?.digitalSignature) && typeof settings.digitalSignature === 'string' && !settings.digitalSignature.startsWith('http') && !settings.digitalSignature.startsWith('data:')
+                ? `${BACKEND_URL}${settings.digitalSignature}`
+                : settings?.digitalSignature,
 
             // Config
             fieldVisibility: formData.invoiceTemplate?.fieldVisibility || settings?.invoiceTemplate?.fieldVisibility || {}

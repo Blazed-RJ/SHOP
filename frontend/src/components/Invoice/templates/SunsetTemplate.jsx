@@ -111,6 +111,11 @@ export const SunsetTemplate = ({ data, settings }) => {
                                 {fieldVisibility.qrText !== false ? 'Scan to Pay' : ''}
                             </div>
                             <img src={settings.qrCode} alt="UPI QR" style={{ width: '80px', height: '80px' }} />
+                            {fieldVisibility.qrText !== false && (settings.upiId || data?.upiId) && (
+                                <div style={{ fontSize: '9px', marginTop: '4px', color: '#888', fontWeight: 500, wordBreak: 'break-all', maxWidth: '120px' }}>
+                                    {settings.upiId || data?.upiId}
+                                </div>
+                            )}
                         </div>
                     )}
 

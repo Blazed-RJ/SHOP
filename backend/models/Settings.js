@@ -198,6 +198,7 @@ const settingsSchema = mongoose.Schema({
     // Multiple Bank Accounts Support
     bankAccounts: [{
         id: { type: String, required: true },
+        type: { type: String, enum: ['bank', 'cash'], default: 'bank' },
         bankName: { type: String, default: '' },
         bankHolderName: { type: String, default: '' },
         accountNumber: { type: String, default: '' },

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
 import { ChevronRight, ChevronDown, Folder, FileText, Plus } from 'lucide-react';
 
@@ -10,23 +10,20 @@ const ChartOfAccounts = () => {
     const [expanded, setExpanded] = useState({});
 
     useEffect(() => {
+        const fetchChart = async () => {
+            try {
+                const { data } = await api.get('/accounting/chart-of-accounts');
+                setTree(data);
+                setLoading(false);
+            } catch (error) {
+                console.error(error);
+                toast.error('Failed to load Chart of Accounts');
+                setLoading(false);
+            }
+        };
+
         fetchChart();
     }, []);
-
-    const fetchChart = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/accounting/chart-of-accounts`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setTree(data);
-            setLoading(false);
-        } catch (error) {
-            console.error(error);
-            toast.error('Failed to load Chart of Accounts');
-            setLoading(false);
-        }
-    };
 
     const toggleExpand = (id) => {
         setExpanded(prev => ({ ...prev, [id]: !prev[id] }));

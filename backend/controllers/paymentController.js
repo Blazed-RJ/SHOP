@@ -292,7 +292,7 @@ export const recordAdjustment = async (req, res) => {
             type, // Debit (IN) or Credit (OUT)
             category, // Receipt or Drawing
             amount,
-            method: 'Cash', // Adjustments usually affect Cash
+            method: req.body.method || 'Cash', // Support Cash or Bank
             notes: notes || 'Capital Adjustment',
             recordedBy: req.user._id,
             user: req.user.ownerId,

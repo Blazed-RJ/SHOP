@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { toast } from 'react-hot-toast'; // Correct import
 import { TrendingUp, Printer } from 'lucide-react';
 
@@ -19,24 +19,21 @@ const ProfitAndLoss = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
+        const fetchReport = async () => {
+            try {
+                setLoading(true);
+                const { data } = await api.get(`/reports/profit-and-loss?from=${dateRange.from}&to=${dateRange.to}`);
+                setData(data);
+                setLoading(false);
+            } catch (error) {
+                console.error(error);
+                toast.error('Failed to load P&L');
+                setLoading(false);
+            }
+        };
+
         fetchReport();
     }, [dateRange]);
-
-    const fetchReport = async () => {
-        try {
-            setLoading(true);
-            const token = localStorage.getItem('token');
-            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/reports/profit-and-loss?from=${dateRange.from}&to=${dateRange.to}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setData(data);
-            setLoading(false);
-        } catch (error) {
-            console.error(error);
-            toast.error('Failed to load P&L');
-            setLoading(false);
-        }
-    };
 
     const handleRowClick = (item) => {
         // Only ledgers have IDs (not totals or net profit)

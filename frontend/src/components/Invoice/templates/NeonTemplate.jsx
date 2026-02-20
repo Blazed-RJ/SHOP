@@ -114,9 +114,19 @@ export const NeonTemplate = ({ data, settings }) => {
                     {fieldVisibility.qrCode !== false && settings.qrCode && (
                         <div style={{ marginBottom: '16px' }}>
                             <div style={{ fontWeight: 700, color: neonBlue, marginBottom: '6px', fontSize: '10px', fontFamily: 'monospace', letterSpacing: '2px' }}>
-                                {fieldVisibility.qrText !== false ? '[ SCAN TO PAY ]' : ''}
+                                {fieldVisibility.qrCode ? '[ SCAN TO PAY ]' : ''}
                             </div>
                             <img src={settings.qrCode} alt="UPI QR" style={{ width: '80px', height: '80px', filter: 'invert(1)' }} />
+                            {fieldVisibility.qrText !== false && (settings.upiId || data?.upiId) && (
+                                <div style={{ fontSize: '9px', marginTop: '4px', color: '#888', fontWeight: 500, wordBreak: 'break-all', maxWidth: '120px' }}>
+                                    {settings.upiId || data?.upiId}
+                                </div>
+                            )}
+                            {fieldVisibility.qrText !== false && settings.upiId && (
+                                <div style={{ fontSize: '9px', color: '#aaa', marginTop: '4px', fontFamily: 'monospace' }}>
+                                    {settings.upiId}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -140,15 +150,29 @@ export const NeonTemplate = ({ data, settings }) => {
                         <span>TOTAL</span><span>{formatINR(total)}</span>
                     </div>
                     {fieldVisibility.signature !== false && (
-                        <div style={{ marginTop: '40px', textAlign: 'right', fontSize: '10px', fontWeight: 600, color: '#666' }}>
+                        <div style={{ marginTop: '40px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                             {settings.digitalSignature ? (
                                 <img
                                     src={settings.digitalSignature}
                                     alt="Signature"
-                                    style={{ maxHeight: '60px', maxWidth: '120px', marginBottom: '5px', display: 'inline-block', filter: 'invert(1)' }}
+                                    style={{ height: '50px', width: 'auto', marginBottom: '8px', filter: 'invert(1)', objectFit: 'contain' }}
                                 />
-                            ) : null}
-                            <div style={{ borderTop: `1px solid ${neonPurple}`, display: 'inline-block', paddingTop: '5px', width: '120px', textAlign: 'center' }}>{authSignLabel}</div>
+                            ) : (
+                                <div style={{ height: '50px' }}></div>
+                            )}
+                            <div style={{
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                color: '#666',
+                                borderTop: `1px solid ${neonPurple}`,
+                                paddingTop: '6px',
+                                paddingLeft: '20px',
+                                paddingRight: '20px',
+                                textAlign: 'center',
+                                minWidth: '140px'
+                            }}>
+                                {authSignLabel}
+                            </div>
                         </div>
                     )}
                 </div>

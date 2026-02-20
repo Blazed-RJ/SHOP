@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
 import { Scale, Printer } from 'lucide-react';
 
@@ -16,24 +16,21 @@ const BalanceSheet = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
+        const fetchReport = async () => {
+            try {
+                setLoading(true);
+                const { data } = await api.get(`/reports/balance-sheet?date=${date}`);
+                setData(data);
+                setLoading(false);
+            } catch (error) {
+                console.error(error);
+                toast.error('Failed to load Balance Sheet');
+                setLoading(false);
+            }
+        };
+
         fetchReport();
     }, [date]);
-
-    const fetchReport = async () => {
-        try {
-            setLoading(true);
-            const token = localStorage.getItem('token');
-            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/reports/balance-sheet?date=${date}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setData(data);
-            setLoading(false);
-        } catch (error) {
-            console.error(error);
-            toast.error('Failed to load Balance Sheet');
-            setLoading(false);
-        }
-    };
 
     const handleRowClick = (item) => {
         if (item._id) {

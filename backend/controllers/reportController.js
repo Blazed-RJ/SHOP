@@ -1,6 +1,7 @@
-
 import AccountLedger from '../models/AccountLedger.js';
 import JournalVoucher from '../models/JournalVoucher.js';
+import Payment from '../models/Payment.js';
+import Product from '../models/Product.js';
 import mongoose from 'mongoose';
 
 /**
@@ -309,6 +310,75 @@ export const getLedgerVouchers = async (req, res) => {
         });
 
     } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Get Dashboard Financial Summary
+// @route   GET /api/reports/dashboard-summary
+// @access  Private
+export const getDashboardSummary = async (req, res) => {
+    try {
+        // 1. Calculate Cash In Hand (Method = 'Cash')
+        const cashPayments = await Payment.aggregate([
+            { $match: { user: req.user.ownerId, method: 'Cash' } },
+            {
+                $group: {
+                    _id: null,
+                    totalDebit: {
+                        $sum: { $cond: [{ $eq: ["$type", "Debit"] }, "$amount", 0] }
+                    },
+                    totalCredit: {
+                        $sum: { $cond: [{ $eq: ["$type", "Credit"] }, "$amount", 0] }
+                    }
+                }
+            }
+        ]);
+
+        const cashInHand = cashPayments.length > 0 ? (cashPayments[0].totalDebit - cashPayments[0].totalCredit) : 0;
+
+        // 2. Calculate Cash In Bank (Method != 'Cash')
+        const bankPayments = await Payment.aggregate([
+            { $match: { user: req.user.ownerId, method: { $ne: 'Cash' } } },
+            {
+                $group: {
+                    _id: null,
+                    totalDebit: {
+                        $sum: { $cond: [{ $eq: ["$type", "Debit"] }, "$amount", 0] }
+                    },
+                    totalCredit: {
+                        $sum: { $cond: [{ $eq: ["$type", "Credit"] }, "$amount", 0] }
+                    }
+                }
+            }
+        ]);
+
+        const cashInBank = bankPayments.length > 0 ? (bankPayments[0].totalDebit - bankPayments[0].totalCredit) : 0;
+
+        // 3. Calculate Product Value (Stock * CostPrice)
+        const productValueAgg = await Product.aggregate([
+            { $match: { user: req.user.ownerId, isActive: true } },
+            {
+                $group: {
+                    _id: null,
+                    totalValue: { $sum: { $multiply: ["$stock", "$costPrice"] } }
+                }
+            }
+        ]);
+
+        const productValue = productValueAgg.length > 0 ? productValueAgg[0].totalValue : 0;
+
+        console.log(`[DEBUG] Dashboard Summary Request for User: ${req.user._id} (Owner: ${req.user.ownerId})`);
+        console.log(`[DEBUG] Calculated: CashInHand=${cashInHand}, Bank=${cashInBank}, Stock=${productValue}`);
+
+        res.json({
+            cashInHand,
+            cashInBank,
+            productValue
+        });
+
+    } catch (error) {
+        console.error('Dashboard Summary Error:', error);
         res.status(500).json({ message: error.message });
     }
 };

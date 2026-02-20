@@ -6,6 +6,8 @@ import api from '../utils/api';
 import { formatINR } from '../utils/currency';
 import { calculateLineTotal, calculateInvoiceSummary } from '../utils/gstCalculator';
 import { useSettings } from '../context/SettingsContext';
+import QRCode from 'qrcode';
+import { BACKEND_URL } from '../utils/api';
 import {
     Search,
     Plus,
@@ -98,6 +100,27 @@ const InvoiceCreator = () => {
         address: '',
         notes: ''
     });
+
+    const [qrCodeUrl, setQrCodeUrl] = useState(null);
+
+    useEffect(() => {
+        const generateQR = async () => {
+            if (sellerDetails.upiId) {
+                try {
+                    const upiUrl = `upi://pay?pa=${sellerDetails.upiId}&pn=${sellerDetails.storeName || 'Merchant'}&cu=INR`;
+                    const url = await QRCode.toDataURL(upiUrl, { width: 150, margin: 1 });
+                    setQrCodeUrl(url);
+                } catch (err) {
+                    console.error("QR Generation failed", err);
+                    setQrCodeUrl(null);
+                }
+            } else {
+                setQrCodeUrl(null);
+            }
+        };
+        generateQR();
+    }, [sellerDetails.upiId, sellerDetails.storeName]);
+
     const [newItemConfig, setNewItemConfig] = useState({
         selectedProduct: null,
         qty: 1
@@ -331,7 +354,6 @@ const InvoiceCreator = () => {
     const summary = calculateInvoiceSummary(items);
     const totalPaid = Object.values(payment).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
     const balanceDue = summary.grandTotal - totalPaid;
-    const isFullyPaid = balanceDue <= 0.5; // Tolerance for float
 
     // Submit
     const handleSubmit = async () => {
@@ -1127,7 +1149,8 @@ const InvoiceCreator = () => {
                                                 total: summary.grandTotal,
                                                 terms: sellerDetails.termsAndConditions,
                                                 upiId: sellerDetails.upiId,
-                                                digitalSignature: settings?.digitalSignature,
+                                                digitalSignature: (settings?.digitalSignature) && typeof settings?.digitalSignature === 'string' && !settings?.digitalSignature.startsWith('http') && !settings?.digitalSignature.startsWith('data:')
+                                                    ? `${BACKEND_URL}${settings.digitalSignature}` : settings?.digitalSignature,
                                                 authSignLabel: sellerDetails.authSignLabel
                                             }}
                                             settings={{
@@ -1141,7 +1164,11 @@ const InvoiceCreator = () => {
                                                 bankDetails: sellerDetails.bankDetails,
                                                 brandColor: settings?.brandColor,
                                                 primaryTextColor: settings?.primaryTextColor,
-                                                logo: settings?.logo,
+                                                qrCode: qrCodeUrl,
+                                                logo: (settings?.logo) && typeof settings?.logo === 'string' && !settings?.logo.startsWith('http') && !settings?.logo.startsWith('data:')
+                                                    ? `${BACKEND_URL}${settings.logo}` : settings?.logo,
+                                                digitalSignature: (settings?.digitalSignature) && typeof settings?.digitalSignature === 'string' && !settings?.digitalSignature.startsWith('http') && !settings?.digitalSignature.startsWith('data:')
+                                                    ? `${BACKEND_URL}${settings.digitalSignature}` : settings?.digitalSignature,
                                                 fieldVisibility: settings?.invoiceTemplate?.fieldVisibility || {
                                                     shippingAddress: false,
                                                     taxBreakdown: true,

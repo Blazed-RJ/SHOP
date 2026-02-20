@@ -1,6 +1,6 @@
 
 import { useRef, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
 import { Plus, Trash, Save, Calculator } from 'lucide-react';
 import useKeyboardNavigation from '../../hooks/useKeyboardNavigation';
@@ -25,20 +25,17 @@ const JournalEntry = () => {
     const difference = totalDebit - totalCredit;
 
     useEffect(() => {
+        const fetchLedgers = async () => {
+            try {
+                const { data } = await api.get('/accounting/ledgers');
+                setLedgers(data);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
         fetchLedgers();
     }, []);
-
-    const fetchLedgers = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/accounting/ledgers`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setLedgers(data);
-        } catch (error) {
-            console.error(error);
-        }
-    };
 
     const handleRowChange = (index, field, value) => {
         const newRows = [...formData.rows];
@@ -75,14 +72,11 @@ const JournalEntry = () => {
         }
 
         try {
-            const token = localStorage.getItem('token');
-            await axios.post(`${import.meta.env.VITE_API_URL}/api/accounting/vouchers`, {
+            await api.post('/accounting/vouchers', {
                 date: formData.date,
                 type: 'Journal',
                 narration: formData.narration,
                 entries: formData.rows
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
             });
             toast.success('Journal Voucher Saved!');
             // Reset

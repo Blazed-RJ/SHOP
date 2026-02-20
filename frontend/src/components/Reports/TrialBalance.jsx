@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
 import { FileText, Printer } from 'lucide-react';
 
@@ -16,24 +16,21 @@ const TrialBalance = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
+        const fetchReport = async () => {
+            try {
+                setLoading(true);
+                const { data } = await api.get(`/reports/trial-balance?date=${date}`);
+                setData(data);
+                setLoading(false);
+            } catch (error) {
+                console.error(error);
+                toast.error('Failed to load Trial Balance');
+                setLoading(false);
+            }
+        };
+
         fetchReport();
     }, [date]);
-
-    const fetchReport = async () => {
-        try {
-            setLoading(true);
-            const token = localStorage.getItem('token');
-            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/reports/trial-balance?date=${date}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setData(data);
-            setLoading(false);
-        } catch (error) {
-            console.error(error);
-            toast.error('Failed to load Trial Balance');
-            setLoading(false);
-        }
-    };
 
     const handleRowClick = (item) => {
         setSelectedLedger({ id: item._id, name: item.name });

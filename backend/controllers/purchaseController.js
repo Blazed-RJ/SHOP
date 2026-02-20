@@ -28,7 +28,10 @@ export const createPurchase = async (req, res) => {
 
         // 1. Process Items (Stock & Batches)
         for (const item of items) {
-            const product = await Product.findById(item.productId);
+            const product = await Product.findOne({
+                _id: item.productId,
+                user: req.user.ownerId
+            });
             if (!product) continue;
 
             // Update Product Cost/Selling Price if provided (Last Purchase Price logic)
@@ -87,12 +90,12 @@ export const createPurchase = async (req, res) => {
             debit: 0,
             credit: totalAmount,
             balance: 0, // Recalculated below
-            user: req.user._id
+            user: req.user.ownerId
         });
 
         // 3. Update Supplier Balance & Ledger
         await Supplier.findOneAndUpdate(
-            { _id: supplierId },
+            { _id: supplierId, user: req.user.ownerId },
             { $inc: { balance: totalAmount } }
         );
 
