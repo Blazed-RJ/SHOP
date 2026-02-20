@@ -8,7 +8,8 @@ import {
     searchProducts,
     getProductBatches,
     getExpiringBatches,
-    createProductsBulk
+    createProductsBulk,
+    deleteProductsBulk
 } from '../controllers/productController.js';
 import { protect } from '../middleware/auth.js';
 import { authorize } from '../middleware/rbac.js';
@@ -28,6 +29,7 @@ router.get('/:id/batches', protect, getProductBatches);
 router.post('/bulk', protect, authorize('Admin', 'Accountant'), createProductsBulk);
 router.post('/', protect, authorize('Admin', 'Accountant'), upload.single('image'), createProduct);
 router.put('/:id', protect, authorize('Admin', 'Accountant'), upload.single('image'), updateProduct);
+router.post('/bulk-delete', protect, authorize('Admin'), deleteProductsBulk);
 router.delete('/:id', protect, authorize('Admin'), deleteProduct);
 
 export default router;

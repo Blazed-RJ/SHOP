@@ -15,6 +15,9 @@ import { validateStockAvailability, deductStock, restoreStock, formatStockErrors
 import { ValidationError, StockError } from '../utils/errorHandler.js';
 import AuditLog from '../models/AuditLog.js';
 
+// Helper for regex escaping to prevent ReDoS and regex errors
+const escapeRegex = (text) => text.toString().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+
 const log = (msg) => {
     // Debug logging disabled
     // console.log(msg);
@@ -288,27 +291,32 @@ export const getInvoices = async (req, res) => {
         if (type) query.type = type;
 
         if (search) {
+            const safeSearch = escapeRegex(search);
             query.$or = [
-                { invoiceNo: { $regex: search, $options: 'i' } },
-                { customerName: { $regex: search, $options: 'i' } },
-                { customerPhone: { $regex: search, $options: 'i' } }
+                { invoiceNo: { $regex: safeSearch, $options: 'i' } },
+                { customerName: { $regex: safeSearch, $options: 'i' } },
+                { customerPhone: { $regex: safeSearch, $options: 'i' } }
             ];
         }
 
-        const invoices = await Invoice.find(query)
-            .populate('customer', 'name phone')
-            .populate('createdBy', 'name')
-            .sort({ createdAt: -1 })
-            .limit(Number(limit))
-            .skip(Number(skip));
+        const parsedLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+        const parsedSkip = Math.max(Number(skip) || 0, 0);
 
-        const total = await Invoice.countDocuments(query);
+        const [invoices, total] = await Promise.all([
+            Invoice.find(query)
+                .populate('customer', 'name phone')
+                .populate('createdBy', 'name')
+                .sort({ createdAt: -1 })
+                .limit(parsedLimit)
+                .skip(parsedSkip),
+            Invoice.countDocuments(query)
+        ]);
 
         res.json({
             invoices,
             total,
-            limit: Number(limit),
-            skip: Number(skip)
+            limit: parsedLimit,
+            skip: parsedSkip
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -331,6 +339,7 @@ export const getInvoiceById = async (req, res) => {
 
         res.json(invoice);
     } catch (error) {
+        if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid Invoice ID format' });
         res.status(500).json({ message: error.message });
     }
 };
@@ -416,6 +425,7 @@ export const updateInvoicePayment = async (req, res) => {
 
         res.json(result);
     } catch (error) {
+        if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid Invoice ID format' });
         res.status(res.statusCode === 200 ? 400 : res.statusCode).json({ message: error.message });
     }
 };
@@ -490,6 +500,7 @@ export const voidInvoice = async (req, res) => {
         res.json({ message: 'Invoice voided successfully', invoice: result });
 
     } catch (error) {
+        if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid Invoice ID format' });
         console.error('Void Invoice Error:', error);
         res.status(res.statusCode === 200 ? 500 : res.statusCode).json({ message: error.message });
     }
@@ -545,6 +556,7 @@ export const deleteInvoice = async (req, res) => {
 
         res.json({ message: 'Invoice deleted' });
     } catch (error) {
+        if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid Invoice ID format' });
         console.error('Delete Invoice Error:', error);
         res.status(res.statusCode === 200 ? 500 : res.statusCode).json({ message: error.message });
     }
@@ -617,6 +629,7 @@ export const emailInvoice = async (req, res) => {
 
         res.json({ message: 'Invoice sent successfully' });
     } catch (error) {
+        if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid Invoice ID format' });
         console.error(error);
         res.status(500).json({ message: error.message || 'Failed to send email' });
     }

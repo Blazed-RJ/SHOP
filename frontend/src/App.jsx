@@ -162,7 +162,7 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
-      <Route path="/catalog" element={
+      <Route path="/cash-bank" element={
         <ProtectedRoute>
           <AuthorizeView roles={['Admin', 'Accountant']}>
             <Catalog />

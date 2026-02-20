@@ -27,15 +27,24 @@ const Inventory = () => {
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
     const [productToDelete, setProductToDelete] = useState(null);
+    const [productsToBulkDelete, setProductsToBulkDelete] = useState([]);
     const [categories, setCategories] = useState([]);
     const [stockFilter, setStockFilter] = useState('all'); // all, low, out
     const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
 
     // Folder View State
-    const [viewMode, setViewMode] = useState('folder'); // 'folder' | 'list'
+    const [viewMode, setViewMode] = useState(() => {
+        return localStorage.getItem('inventoryViewMode') || 'folder';
+    }); // 'folder' | 'list'
     const [categoryPath, setCategoryPath] = useState([]); // Array of {id, name}
     const [currentSubCategories, setCurrentSubCategories] = useState([]);
+
+    // Save view mode preference
+    useEffect(() => {
+        localStorage.setItem('inventoryViewMode', viewMode);
+    }, [viewMode]);
 
     // Debounce search query
     // In original code, useDebounce might not be imported from a hook file but defined inline or imported.
@@ -207,6 +216,30 @@ const Inventory = () => {
             toast.error(error.response?.data?.message || 'Failed to delete product');
         } finally {
             setProductToDelete(null);
+            setShowDeleteModal(false);
+        }
+    };
+
+    const handleBulkDeleteClick = (selectedIds) => {
+        if (!selectedIds || selectedIds.length === 0) return;
+        setProductsToBulkDelete(selectedIds);
+        setShowBulkDeleteModal(true);
+    };
+
+    const confirmBulkDelete = async () => {
+        if (!productsToBulkDelete || productsToBulkDelete.length === 0) return;
+
+        try {
+            // Use proper bulk delete API
+            await api.post(`/products/bulk-delete`, { productIds: productsToBulkDelete });
+            toast.success(`Successfully deleted ${productsToBulkDelete.length} products`);
+            fetchProducts();
+        } catch (error) {
+            console.error('Bulk delete error:', error);
+            toast.error(error.response?.data?.message || 'Failed to delete some or all selected products');
+        } finally {
+            setProductsToBulkDelete([]);
+            setShowBulkDeleteModal(false);
         }
     };
 
@@ -387,6 +420,7 @@ const Inventory = () => {
                             loading={loading}
                             onEdit={(product) => { setEditingProduct(product); setShowModal(true); }}
                             onDelete={handleDeleteClick}
+                            onBulkDelete={handleBulkDeleteClick}
                             sortConfig={sortConfig}
                             onSort={handleSort}
                         />
@@ -446,6 +480,16 @@ const Inventory = () => {
                     title="Delete Product"
                     message={`Are you sure you want to delete "${productToDelete?.name}"? This action cannot be undone.`}
                     confirmText="Delete"
+                    cancelText="Cancel"
+                    isDangerous={true}
+                />
+                <ConfirmationModal
+                    isOpen={showBulkDeleteModal}
+                    onClose={() => setShowBulkDeleteModal(false)}
+                    onConfirm={confirmBulkDelete}
+                    title="Delete Selected Products"
+                    message={`Are you sure you want to delete ${productsToBulkDelete.length} selected products? This action cannot be undone.`}
+                    confirmText="Delete All"
                     cancelText="Cancel"
                     isDangerous={true}
                 />

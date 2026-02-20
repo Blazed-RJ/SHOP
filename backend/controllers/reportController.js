@@ -79,10 +79,12 @@ export const getTrialBalance = async (req, res) => {
         // Set to end of day
         date.setHours(23, 59, 59, 999);
 
-        const balanceMap = await getLedgerBalances(date);
-        const ledgers = await AccountLedger.find()
-            .populate('group', 'name nature')
-            .sort({ 'group.name': 1, name: 1 });
+        const [balanceMap, ledgers] = await Promise.all([
+            getLedgerBalances(date),
+            AccountLedger.find()
+                .populate('group', 'name nature')
+                .sort({ 'group.name': 1, name: 1 })
+        ]);
 
         const report = ledgers.map(l => {
             const bal = balanceMap.get(String(l._id)) || 0;
@@ -119,8 +121,10 @@ export const getProfitAndLoss = async (req, res) => {
         const to = req.query.to ? new Date(req.query.to) : new Date();
         to.setHours(23, 59, 59, 999);
 
-        const movementMap = await getLedgerMovement(from, to);
-        const ledgers = await AccountLedger.find().populate('group', 'name nature');
+        const [movementMap, ledgers] = await Promise.all([
+            getLedgerMovement(from, to),
+            AccountLedger.find().populate('group', 'name nature')
+        ]);
 
         let income = [];
         let expenses = [];
@@ -174,15 +178,11 @@ export const getBalanceSheet = async (req, res) => {
         date.setHours(23, 59, 59, 999);
 
         // Balance Sheet requires Accumulative Balances for Assets/Liabilities
-        const balanceMap = await getLedgerBalances(date);
-
-        // For P&L in Balance Sheet, we need to calculate Net Profit/Loss
-        // usually from Start of Fiscal Year up to 'date'.
-        // Assuming Fiscal Year starts April 1st.
-        const fiscalYearStart = new Date(date.getFullYear() - (date.getMonth() < 3 ? 1 : 0), 3, 1);
-        const plMovementMap = await getLedgerMovement(fiscalYearStart, date);
-
-        const allLedgers = await AccountLedger.find().populate('group', 'name nature');
+        const [balanceMap, plMovementMap, allLedgers] = await Promise.all([
+            getLedgerBalances(date),
+            getLedgerMovement(fiscalYearStart, date),
+            AccountLedger.find().populate('group', 'name nature')
+        ]);
 
         // 1. Calculate Net Profit for the period (to add to Reserves & Surplus)
         let pl_income = 0;
@@ -257,31 +257,31 @@ export const getLedgerVouchers = async (req, res) => {
         to.setHours(23, 59, 59, 999);
 
         // 1. Get Opening Balance (Sum of all moves BEFORE 'from' date)
-        const openingAgg = await JournalVoucher.aggregate([
-            {
-                $match: {
-                    date: { $lt: new Date(from) },
-                    'entries.ledger': new mongoose.Types.ObjectId(ledgerId)
+        const [openingAgg, vouchers] = await Promise.all([
+            JournalVoucher.aggregate([
+                {
+                    $match: {
+                        date: { $lt: new Date(from) },
+                        'entries.ledger': new mongoose.Types.ObjectId(ledgerId)
+                    }
+                },
+                { $unwind: '$entries' },
+                { $match: { 'entries.ledger': new mongoose.Types.ObjectId(ledgerId) } },
+                {
+                    $group: {
+                        _id: null,
+                        totalDebit: { $sum: '$entries.debit' },
+                        totalCredit: { $sum: '$entries.credit' }
+                    }
                 }
-            },
-            { $unwind: '$entries' },
-            { $match: { 'entries.ledger': new mongoose.Types.ObjectId(ledgerId) } }, // Aggregation pipeline match
-            {
-                $group: {
-                    _id: null,
-                    totalDebit: { $sum: '$entries.debit' },
-                    totalCredit: { $sum: '$entries.credit' }
-                }
-            }
+            ]),
+            JournalVoucher.find({
+                'entries.ledger': ledgerId,
+                date: { $gte: from, $lte: to }
+            }).sort({ date: 1 }).populate('entries.ledger', 'name')
         ]);
 
         const openingBal = openingAgg.length > 0 ? (openingAgg[0].totalDebit - openingAgg[0].totalCredit) : 0;
-
-        // 2. Get Vouchers in Range
-        const vouchers = await JournalVoucher.find({
-            'entries.ledger': ledgerId,
-            date: { $gte: from, $lte: to }
-        }).sort({ date: 1 }).populate('entries.ledger', 'name');
 
         // Transform for frontend
         let runningBalance = openingBal;
@@ -319,53 +319,51 @@ export const getLedgerVouchers = async (req, res) => {
 // @access  Private
 export const getDashboardSummary = async (req, res) => {
     try {
+        const ownerId = new mongoose.Types.ObjectId(req.user.ownerId);
+
         // 1. Calculate Cash In Hand (Method = 'Cash')
-        const cashPayments = await Payment.aggregate([
-            { $match: { user: req.user.ownerId, method: 'Cash' } },
-            {
-                $group: {
-                    _id: null,
-                    totalDebit: {
-                        $sum: { $cond: [{ $eq: ["$type", "Debit"] }, "$amount", 0] }
-                    },
-                    totalCredit: {
-                        $sum: { $cond: [{ $eq: ["$type", "Credit"] }, "$amount", 0] }
+        const [cashPayments, bankPayments, productValueAgg] = await Promise.all([
+            Payment.aggregate([
+                { $match: { user: ownerId, method: 'Cash' } },
+                {
+                    $group: {
+                        _id: null,
+                        totalDebit: {
+                            $sum: { $cond: [{ $eq: ["$type", "Debit"] }, "$amount", 0] }
+                        },
+                        totalCredit: {
+                            $sum: { $cond: [{ $eq: ["$type", "Credit"] }, "$amount", 0] }
+                        }
                     }
                 }
-            }
+            ]),
+            Payment.aggregate([
+                { $match: { user: ownerId, method: { $ne: 'Cash' } } },
+                {
+                    $group: {
+                        _id: null,
+                        totalDebit: {
+                            $sum: { $cond: [{ $eq: ["$type", "Debit"] }, "$amount", 0] }
+                        },
+                        totalCredit: {
+                            $sum: { $cond: [{ $eq: ["$type", "Credit"] }, "$amount", 0] }
+                        }
+                    }
+                }
+            ]),
+            Product.aggregate([
+                { $match: { user: ownerId, isActive: true } },
+                {
+                    $group: {
+                        _id: null,
+                        totalValue: { $sum: { $multiply: ["$stock", "$costPrice"] } }
+                    }
+                }
+            ])
         ]);
 
         const cashInHand = cashPayments.length > 0 ? (cashPayments[0].totalDebit - cashPayments[0].totalCredit) : 0;
-
-        // 2. Calculate Cash In Bank (Method != 'Cash')
-        const bankPayments = await Payment.aggregate([
-            { $match: { user: req.user.ownerId, method: { $ne: 'Cash' } } },
-            {
-                $group: {
-                    _id: null,
-                    totalDebit: {
-                        $sum: { $cond: [{ $eq: ["$type", "Debit"] }, "$amount", 0] }
-                    },
-                    totalCredit: {
-                        $sum: { $cond: [{ $eq: ["$type", "Credit"] }, "$amount", 0] }
-                    }
-                }
-            }
-        ]);
-
         const cashInBank = bankPayments.length > 0 ? (bankPayments[0].totalDebit - bankPayments[0].totalCredit) : 0;
-
-        // 3. Calculate Product Value (Stock * CostPrice)
-        const productValueAgg = await Product.aggregate([
-            { $match: { user: req.user.ownerId, isActive: true } },
-            {
-                $group: {
-                    _id: null,
-                    totalValue: { $sum: { $multiply: ["$stock", "$costPrice"] } }
-                }
-            }
-        ]);
-
         const productValue = productValueAgg.length > 0 ? productValueAgg[0].totalValue : 0;
 
         console.log(`[DEBUG] Dashboard Summary Request for User: ${req.user._id} (Owner: ${req.user.ownerId})`);

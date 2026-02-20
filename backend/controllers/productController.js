@@ -2,6 +2,9 @@ import Product from '../models/Product.js';
 import Batch from '../models/Batch.js';
 import AuditLog from '../models/AuditLog.js';
 
+// Helper for regex escaping to prevent ReDoS and regex errors
+const escapeRegex = (text) => text.toString().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+
 // @desc    Get all products
 // @route   GET /api/products
 // @access  Private (Salesman can view but cost price hidden)
@@ -10,8 +13,12 @@ export const getProducts = async (req, res) => {
         const { search, category, limit = 50, skip = 0, subCategory, subSubCategory } = req.query;
         let filters = { isActive: true, user: req.user.ownerId };
 
+        const parsedLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+        const parsedSkip = Math.max(Number(skip) || 0, 0);
+
         if (search) {
-            const searchRegex = { $regex: search, $options: 'i' };
+            const safeSearch = escapeRegex(search);
+            const searchRegex = { $regex: safeSearch, $options: 'i' };
             filters.$or = [
                 { name: searchRegex },
                 { sku: searchRegex },
@@ -27,22 +34,25 @@ export const getProducts = async (req, res) => {
 
         let query = Product.find(filters)
             .sort({ name: 1 })
-            .limit(Number(limit))
-            .skip(Number(skip));
+            .limit(parsedLimit)
+            .skip(parsedSkip);
 
         // Hide cost price for Salesman
         if (req.user.role === 'Salesman') {
             query = query.select('-costPrice');
         }
 
-        const products = await query;
-        const total = await Product.countDocuments(filters);
+        // Execute query and count concurrently for performance
+        const [products, total] = await Promise.all([
+            query,
+            Product.countDocuments(filters)
+        ]);
 
         res.json({
             products,
             total,
-            limit: Number(limit),
-            skip: Number(skip)
+            limit: parsedLimit,
+            skip: parsedSkip
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -69,6 +79,9 @@ export const getProductById = async (req, res) => {
 
         res.json(product);
     } catch (error) {
+        if (error.name === 'CastError') {
+            return res.status(400).json({ message: 'Invalid Product ID format' });
+        }
         res.status(500).json({ message: error.message });
     }
 };
@@ -84,8 +97,8 @@ export const createProduct = async (req, res) => {
             description, subCategory, subSubCategory, minStockAlert
         } = req.body;
 
-        let finalSku = sku;
-        if (!finalSku || finalSku.trim() === '') {
+        let finalSku = sku ? String(sku).trim() : '';
+        if (!finalSku) {
             const timestamp = Date.now().toString().slice(-6);
             const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
             finalSku = `PROD-${timestamp}-${random}`;
@@ -101,15 +114,15 @@ export const createProduct = async (req, res) => {
             user: req.user.ownerId
         });
 
-        // Audit Log
-        await AuditLog.create({
+        // Audit Log (non-blocking)
+        AuditLog.create({
             user: req.user._id,
             action: 'CREATE',
             target: 'Product',
             targetId: product._id,
             details: { name: product.name, sku: product.sku },
             ipAddress: req.ip
-        });
+        }).catch(err => console.error('AuditLog Error:', err.message));
 
         res.status(201).json(product);
     } catch (error) {
@@ -127,15 +140,18 @@ export const createProductsBulk = async (req, res) => {
             return res.status(400).json({ message: 'Invalid or empty product data array' });
         }
 
-        const validProducts = productsData.map(p => {
-            let finalSku = p.sku;
-            if (!finalSku || finalSku.trim() === '') {
+        const validProducts = [];
+        for (const p of productsData) {
+            if (!p || typeof p !== 'object') continue;
+
+            let finalSku = p.sku ? String(p.sku).trim() : '';
+            if (!finalSku) {
                 const timestamp = Date.now().toString().slice(-6);
                 const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
                 finalSku = `PROD-${timestamp}-${random}`;
             }
 
-            return {
+            validProducts.push({
                 name: p.name,
                 category: p.category,
                 subCategory: p.subCategory || '',
@@ -154,21 +170,25 @@ export const createProductsBulk = async (req, res) => {
                 description: p.description || '',
                 isActive: true,
                 user: req.user.ownerId,
-            };
-        });
+            });
+        }
+
+        if (validProducts.length === 0) {
+            return res.status(400).json({ message: 'No valid product objects provided' });
+        }
 
         // Use insertMany for efficient bulk insertion
         const insertedProducts = await Product.insertMany(validProducts);
 
-        // Single Bulk Audit Log
-        await AuditLog.create({
+        // Single Bulk Audit Log (non-blocking)
+        AuditLog.create({
             user: req.user._id,
             action: 'CREATE_BULK',
             target: 'Product',
             targetId: insertedProducts[0]?._id, // Just linking the first one as reference
             details: { count: insertedProducts.length },
             ipAddress: req.ip
-        });
+        }).catch(err => console.error('AuditLog Error:', err.message));
 
         res.status(201).json({ message: `Successfully imported ${insertedProducts.length} products`, count: insertedProducts.length });
     } catch (error) {
@@ -189,6 +209,11 @@ export const updateProduct = async (req, res) => {
 
         const previousData = { name: product.name, price: product.sellingPrice, stock: product.stock };
 
+        // Prevent mass assignment of sensitive database fields
+        delete req.body._id;
+        delete req.body.user;
+        delete req.body.isActive;
+
         // Update fields
         Object.assign(product, req.body);
         if (req.file) {
@@ -197,18 +222,21 @@ export const updateProduct = async (req, res) => {
 
         const updatedProduct = await product.save();
 
-        // Audit Log
-        await AuditLog.create({
+        // Audit Log (non-blocking)
+        AuditLog.create({
             user: req.user._id,
             action: 'UPDATE',
             target: 'Product',
             targetId: product._id,
             details: { previous: previousData, changes: req.body },
             ipAddress: req.ip
-        });
+        }).catch(err => console.error('AuditLog Error:', err.message));
 
         res.json(updatedProduct);
     } catch (error) {
+        if (error.name === 'CastError') {
+            return res.status(400).json({ message: 'Invalid Product ID format' });
+        }
         res.status(400).json({ message: error.message });
     }
 };
@@ -227,17 +255,59 @@ export const deleteProduct = async (req, res) => {
         product.isActive = false;
         await product.save();
 
-        // Audit Log
-        await AuditLog.create({
+        // Audit Log (non-blocking)
+        AuditLog.create({
             user: req.user._id,
             action: 'DELETE',
             target: 'Product',
             targetId: product._id,
             details: { name: product.name, sku: product.sku },
             ipAddress: req.ip
-        });
+        }).catch(err => console.error('AuditLog Error:', err.message));
 
         res.json({ message: 'Product removed' });
+    } catch (error) {
+        if (error.name === 'CastError') {
+            return res.status(400).json({ message: 'Invalid Product ID format' });
+        }
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Delete products in bulk (soft delete)
+// @route   POST /api/products/bulk-delete
+// @access  Private/Admin
+export const deleteProductsBulk = async (req, res) => {
+    try {
+        const { productIds } = req.body;
+
+        if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+            return res.status(400).json({ message: 'No product IDs provided' });
+        }
+
+        const validProducts = await Product.find({ _id: { $in: productIds }, user: req.user.ownerId });
+
+        if (validProducts.length === 0) {
+            return res.status(404).json({ message: 'No valid products found to delete' });
+        }
+
+        // Soft delete all matched
+        await Product.updateMany(
+            { _id: { $in: validProducts.map(p => p._id) } },
+            { $set: { isActive: false } }
+        );
+
+        // Audit Log (non-blocking)
+        AuditLog.create({
+            user: req.user._id,
+            action: 'DELETE_BULK',
+            target: 'Product',
+            targetId: validProducts[0]._id, // logging first one as reference
+            details: { count: validProducts.length, ids: validProducts.map(p => p._id) },
+            ipAddress: req.ip
+        }).catch(err => console.error('AuditLog Error:', err.message));
+
+        res.json({ message: `Successfully deleted ${validProducts.length} products`, count: validProducts.length });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -249,19 +319,21 @@ export const deleteProduct = async (req, res) => {
 export const searchProducts = async (req, res) => {
     try {
         const keyword = req.params.keyword;
+        if (!keyword) return res.json([]);
+        const safeKeyword = escapeRegex(keyword);
 
         let query = Product.find({
             isActive: true,
             user: req.user.ownerId,
             $or: [
-                { name: { $regex: keyword, $options: 'i' } },
-                { sku: { $regex: keyword, $options: 'i' } },
-                { category: { $regex: keyword, $options: 'i' } },
-                { imei1: { $regex: keyword, $options: 'i' } },
-                { imei2: { $regex: keyword, $options: 'i' } },
-                { serialNumber: { $regex: keyword, $options: 'i' } }
+                { name: { $regex: safeKeyword, $options: 'i' } },
+                { sku: { $regex: safeKeyword, $options: 'i' } },
+                { category: { $regex: safeKeyword, $options: 'i' } },
+                { imei1: { $regex: safeKeyword, $options: 'i' } },
+                { imei2: { $regex: safeKeyword, $options: 'i' } },
+                { serialNumber: { $regex: safeKeyword, $options: 'i' } }
             ]
-        });
+        }).limit(20); // Add strict limit for search dropdowns
 
         // Hide cost price for Salesman
         if (req.user.role === 'Salesman') {
