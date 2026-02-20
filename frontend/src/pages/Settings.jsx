@@ -223,7 +223,12 @@ const Settings = () => {
         formDataUpload.append(field, file);
 
         try {
-            await api.put('/settings', formDataUpload);
+            // Override the default 'application/json' header to implicitly pass boundaries
+            await api.put('/settings', formDataUpload, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
             toast.success(`${field} uploaded successfully`);
             refreshSettings();
         } catch (error) {
