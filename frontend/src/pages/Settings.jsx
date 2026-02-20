@@ -1319,8 +1319,8 @@ const Settings = () => {
                                                             width: '210mm',
                                                             minHeight: '297mm',
                                                             transform: `scale(${previewScale})`,
-                                                            marginBottom: `- ${(1 - previewScale) * 297} mm`, // Compensate for scale white space
-                                                            border: formData.letterheadConfig?.showBorder ? `2px solid ${formData.letterheadConfig?.borderColor} ` : 'none',
+                                                            marginBottom: `-${(1 - previewScale) * 297}mm`,
+                                                            border: formData.letterheadConfig?.showBorder ? `2px solid ${formData.letterheadConfig?.borderColor}` : 'none',
                                                         }}
                                                     >
                                                         {currentSettings?.letterhead && (
@@ -1339,7 +1339,7 @@ const Settings = () => {
                                                                     className="font-bold text-gray-900 transform -rotate-45 whitespace-nowrap select-none"
                                                                     style={{
                                                                         opacity: formData.letterheadConfig?.watermarkOpacity || 0.1,
-                                                                        fontSize: `${formData.letterheadConfig?.watermarkSize || 100} px`
+                                                                        fontSize: `${formData.letterheadConfig?.watermarkSize || 100}px`
                                                                     }}
                                                                 >
                                                                     {formData.letterheadConfig.watermarkText}
@@ -1349,10 +1349,10 @@ const Settings = () => {
 
                                                         <div className="relative z-10 flex flex-col h-full"
                                                             style={{
-                                                                paddingTop: `${formData.letterheadConfig?.marginTop || 20} mm`,
-                                                                paddingBottom: `${formData.letterheadConfig?.marginBottom || 20} mm`,
-                                                                paddingLeft: `${formData.letterheadConfig?.marginLeft || 20} mm`,
-                                                                paddingRight: `${formData.letterheadConfig?.marginRight || 20} mm`,
+                                                                paddingTop: `${formData.letterheadConfig?.marginTop || 20}mm`,
+                                                                paddingBottom: `${formData.letterheadConfig?.marginBottom || 20}mm`,
+                                                                paddingLeft: `${formData.letterheadConfig?.marginLeft || 20}mm`,
+                                                                paddingRight: `${formData.letterheadConfig?.marginRight || 20}mm`,
                                                             }}
                                                         >
                                                             {/* Liceria Header */}
