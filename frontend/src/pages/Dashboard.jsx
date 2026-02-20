@@ -35,6 +35,7 @@ const Dashboard = () => {
         cashCollection: 0,
         totalCollections: 0,
         totalReceivables: 0,
+        totalPayables: 0,
         recentInvoices: []
     });
     const [loading, setLoading] = useState(true);
@@ -282,16 +283,23 @@ const Dashboard = () => {
                                 <div className="flex items-start justify-between">
                                     <div>
                                         <p className="text-xs font-black text-black dark:text-red-200 uppercase tracking-wider">Pending (Udhaar)</p>
-                                        <p className="text-2xl font-black text-black dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-red-100 dark:via-red-300 dark:to-red-500 mt-1 rupee font-mono">
-                                            {formatINR(stats.totalReceivables)}
-                                        </p>
+                                        <div className="mt-2 space-y-1">
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-emerald-600 dark:text-emerald-400 font-bold">To Take:</span>
+                                                <span className="font-mono font-black text-emerald-700 dark:text-emerald-300 rupee">{formatINR(stats.totalReceivables)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-red-600 dark:text-red-400 font-bold">To Give:</span>
+                                                <span className="font-mono font-black text-red-700 dark:text-red-300 rupee">{formatINR(stats.totalPayables || 0)}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="p-2 bg-white/80 dark:bg-red-500/20 rounded-lg border border-brand-500/20 dark:border-brand-500/10 text-red-500 dark:text-red-300 group-hover:text-white group-hover:bg-red-600 dark:group-hover:bg-red-500 transition-all duration-300 shadow-sm dark:shadow-[0_0_10px_rgba(239,68,68,0.5)]">
                                         <AlertCircle className="w-4 h-4" />
                                     </div>
                                 </div>
                                 <div className="mt-4 absolute bottom-0 left-0 w-full h-1 bg-red-200/30 dark:bg-red-50 dark:bg-red-500/10">
-                                    <div className="h-full bg-red-500/50 w-4/5 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+                                    <div className="h-full bg-red-500/50 w-full shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
                                 </div>
                             </div>
                         </div>

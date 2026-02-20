@@ -54,7 +54,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
 
 
-        { name: 'Cash & Bank', icon: Library, path: '/catalog', roles: ['Admin', 'Accountant'] },
+        { name: 'Cash & Bank', icon: Library, path: '/cash-bank', roles: ['Admin', 'Accountant'] },
         { name: 'Settings', icon: Settings, path: '/settings', roles: ['Admin'] },
     ];
 

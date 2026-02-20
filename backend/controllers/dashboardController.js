@@ -1,6 +1,7 @@
 import Invoice from '../models/Invoice.js';
 import Product from '../models/Product.js';
 import Customer from '../models/Customer.js';
+import Supplier from '../models/Supplier.js';
 import Payment from '../models/Payment.js';
 import moment from 'moment-timezone';
 import mongoose from 'mongoose';
@@ -55,17 +56,26 @@ export const getDashboardStats = async (req, res) => {
             }
         ]);
 
-        const customerStats = await Customer.aggregate([
-            { $match: { user: ownerId } },
-            {
-                $group: {
-                    _id: null,
-                    totalParties: { $sum: 1 },
-                    totalReceivables: { $sum: "$balance" }
-                }
-            }
-        ]);
+        // 2. Party Stats (Customers + Suppliers combined logic)
+        // Note: A positive balance usually means they owe us (Receivable). Negative means we owe them (Payable).
+        const customers = await Customer.find({ user: ownerId, isActive: true });
+        const suppliers = await Supplier.find({ user: ownerId, isActive: true });
 
+        let totalParties = customers.length + suppliers.length;
+        let totalReceivables = 0; // Money we are owed (Udhaar)
+        let totalPayables = 0;    // Money we owe
+
+        customers.forEach(c => {
+            if (c.balance > 0) totalReceivables += c.balance;
+            else if (c.balance < 0) totalPayables += Math.abs(c.balance);
+        });
+
+        suppliers.forEach(s => {
+            if (s.balance > 0) totalReceivables += s.balance; // Supplier owes us (e.g., advance given)
+            else if (s.balance < 0) totalPayables += Math.abs(s.balance); // We owe supplier (standard)
+        });
+
+        // 3. Product Stats (Correcting the MongoDB aggregation syntax)
         const productStats = await Product.aggregate([
             { $match: { user: ownerId, isActive: true } },
             {
@@ -73,7 +83,14 @@ export const getDashboardStats = async (req, res) => {
                     _id: null,
                     totalItems: { $sum: 1 },
                     stockValue: { $sum: { $multiply: ["$costPrice", "$stock"] } },
-                    potentialProfit: { $sum: { $multiply: [{ $subtract: ["$sellingPrice", "$costPrice"] }, "$stock"] } }
+                    potentialProfit: {
+                        $sum: {
+                            $multiply: [
+                                { $subtract: ["$sellingPrice", "$costPrice"] },
+                                "$stock"
+                            ]
+                        }
+                    }
                 }
             }
         ]);
@@ -124,8 +141,9 @@ export const getDashboardStats = async (req, res) => {
             yesterdaySales: stats[0].yesterdaySales[0]?.total || 0,
             recentInvoices: stats[0].recentInvoices,
             statusCounts: stats[0].statusCounts,
-            totalParties: customerStats[0]?.totalParties || 0,
-            totalReceivables: customerStats[0]?.totalReceivables || 0,
+            totalParties: totalParties,
+            totalReceivables: totalReceivables,
+            totalPayables: totalPayables,
             totalItems: productStats[0]?.totalItems || 0,
             totalStockValue: productStats[0]?.stockValue || 0,
             potentialProfit: productStats[0]?.potentialProfit || 0,
