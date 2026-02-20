@@ -11,25 +11,27 @@ export default defineConfig({
         target: 'http://localhost:5002',
         changeOrigin: true,
       },
-      build: {
-        chunkSizeWarningLimit: 1000,
-        rollupOptions: {
-          output: {
-            manualChunks(id) {
-              if (id.includes('node_modules')) {
-                if (id.includes('xlsx')) {
-                  return 'vendor-excel'; // Isolate the massive excel parser
-                }
-                if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-                  return 'vendor-react'; // Isolate core react packages
-                }
-                if (id.includes('lucide-react')) {
-                  return 'vendor-icons'; // Isolate all icons
-                }
-                return 'vendor'; // Everything else in node_modules
-              }
+    },
+  },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('xlsx')) {
+              return 'vendor-excel'; // Isolate the massive excel parser
             }
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor-react'; // Isolate core react packages
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons'; // Isolate all icons
+            }
+            return 'vendor'; // Everything else in node_modules
           }
         }
       }
-    })
+    }
+  }
+})
