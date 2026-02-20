@@ -1,5 +1,5 @@
 import React from 'react';
-import { Folder, ChevronRight, Package, ArrowLeft } from 'lucide-react';
+import { Folder, ChevronRight, Package, ArrowLeft, Trash2 } from 'lucide-react';
 import { BACKEND_URL } from '../../utils/api';
 
 const CategoryFolderView = ({
@@ -11,6 +11,7 @@ const CategoryFolderView = ({
     onNavigateBack,
     onNavigateHome,
     onMoveProduct, // New prop for handling product drops
+    onDeleteCategory, // New prop for handling category deletion
     loading
 }) => {
     // Handlers for drag and drop interactions on Folders
@@ -114,6 +115,20 @@ const CategoryFolderView = ({
                                     onDrop={(e) => handleDrop(e, category)}
                                     className="group relative flex flex-col items-center p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-brand-200 dark:hover:border-brand-700 cursor-pointer transition-all duration-200"
                                 >
+                                    {/* Delete Button */}
+                                    {onDeleteCategory && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDeleteCategory(category);
+                                            }}
+                                            className="absolute top-2 right-2 p-1.5 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-200 dark:hover:bg-red-900 transition-all duration-200 z-10 hover:scale-110 shadow-sm"
+                                            title="Delete Folder"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    )}
+
                                     <div className="w-16 h-16 mb-4 relative flex items-center justify-center">
                                         {category.image ? (
                                             <img
@@ -139,7 +154,7 @@ const CategoryFolderView = ({
                                     <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center truncate w-full px-2" title={category.name}>
                                         {category.name}
                                     </h3>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
                                         {category.subCategories?.length > 0 && `${category.subCategories.length} sub-folder${category.subCategories.length > 1 ? 's' : ''}`}
                                         {category.subCategories?.length > 0 && category.productCount > 0 && ' • '}
                                         {category.productCount > 0 && `${category.productCount} product${category.productCount > 1 ? 's' : ''}`}
@@ -200,9 +215,10 @@ const CategoryFolderView = ({
                             ))}
                         </div>
                     </div>
-                )}
-            </div>
-        </div>
+                )
+                }
+            </div >
+        </div >
     );
 };
 

@@ -407,6 +407,19 @@ const Inventory = () => {
                         onNavigateBack={() => handleNavigateBack(-1)}
                         onNavigateHome={handleNavigateHome}
                         onMoveProduct={handleMoveProduct}
+                        onDeleteCategory={async (category) => {
+                            if (window.confirm(`Are you sure you want to delete the folder "${category.name}"?\n\nProducts inside it will not be deleted, but they will lose this category tag.`)) {
+                                try {
+                                    await api.delete(`/categories/${category._id}`);
+                                    toast.success('Category folder deleted successfully');
+                                    fetchCategories();
+                                    fetchProducts(); // Refresh products as their category might have changed
+                                } catch (error) {
+                                    console.error('Failed to delete category:', error);
+                                    toast.error(error.response?.data?.message || 'Failed to delete category');
+                                }
+                            }
+                        }}
                         loading={loading}
                     />
                 )}
