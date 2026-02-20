@@ -1050,6 +1050,72 @@ const InvoiceCreator = () => {
                                 )}
                             </div>
                         </div>
+
+                        {/* Live Preview - Premium Edition (Moved here from Right Column) */}
+                        <div className="hidden lg:block space-y-4 mt-8">
+                            <div className="flex justify-between items-center px-2">
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 flex items-center gap-2">
+                                    <Printer className="w-3 h-3 text-rose-500" />
+                                    Live Invoice Preview
+                                </h3>
+                                <div className="text-[9px] uppercase font-bold text-gray-500 tracking-wider">
+                                    {settings?.invoiceTemplate?.templateId || 'MODERN'} LAYOUT
+                                </div>
+                            </div>
+
+                            <div className="bg-gray-800 rounded-[32px] p-2 box-outline shadow-2xl backdrop-blur-md transition-all duration-300">
+                                <div className="bg-gray-900 rounded-[24px] overflow-hidden aspect-[1/1.414] relative print:overflow-visible print:aspect-auto print:bg-transparent print:rounded-none">
+                                    <div className="absolute inset-0 overflow-y-auto custom-scrollbar print:relative print:inset-auto print:overflow-visible">
+                                        <InvoiceRenderer
+                                            templateId={settings?.invoiceTemplate?.templateId || 'modern'}
+                                            data={{
+                                                invoiceNo: invoiceSettings.invoiceNo,
+                                                date: invoiceSettings.date,
+                                                customerName: customerInfo.name,
+                                                customerPhone: customerInfo.phone,
+                                                customerAddress: customerInfo.address,
+                                                customerGstin: customerInfo.gstin,
+                                                items: items.map(i => ({ ...i, price: i.pricePerUnit, total: i.totalAmount })),
+                                                subtotal: summary.totalTaxable,
+                                                tax: summary.totalGST,
+                                                total: summary.grandTotal,
+                                                terms: sellerDetails.termsAndConditions,
+                                                upiId: sellerDetails.upiId,
+                                                digitalSignature: (settings?.digitalSignature) && typeof settings?.digitalSignature === 'string' && !settings?.digitalSignature.startsWith('http') && !settings?.digitalSignature.startsWith('data:')
+                                                    ? `${BACKEND_URL}${settings.digitalSignature}` : settings?.digitalSignature,
+                                                authSignLabel: sellerDetails.authSignLabel
+                                            }}
+                                            settings={{
+                                                ...settings,
+                                                shopName: sellerDetails.storeName,
+                                                address: sellerDetails.address,
+                                                phone: sellerDetails.phone,
+                                                email: sellerDetails.email,
+                                                gstin: sellerDetails.gstin,
+                                                invoiceFooterText: sellerDetails.invoiceFooterText,
+                                                bankDetails: sellerDetails.bankDetails,
+                                                brandColor: settings?.brandColor,
+                                                primaryTextColor: settings?.primaryTextColor,
+                                                qrCode: qrCodeUrl,
+                                                logo: (settings?.logo) && typeof settings?.logo === 'string' && !settings?.logo.startsWith('http') && !settings?.logo.startsWith('data:')
+                                                    ? `${BACKEND_URL}${settings.logo}` : settings?.logo,
+                                                digitalSignature: (settings?.digitalSignature) && typeof settings?.digitalSignature === 'string' && !settings?.digitalSignature.startsWith('http') && !settings?.digitalSignature.startsWith('data:')
+                                                    ? `${BACKEND_URL}${settings.digitalSignature}` : settings?.digitalSignature,
+                                                fieldVisibility: settings?.invoiceTemplate?.fieldVisibility || {
+                                                    shippingAddress: false,
+                                                    taxBreakdown: true,
+                                                    signature: true,
+                                                    footer: true,
+                                                    bankDetails: true,
+                                                    qrCode: true,
+                                                    terms: true
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* RIGHT COLUMN (3 cols) - Financial Intelligence & Preview */}
@@ -1119,71 +1185,6 @@ const InvoiceCreator = () => {
                             </button>
                         </div>
 
-                        {/* Live Preview - Premium Edition */}
-                        <div className="hidden lg:block space-y-4">
-                            <div className="flex justify-between items-center px-2">
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 flex items-center gap-2">
-                                    <Printer className="w-3 h-3 text-rose-500" />
-                                    Live Invoice Preview
-                                </h3>
-                                <div className="text-[9px] uppercase font-bold text-gray-500 tracking-wider">
-                                    {settings?.invoiceTemplate?.templateId || 'MODERN'} LAYOUT
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-800 rounded-[32px] p-2 box-outline shadow-2xl backdrop-blur-md transition-all duration-300">
-                                <div className="bg-gray-900 rounded-[24px] overflow-hidden aspect-[1/1.414] relative print:overflow-visible print:aspect-auto print:bg-transparent print:rounded-none">
-                                    <div className="absolute inset-0 overflow-y-auto custom-scrollbar print:relative print:inset-auto print:overflow-visible">
-                                        <InvoiceRenderer
-                                            templateId={settings?.invoiceTemplate?.templateId || 'modern'}
-                                            data={{
-                                                invoiceNo: invoiceSettings.invoiceNo,
-                                                date: invoiceSettings.date,
-                                                customerName: customerInfo.name,
-                                                customerPhone: customerInfo.phone,
-                                                customerAddress: customerInfo.address,
-                                                customerGstin: customerInfo.gstin,
-                                                items: items.map(i => ({ ...i, price: i.pricePerUnit, total: i.totalAmount })),
-                                                subtotal: summary.totalTaxable,
-                                                tax: summary.totalGST,
-                                                total: summary.grandTotal,
-                                                terms: sellerDetails.termsAndConditions,
-                                                upiId: sellerDetails.upiId,
-                                                digitalSignature: (settings?.digitalSignature) && typeof settings?.digitalSignature === 'string' && !settings?.digitalSignature.startsWith('http') && !settings?.digitalSignature.startsWith('data:')
-                                                    ? `${BACKEND_URL}${settings.digitalSignature}` : settings?.digitalSignature,
-                                                authSignLabel: sellerDetails.authSignLabel
-                                            }}
-                                            settings={{
-                                                ...settings,
-                                                shopName: sellerDetails.storeName,
-                                                address: sellerDetails.address,
-                                                phone: sellerDetails.phone,
-                                                email: sellerDetails.email,
-                                                gstin: sellerDetails.gstin,
-                                                invoiceFooterText: sellerDetails.invoiceFooterText,
-                                                bankDetails: sellerDetails.bankDetails,
-                                                brandColor: settings?.brandColor,
-                                                primaryTextColor: settings?.primaryTextColor,
-                                                qrCode: qrCodeUrl,
-                                                logo: (settings?.logo) && typeof settings?.logo === 'string' && !settings?.logo.startsWith('http') && !settings?.logo.startsWith('data:')
-                                                    ? `${BACKEND_URL}${settings.logo}` : settings?.logo,
-                                                digitalSignature: (settings?.digitalSignature) && typeof settings?.digitalSignature === 'string' && !settings?.digitalSignature.startsWith('http') && !settings?.digitalSignature.startsWith('data:')
-                                                    ? `${BACKEND_URL}${settings.digitalSignature}` : settings?.digitalSignature,
-                                                fieldVisibility: settings?.invoiceTemplate?.fieldVisibility || {
-                                                    shippingAddress: false,
-                                                    taxBreakdown: true,
-                                                    signature: true,
-                                                    footer: true,
-                                                    bankDetails: true,
-                                                    qrCode: true,
-                                                    terms: true
-                                                }
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
