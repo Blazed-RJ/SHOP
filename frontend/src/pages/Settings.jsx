@@ -223,17 +223,27 @@ const Settings = () => {
         formDataUpload.append(field, file);
 
         try {
-            // Nullifying the Content-Type allows the XHR browser engine to automatically build boundaries
-            await api.put('/settings', formDataUpload, {
+            const token = localStorage.getItem('token');
+            const baseURL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
+            const response = await fetch(`${baseURL}/settings`, {
+                method: 'PUT',
                 headers: {
-                    'Content-Type': undefined
-                }
+                    'Authorization': `Bearer ${token}`
+                    // Do NOT set Content-Type here; let the browser inject it with the proper network boundaries
+                },
+                body: formDataUpload
             });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.message || 'Server rejected file upload');
+            }
+
             toast.success(`${field} uploaded successfully`);
             refreshSettings();
         } catch (error) {
             console.error(`Upload error for ${field}: `, error);
-            toast.error(`Failed to upload ${field} `);
+            toast.error(`Failed to upload ${field}`);
         }
     };
 
