@@ -55,10 +55,11 @@ const verifyDashboardLogic = async () => {
             user: ownerId,
             invoiceNo: `${testIdentifier}_TODAY`,
             customerName: 'Test Customer Today',
+            customerPhone: '9999999999',
             grandTotal: 1000,
             status: 'Paid',
             invoiceDate: new Date(), // Now
-            totalTax: 0, subTotal: 1000, items: []
+            totalTax: 0, totalGST: 0, totalTaxable: 1000, subTotal: 1000, items: []
         });
 
         // Invoice Yesterday (Created Today but Dated Yesterday)
@@ -66,11 +67,12 @@ const verifyDashboardLogic = async () => {
             user: ownerId,
             invoiceNo: `${testIdentifier}_YESTERDAY`,
             customerName: 'Test Customer Yesterday',
+            customerPhone: '9999999999',
             grandTotal: 500,
             status: 'Paid',
             invoiceDate: moment().tz("Asia/Kolkata").subtract(1, 'days').toDate(), // Yesterday
             createdAt: new Date(), // Created NOW
-            totalTax: 0, subTotal: 500, items: []
+            totalTax: 0, totalGST: 0, totalTaxable: 500, subTotal: 500, items: []
         });
 
         // Payment Today
