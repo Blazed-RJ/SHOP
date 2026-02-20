@@ -108,6 +108,15 @@ const settingsSchema = mongoose.Schema({
         type: String,
         default: '#FFFFFF'
     },
+    appFontFamily: {
+        type: String,
+        default: 'Inter'
+    },
+    sidebarStyle: {
+        type: String,
+        enum: ['solid', 'glass', 'minimal'],
+        default: 'solid'
+    },
     profilePicture: {
         type: String,
         default: ''

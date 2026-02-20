@@ -157,9 +157,7 @@ const CategoryManagementModal = ({ onClose }) => {
                 // Correction: FormData appends everything as string.
                 // We should only append if it has a value or we explicitly want to send null (which becomes "null" string).
 
-                await api.put(`/categories/${editingCategory._id}`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
+                await api.put(`/categories/${editingCategory._id}`, formData);
                 toast.success('Category updated successfully');
             } else {
                 if (isCreatingNew) {
@@ -170,9 +168,7 @@ const CategoryManagementModal = ({ onClose }) => {
                     }
                 }
 
-                await api.post('/categories', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
+                await api.post('/categories', formData);
                 toast.success(
                     selectedParent
                         ? 'Sub-category created successfully'

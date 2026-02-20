@@ -94,6 +94,8 @@ const Settings = () => {
         primaryTextColor: '#2563EB',
         themeColor: '#2563EB',
         loginCardTextColor: '#FFFFFF',
+        appFontFamily: 'Inter',
+        sidebarStyle: 'solid',
         roleBadge: 'ADMIN',
         footerFontSize: 12,
         footerFontFamily: 'sans-serif',
@@ -140,6 +142,8 @@ const Settings = () => {
                 primaryTextColor: currentSettings.primaryTextColor || '#2563EB',
                 themeColor: currentSettings.themeColor || '#2563EB',
                 loginCardTextColor: currentSettings.loginCardTextColor || '#FFFFFF',
+                appFontFamily: currentSettings.appFontFamily || 'Inter',
+                sidebarStyle: currentSettings.sidebarStyle || 'solid',
                 roleBadge: currentSettings.roleBadge || 'ADMIN',
                 footerFontSize: currentSettings.footerFontSize || 12,
                 footerFontFamily: currentSettings.footerFontFamily || 'sans-serif',
@@ -219,9 +223,7 @@ const Settings = () => {
         formDataUpload.append(field, file);
 
         try {
-            await api.put('/settings', formDataUpload, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
+            await api.put('/settings', formDataUpload);
             toast.success(`${field} uploaded successfully`);
             refreshSettings();
         } catch (error) {
@@ -813,6 +815,86 @@ const Settings = () => {
                                                         style={{ backgroundColor: color }}
                                                     />
                                                 ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Secondary/Text Theme Color
+                                            </label>
+                                            <div className="flex items-center space-x-3">
+                                                <input
+                                                    type="color"
+                                                    value={formData.primaryTextColor}
+                                                    onChange={(e) => setFormData({ ...formData, primaryTextColor: e.target.value })}
+                                                    className="w-16 h-10 rounded cursor-pointer bg-transparent"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={formData.primaryTextColor}
+                                                    onChange={(e) => setFormData({ ...formData, primaryTextColor: e.target.value })}
+                                                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg w-32 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Login Card Text Color
+                                            </label>
+                                            <div className="flex items-center space-x-3">
+                                                <input
+                                                    type="color"
+                                                    value={formData.loginCardTextColor}
+                                                    onChange={(e) => setFormData({ ...formData, loginCardTextColor: e.target.value })}
+                                                    className="w-16 h-10 rounded cursor-pointer bg-transparent"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={formData.loginCardTextColor}
+                                                    onChange={(e) => setFormData({ ...formData, loginCardTextColor: e.target.value })}
+                                                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg w-32 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                                Changes the font color on the login screen overlay.
+                                            </p>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    App Font Family
+                                                </label>
+                                                <select
+                                                    value={formData.appFontFamily}
+                                                    onChange={(e) => setFormData({ ...formData, appFontFamily: e.target.value })}
+                                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                >
+                                                    <option value="Inter">Inter (Modern Sans)</option>
+                                                    <option value="'Roboto', sans-serif">Roboto</option>
+                                                    <option value="'Outfit', sans-serif">Outfit</option>
+                                                    <option value="'Open Sans', sans-serif">Open Sans</option>
+                                                    <option value="system-ui">System Default</option>
+                                                    <option value="serif">Serif (Classic)</option>
+                                                    <option value="monospace">Monospace (Code)</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    Sidebar Style
+                                                </label>
+                                                <select
+                                                    value={formData.sidebarStyle}
+                                                    onChange={(e) => setFormData({ ...formData, sidebarStyle: e.target.value })}
+                                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                >
+                                                    <option value="solid">Solid (Standard)</option>
+                                                    <option value="glass">Glassmorphism (Translucent)</option>
+                                                    <option value="minimal">Minimal (Hidden borders)</option>
+                                                </select>
+                                                <p className="text-xs text-gray-500 mt-2">Requires page reload to fully apply.</p>
                                             </div>
                                         </div>
 

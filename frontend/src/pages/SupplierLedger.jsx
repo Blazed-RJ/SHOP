@@ -89,11 +89,7 @@ const SupplierLedger = ({ isPublic = false }) => {
                 formData.append('billFile', payment.billFile);
             }
 
-            await api.post('/payments/supplier', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
+            await api.post('/payments/supplier', formData);
 
             toast.success('Payment recorded successfully');
             setShowPaymentModal(false);
@@ -121,11 +117,7 @@ const SupplierLedger = ({ isPublic = false }) => {
                 formData.append('billFile', purchase.billFile);
             }
 
-            await api.post('/supplier-ledger/record-purchase', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
+            await api.post('/supplier-ledger/record-purchase', formData);
 
             toast.success('Purchase recorded successfully');
             setShowPurchaseModal(false);
@@ -158,11 +150,7 @@ const SupplierLedger = ({ isPublic = false }) => {
                 formData.append('deleteAttachment', 'true');
             }
 
-            await api.put(`/supplier-ledger/${editingEntry._id}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
+            await api.put(`/supplier-ledger/${editingEntry._id}`, formData);
             toast.success('Entry updated successfully');
             setShowEditModal(false);
             setEditingEntry(null);

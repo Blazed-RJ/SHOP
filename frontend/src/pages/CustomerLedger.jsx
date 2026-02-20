@@ -115,11 +115,7 @@ const CustomerLedger = ({ isPublic = false }) => {
                 formData.append('deleteAttachment', 'true');
             }
 
-            await api.put(`/ledger/${editingEntry._id}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
+            await api.put(`/ledger/${editingEntry._id}`, formData);
             toast.success('Entry updated successfully');
             setShowEditModal(false);
             setEditingEntry(null);

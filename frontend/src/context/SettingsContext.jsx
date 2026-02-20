@@ -24,6 +24,11 @@ export const SettingsProvider = ({ children }) => {
 
             if (data.brandColor) setThemeVars('--brand-color', data.brandColor);
             if (data.themeColor) setThemeVars('--theme-color', data.themeColor);
+            if (data.primaryTextColor) setThemeVars('--primary-text', data.primaryTextColor);
+            if (data.loginCardTextColor) setThemeVars('--login-card-text', data.loginCardTextColor);
+            if (data.appFontFamily) {
+                document.body.style.fontFamily = data.appFontFamily;
+            }
 
             setLoading(false);
         } catch (error) {
@@ -47,6 +52,11 @@ export const SettingsProvider = ({ children }) => {
 
             if (data.brandColor) setThemeVars('--brand-color', data.brandColor);
             if (data.themeColor) setThemeVars('--theme-color', data.themeColor);
+            if (data.primaryTextColor) setThemeVars('--primary-text', data.primaryTextColor);
+            if (data.loginCardTextColor) setThemeVars('--login-card-text', data.loginCardTextColor);
+            if (data.appFontFamily) {
+                document.body.style.fontFamily = data.appFontFamily;
+            }
 
             return { success: true, data };
         } catch (error) {

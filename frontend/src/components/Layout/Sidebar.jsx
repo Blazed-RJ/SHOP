@@ -62,10 +62,13 @@ const Sidebar = ({ isOpen, onClose }) => {
 
     return (
         <aside className={`
-            fixed inset-y-0 left-0 z-50 w-72 md:w-64 bg-white/90 dark:bg-black/90 backdrop-blur-xl border-r border-brand-500/20 dark:border-brand-500/30
+            fixed inset-y-0 left-0 z-50 w-72 md:w-64 backdrop-blur-xl border-r border-brand-500/20 dark:border-brand-500/30
             transform transition-transform duration-300 ease-out h-screen flex flex-col shadow-2xl md:shadow-none
-            md:translate-x-0 md:sticky md:top-0 md:inset-auto md:h-screen md:bg-white/50 md:dark:bg-black/50
+            md:translate-x-0 md:sticky md:top-0 md:inset-auto md:h-screen
             ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+            ${settings?.sidebarStyle === 'glass' ? 'bg-white/40 dark:bg-black/40 backdrop-blur-2xl border-white/20 dark:border-white/10' :
+                settings?.sidebarStyle === 'minimal' ? 'bg-white/95 dark:bg-black/95 backdrop-blur-xl md:bg-transparent md:border-transparent md:shadow-none md:backdrop-blur-none' :
+                    'bg-white/95 dark:bg-black/95 backdrop-blur-xl md:bg-white/50 md:dark:bg-black/50'}
         `}>
             {/* Logo & Brand */}
             <div className="p-6 border-b border-brand-500/40 dark:border-brand-500/30 relative overflow-hidden">
