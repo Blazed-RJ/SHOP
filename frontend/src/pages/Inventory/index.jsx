@@ -420,6 +420,7 @@ const Inventory = () => {
                                 }
                             }
                         }}
+                        onDeleteProduct={handleDeleteClick}
                         loading={loading}
                     />
                 )}

@@ -12,6 +12,7 @@ const CategoryFolderView = ({
     onNavigateHome,
     onMoveProduct, // New prop for handling product drops
     onDeleteCategory, // New prop for handling category deletion
+    onDeleteProduct, // New prop for handling product deletion
     loading
 }) => {
     // Handlers for drag and drop interactions on Folders
@@ -183,6 +184,20 @@ const CategoryFolderView = ({
                                     onClick={() => onProductClick(product)}
                                     className="group relative flex flex-col p-0 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-lg hover:border-brand-300 dark:hover:border-brand-600 cursor-pointer transition-all duration-200 overflow-hidden"
                                 >
+                                    {/* Delete Button */}
+                                    {onDeleteProduct && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDeleteProduct(product);
+                                            }}
+                                            className="absolute top-2 right-2 p-1.5 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-200 dark:hover:bg-red-900 transition-all duration-200 z-10 hover:scale-110 shadow-sm"
+                                            title="Delete Product"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    )}
+
                                     {/* Image/Thumbnail */}
                                     <div className="h-32 w-full bg-gray-100 dark:bg-gray-900/50 flex items-center justify-center relative overflow-hidden">
                                         {product.image ? (
