@@ -1160,14 +1160,14 @@ const Settings = () => {
                                                             <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Margin {side} (mm)</label>
                                                             <input
                                                                 type="range" min="0" max="50" step="1"
-                                                                value={formData.letterheadConfig?.[`margin${side} `] || 20}
+                                                                value={formData.letterheadConfig?.[`margin${side}`] || 20}
                                                                 onChange={(e) => setFormData({
                                                                     ...formData,
-                                                                    letterheadConfig: { ...formData.letterheadConfig, [`margin${side} `]: parseInt(e.target.value) }
+                                                                    letterheadConfig: { ...formData.letterheadConfig, [`margin${side}`]: parseInt(e.target.value) }
                                                                 })}
                                                                 className="w-full mt-1 accent-blue-600"
                                                             />
-                                                            <div className="text-right text-xs text-blue-600 dark:text-blue-400 font-mono">{formData.letterheadConfig?.[`margin${side} `] || 20}mm</div>
+                                                            <div className="text-right text-xs text-blue-600 dark:text-blue-400 font-mono">{formData.letterheadConfig?.[`margin${side}`] || 20}mm</div>
                                                         </div>
                                                     ))}
                                                 </div>
