@@ -193,16 +193,19 @@ const ProductForm = ({ product, onClose, onSuccess }) => {
                 <form onSubmit={handleSubmit} className="p-8 space-y-6">
                     {/* Basic Details */}
                     <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Product Name</label>
-                            <input
-                                type="text"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-all outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
-                                placeholder="Enter product name"
-                                required
-                            />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Product Name</label>
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-colors outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 scroll-mt-32"
+                                    placeholder="Enter product name"
+                                    required
+                                    autoFocus
+                                />
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -309,7 +312,7 @@ const ProductForm = ({ product, onClose, onSuccess }) => {
                                     placeholder="Enter cost price"
                                     required
                                     min="0"
-                                    step="0.01"
+                                    step="any"
                                 />
                             </div>
                         </div>
@@ -324,7 +327,7 @@ const ProductForm = ({ product, onClose, onSuccess }) => {
                                         onChange={handleMarginChange}
                                         className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent transition-all outline-none bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
                                         placeholder="e.g., 20"
-                                        step="0.1"
+                                        step="any"
                                     />
                                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 font-medium">%</span>
                                 </div>
@@ -339,7 +342,7 @@ const ProductForm = ({ product, onClose, onSuccess }) => {
                                     placeholder="Calculated automatically"
                                     required
                                     min="0"
-                                    step="0.01"
+                                    step="any"
                                 />
                             </div>
                         </div>

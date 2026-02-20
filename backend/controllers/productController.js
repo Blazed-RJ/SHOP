@@ -117,6 +117,65 @@ export const createProduct = async (req, res) => {
     }
 };
 
+// @desc    Create products in bulk
+// @route   POST /api/products/bulk
+// @access  Private/Admin/Accountant
+export const createProductsBulk = async (req, res) => {
+    try {
+        const productsData = req.body.products;
+        if (!Array.isArray(productsData) || productsData.length === 0) {
+            return res.status(400).json({ message: 'Invalid or empty product data array' });
+        }
+
+        const validProducts = productsData.map(p => {
+            let finalSku = p.sku;
+            if (!finalSku || finalSku.trim() === '') {
+                const timestamp = Date.now().toString().slice(-6);
+                const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+                finalSku = `PROD-${timestamp}-${random}`;
+            }
+
+            return {
+                name: p.name,
+                category: p.category,
+                subCategory: p.subCategory || '',
+                subSubCategory: p.subSubCategory || '',
+                costPrice: p.costPrice || 0,
+                sellingPrice: p.sellingPrice || 0,
+                margin: p.margin || 0,
+                gstPercent: p.gstPercent || 18,
+                isTaxInclusive: p.isTaxInclusive !== undefined ? p.isTaxInclusive : true,
+                stock: p.stock || 0,
+                minStockAlert: p.minStockAlert || 5,
+                sku: finalSku,
+                imei1: p.imei1 || '',
+                imei2: p.imei2 || '',
+                serialNumber: p.serialNumber || '',
+                description: p.description || '',
+                isActive: true,
+                user: req.user.ownerId,
+            };
+        });
+
+        // Use insertMany for efficient bulk insertion
+        const insertedProducts = await Product.insertMany(validProducts);
+
+        // Single Bulk Audit Log
+        await AuditLog.create({
+            user: req.user._id,
+            action: 'CREATE_BULK',
+            target: 'Product',
+            targetId: insertedProducts[0]?._id, // Just linking the first one as reference
+            details: { count: insertedProducts.length },
+            ipAddress: req.ip
+        });
+
+        res.status(201).json({ message: `Successfully imported ${insertedProducts.length} products`, count: insertedProducts.length });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
 // @desc    Update product
 // @route   PUT /api/products/:id
 // @access  Private/Admin/Accountant

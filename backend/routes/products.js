@@ -7,7 +7,8 @@ import {
     deleteProduct,
     searchProducts,
     getProductBatches,
-    getExpiringBatches
+    getExpiringBatches,
+    createProductsBulk
 } from '../controllers/productController.js';
 import { protect } from '../middleware/auth.js';
 import { authorize } from '../middleware/rbac.js';
@@ -24,6 +25,7 @@ router.get('/:id/batches', protect, getProductBatches);
 
 // Admin only routes
 // Admin & Accountant routes
+router.post('/bulk', protect, authorize('Admin', 'Accountant'), createProductsBulk);
 router.post('/', protect, authorize('Admin', 'Accountant'), upload.single('image'), createProduct);
 router.put('/:id', protect, authorize('Admin', 'Accountant'), upload.single('image'), updateProduct);
 router.delete('/:id', protect, authorize('Admin'), deleteProduct);

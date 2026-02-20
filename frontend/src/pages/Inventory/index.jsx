@@ -10,6 +10,7 @@ import FilterBar from './FilterBar';
 import InventoryTable from './InventoryTable';
 import InventoryCards from './InventoryCards';
 import ProductForm from './ProductForm';
+import ImportModal from '../../components/Inventory/ImportModal';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import CategoryManagementModal from '../../components/CategoryManagementModal';
 
@@ -22,6 +23,7 @@ const Inventory = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [showModal, setShowModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -151,6 +153,41 @@ const Inventory = () => {
             setLoading(false);
         }
     }
+
+    const handleMoveProduct = async (productId, targetCategory) => {
+        try {
+            const product = products.find(p => p._id === productId);
+            if (!product) return;
+
+            let updatedFields = {};
+            if (categoryPath.length === 0) {
+                // Moving to a root Category
+                updatedFields = { category: targetCategory.name, subCategory: '', subSubCategory: '' };
+            } else if (categoryPath.length === 1) {
+                // Moving to a Sub-Category
+                updatedFields = { category: categoryPath[0].name, subCategory: targetCategory.name, subSubCategory: '' };
+            } else if (categoryPath.length === 2) {
+                // Moving to a Sub-Sub-Category
+                updatedFields = { category: categoryPath[0].name, subCategory: categoryPath[1].name, subSubCategory: targetCategory.name };
+            } else {
+                return; // Can't move deeper than 3 levels currently
+            }
+
+            // Optimistic UI update
+            setProducts(prev => prev.map(p => p._id === productId ? { ...p, ...updatedFields } : p));
+
+            // API Call
+            await api.put(`/products/${productId}`, { ...product, ...updatedFields });
+            toast.success(`Moved to ${targetCategory.name}`);
+
+            // Re-fetch to ensure sync
+            fetchProducts();
+        } catch (error) {
+            console.error('Failed to move product:', error);
+            toast.error('Failed to move product');
+            fetchProducts(); // Revert optimistic update
+        }
+    };
 
 
     // Delete Product
@@ -324,6 +361,7 @@ const Inventory = () => {
                     totalProducts={products.length}
                     totalValue={totalValue}
                     onAddProduct={() => { setEditingProduct(null); setShowModal(true); }}
+                    onImport={() => setShowImportModal(true)}
                     onExport={handleExport}
                     onManageCategories={() => setShowCategoryModal(true)}
                 />
@@ -368,6 +406,7 @@ const Inventory = () => {
                         onProductClick={(product) => { setEditingProduct(product); setShowModal(true); }}
                         onNavigateBack={() => handleNavigateBack(-1)}
                         onNavigateHome={handleNavigateHome}
+                        onMoveProduct={handleMoveProduct}
                         loading={loading}
                     />
                 )}
@@ -396,6 +435,18 @@ const Inventory = () => {
                     cancelText="Cancel"
                     isDangerous={true}
                 />
+                {showImportModal && (
+                    <ImportModal
+                        isOpen={showImportModal}
+                        onClose={() => setShowImportModal(false)}
+                        onImportSuccess={() => {
+                            fetchProducts();
+                            if (viewMode === 'folder') {
+                                loadFolderContent(categoryPath);
+                            }
+                        }}
+                    />
+                )}
             </div>
         </Layout>
     );

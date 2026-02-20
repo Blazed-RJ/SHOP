@@ -3,7 +3,7 @@ import React from 'react';
 import { Plus, Download, FolderTree } from 'lucide-react';
 import { formatINR } from '../../utils/currency';
 
-const Header = ({ totalProducts, totalValue, onAddProduct, onExport, onManageCategories }) => {
+const Header = ({ totalProducts, totalValue, onAddProduct, onExport, onImport, onManageCategories }) => {
     return (
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
@@ -25,6 +25,14 @@ const Header = ({ totalProducts, totalValue, onAddProduct, onExport, onManageCat
                 >
                     <Download className="w-4 h-4" />
                     <span className="hidden sm:inline">Export</span>
+                </button>
+
+                <button
+                    onClick={onImport}
+                    className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">Import</span>
                 </button>
 
                 <button

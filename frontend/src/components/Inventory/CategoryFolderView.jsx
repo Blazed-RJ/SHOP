@@ -10,8 +10,28 @@ const CategoryFolderView = ({
     onProductClick,
     onNavigateBack,
     onNavigateHome,
+    onMoveProduct, // New prop for handling product drops
     loading
 }) => {
+    // Handlers for drag and drop interactions on Folders
+    const handleDragOver = (e) => {
+        e.preventDefault(); // Necessary to allow dropping
+        e.currentTarget.classList.add('ring-2', 'ring-brand-500', 'bg-brand-50', 'dark:bg-brand-900/10');
+    };
+
+    const handleDragLeave = (e) => {
+        e.currentTarget.classList.remove('ring-2', 'ring-brand-500', 'bg-brand-50', 'dark:bg-brand-900/10');
+    };
+
+    const handleDrop = (e, targetCategory) => {
+        e.preventDefault();
+        e.currentTarget.classList.remove('ring-2', 'ring-brand-500', 'bg-brand-50', 'dark:bg-brand-900/10');
+        const productId = e.dataTransfer.getData('text/plain');
+        if (productId && onMoveProduct) {
+            onMoveProduct(productId, targetCategory);
+        }
+    };
+
     if (loading) {
         return (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 animate-pulse">
@@ -89,6 +109,9 @@ const CategoryFolderView = ({
                                 <div
                                     key={category._id}
                                     onClick={() => onCategoryClick(category)}
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={(e) => handleDrop(e, category)}
                                     className="group relative flex flex-col items-center p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-brand-200 dark:hover:border-brand-700 cursor-pointer transition-all duration-200"
                                 >
                                     <div className="w-16 h-16 mb-4 relative flex items-center justify-center">
@@ -137,6 +160,11 @@ const CategoryFolderView = ({
                             {products.map(product => (
                                 <div
                                     key={product._id}
+                                    draggable={true}
+                                    onDragStart={(e) => {
+                                        e.dataTransfer.setData('text/plain', product._id);
+                                        // Optional styling while dragging could go here
+                                    }}
                                     onClick={() => onProductClick(product)}
                                     className="group relative flex flex-col p-0 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-lg hover:border-brand-300 dark:hover:border-brand-600 cursor-pointer transition-all duration-200 overflow-hidden"
                                 >
