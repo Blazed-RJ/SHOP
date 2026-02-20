@@ -1347,12 +1347,12 @@ const Settings = () => {
                                                             </div>
                                                         )}
 
-                                                        <div className="relative z-10 flex flex-col h-full"
+                                                        <div className="relative z-10 flex flex-col"
                                                             style={{
                                                                 paddingTop: `${formData.letterheadConfig?.marginTop || 20}mm`,
-                                                                paddingBottom: `${formData.letterheadConfig?.marginBottom || 20}mm`,
                                                                 paddingLeft: `${formData.letterheadConfig?.marginLeft || 20}mm`,
                                                                 paddingRight: `${formData.letterheadConfig?.marginRight || 20}mm`,
+                                                                minHeight: '297mm',
                                                             }}
                                                         >
                                                             {/* Liceria Header */}
@@ -1363,7 +1363,7 @@ const Settings = () => {
                                                                     alignItems: formData.letterheadConfig?.logoPosition === 'center' ? 'center' : (formData.letterheadConfig?.logoPosition === 'right' ? 'flex-end' : 'flex-start'),
                                                                     order: formData.letterheadConfig?.logoPosition === 'right' ? 2 : 1
                                                                 }}>
-                                                                    <div className={`flex ${formData.letterheadConfig?.logoPosition === 'center' ? 'flex-col text-center' : 'items-center'} gap - 4 mb - 2`}>
+                                                                    <div className={`flex ${formData.letterheadConfig?.logoPosition === 'center' ? 'flex-col text-center' : 'items-center'} gap-4 mb-2`}>
                                                                         {/* Logo Icon (Reused from Invoice Preview if no real logo) */}
                                                                         {currentSettings?.logo && (
                                                                             <img src={currentSettings.logo} className="h-16 w-auto object-contain" alt="Logo" />
@@ -1444,8 +1444,16 @@ const Settings = () => {
                                                                 </div>
                                                             </div>
 
+                                                            {/* Bottom Margin Spacer — makes marginBottom visually explicit */}
+                                                            <div
+                                                                className="w-full border-t-2 border-dashed border-blue-200 flex items-center justify-center text-[9px] font-mono text-blue-400 bg-blue-50/30"
+                                                                style={{ height: `${formData.letterheadConfig?.marginBottom || 20}mm` }}
+                                                            >
+                                                                ↕ {formData.letterheadConfig?.marginBottom || 20}mm
+                                                            </div>
+
                                                             {/* Footer - 4 Color Blocks */}
-                                                            <div className="absolute bottom-0 left-0 right-0 h-4 flex">
+                                                            <div className="w-full h-4 flex flex-shrink-0">
                                                                 <div className="flex-1" style={{ backgroundColor: formData.brandColor || '#EF4444' }}></div>
                                                                 <div className="flex-1" style={{ backgroundColor: formData.brandColor || '#EF4444', filter: 'brightness(0.9)' }}></div>
                                                                 <div className="flex-1" style={{ backgroundColor: formData.brandColor || '#EF4444', filter: 'brightness(0.8)' }}></div>
