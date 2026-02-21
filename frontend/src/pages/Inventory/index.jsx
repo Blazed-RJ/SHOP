@@ -88,7 +88,7 @@ const Inventory = () => {
     const fetchProducts = useCallback(async () => {
         try {
             setLoading(true);
-            const { data } = await api.get('/products');
+            const { data } = await api.get('/products?limit=2000');
             setProducts(data.products || data); // Handle filtered response structure if API changes
         } catch (error) {
             console.error('Failed to fetch products', error);

@@ -13,7 +13,7 @@ export const getProducts = async (req, res) => {
         const { search, category, limit = 50, skip = 0, subCategory, subSubCategory } = req.query;
         let filters = { isActive: true, user: req.user.ownerId };
 
-        const parsedLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+        const parsedLimit = Math.min(Math.max(Number(limit) || 50, 1), 2000);
         const parsedSkip = Math.max(Number(skip) || 0, 0);
 
         if (search) {
