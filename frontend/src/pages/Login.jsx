@@ -210,8 +210,15 @@ const Login = () => {
                                 setLoading(true);
                                 const result = await googleLogin(credentialResponse.credential);
                                 if (result.success) {
-                                    toast.success(`Welcome back, ${result.user.name}!`);
-                                    navigate('/dashboard');
+                                    if (result.requireOtp) {
+                                        setTempUserId(result.userId);
+                                        setEmailMasked(result.emailMasked);
+                                        setShowOtpInput(true);
+                                        toast.success('Verification code sent to email');
+                                    } else {
+                                        toast.success(`Welcome back, ${result.user.name}!`);
+                                        navigate('/dashboard');
+                                    }
                                 } else {
                                     toast.error(result.error);
                                 }

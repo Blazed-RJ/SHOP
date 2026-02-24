@@ -178,7 +178,7 @@ const authUser = async (req, res) => {
 
 
 const googleLogin = async (req, res) => {
-    const { token } = req.body;
+    const { token, deviceId } = req.body;
 
     try {
         const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -208,21 +208,55 @@ const googleLogin = async (req, res) => {
                 googleId: sub,
                 authProvider: 'google',
                 avatar: picture,
-                role: 'Admin', // Default to Admin
+                role: 'Admin',
             });
-            // Assign ownerId to self
             user.ownerId = user._id;
             await user.save();
         }
 
-        res.json({
-            _id: user._id,
-            name: user.name,
-            username: user.username,
-            role: user.role,
-            ownerId: user.ownerId,
-            avatar: user.avatar,
-            token: generateToken(user._id),
+        // Skip OTP if device is trusted (cleared on logout)
+        if (deviceId && user.trustedDevices && user.trustedDevices.includes(deviceId)) {
+            return res.json({
+                _id: user._id,
+                name: user.name,
+                username: user.username,
+                role: user.role,
+                ownerId: user.ownerId,
+                avatar: user.avatar,
+                token: generateToken(user._id),
+            });
+        }
+
+        // Not trusted — generate and send OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+        user.otp = otp;
+        user.otpExpires = otpExpires;
+        await user.save();
+
+        const emailConfigured = process.env.EMAIL_USER && process.env.EMAIL_PASS;
+        if (emailConfigured && user.email) {
+            try {
+                await sendEmail({
+                    to: user.email,
+                    subject: 'Login Verification Code - Shop App',
+                    html: `<h3>Your Verification Code is: ${otp}</h3><p>This code expires in 10 minutes.</p>`
+                });
+            } catch (emailError) {
+                console.error('Failed to send OTP email', emailError);
+                return res.status(500).json({ message: 'Failed to send verification email' });
+            }
+        } else if (process.env.NODE_ENV !== 'production') {
+            console.log(`[DEV MODE] Google OTP for ${email}: ${otp}`);
+        } else {
+            return res.status(500).json({ message: 'Email configuration missing on server.' });
+        }
+
+        return res.json({
+            message: 'Device verification required',
+            requireOtp: true,
+            userId: user._id,
+            emailMasked: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
         });
 
     } catch (error) {

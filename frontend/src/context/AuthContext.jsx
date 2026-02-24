@@ -65,7 +65,17 @@ export const AuthProvider = ({ children }) => {
 
     const googleLogin = async (token) => {
         try {
-            const { data } = await api.post('/auth/google', { token });
+            const deviceId = localStorage.getItem('deviceId');
+            const { data } = await api.post('/auth/google', { token, deviceId });
+
+            if (data.requireOtp) {
+                return {
+                    success: true,
+                    requireOtp: true,
+                    userId: data.userId,
+                    emailMasked: data.emailMasked
+                };
+            }
 
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data));
