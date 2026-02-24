@@ -13,7 +13,7 @@ const userSchema = mongoose.Schema({
     authProvider: { type: String, default: 'local' },
     role: {
         type: String,
-       enum: ['Admin', 'Accountant', 'Salesman', 'Staff'],
+        enum: ['Admin', 'Staff', 'Accountant', 'Salesman'],
         default: 'Admin'
     },
     ownerId: {

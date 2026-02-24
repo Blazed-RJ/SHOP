@@ -30,7 +30,6 @@ const registerUser = async (req, res) => {
 
         // We update the user immediately to set ownerId = _id (since _id is generated on create)
         user.ownerId = user._id;
-        user.role = 'Admin'; // Enforce Admin for all public signups
         await user.save();
 
         res.status(201).json({
