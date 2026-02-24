@@ -26,6 +26,7 @@ import LetterheadList from './pages/LetterheadList';
 import LetterheadCreator from './pages/LetterheadCreator';
 import Expenses from './pages/Expenses';
 import Catalog from './pages/Catalog';
+import Trash from './pages/Trash';
 import ChartOfAccounts from './components/Accounting/ChartOfAccounts';
 import JournalEntry from './components/Accounting/JournalEntry';
 import TrialBalance from './components/Reports/TrialBalance';
@@ -164,9 +165,15 @@ function AppRoutes() {
 
       <Route path="/cash-bank" element={
         <ProtectedRoute>
-          <AuthorizeView roles={['Admin', 'Accountant']}>
-            <Catalog />
-          </AuthorizeView>
+          <div className="min-h-screen relative p-4 lg:p-8 ml-0 md:ml-64 dark:bg-[#050505]">
+            <ChartOfAccounts />
+          </div>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/trash" element={
+        <ProtectedRoute>
+          <Trash />
         </ProtectedRoute>
       } />
 

@@ -23,7 +23,8 @@ import {
     Calculator,
     TrendingUp,
     Scale,
-    PieChart
+    PieChart,
+    Trash2
 } from 'lucide-react';
 import { useClientView } from '../../context/ClientViewContext.jsx';
 import { BACKEND_URL } from '../../utils/api';
@@ -58,6 +59,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
 
         { name: 'Cash & Bank', icon: Library, path: '/cash-bank', roles: ['Admin', 'Accountant'] },
+        { name: 'Recycle Bin', icon: Trash2, path: '/trash', roles: ['Admin'] },
         { name: 'Settings', icon: Settings, path: '/settings', roles: ['Admin'] },
     ];
 
