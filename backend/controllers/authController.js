@@ -3,7 +3,7 @@ import generateToken from '../utils/generateToken.js';
 import { OAuth2Client } from 'google-auth-library';
 import { sendEmail } from '../utils/email.js';
 
-const MAX_TRUSTED_DEVICES = 10;
+const MAX_TRUSTED_DEVICES = 5;
 
 // ─── Shared OTP Helper ─────────────────────────────────────────────────────
 // Generates OTP, saves to user, emails it. Returns { success, otpResponse }.
