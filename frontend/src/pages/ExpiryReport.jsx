@@ -25,6 +25,7 @@ const ExpiryReport = () => {
 
     useEffect(() => {
         fetchExpiringBatches();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [days]);
 
     const getExpiryStatus = (date) => {

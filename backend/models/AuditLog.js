@@ -9,7 +9,7 @@ const auditLogSchema = mongoose.Schema({
     action: {
         type: String,
         required: true,
-        enum: ['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'CREATE_BULK', 'DELETE_BULK']
+        enum: ['CREATE', 'UPDATE', 'DELETE', 'RESTORE', 'LOGIN', 'LOGOUT', 'CREATE_BULK', 'DELETE_BULK']
     },
     target: {
         type: String,
@@ -22,6 +22,9 @@ const auditLogSchema = mongoose.Schema({
         type: Object // Previous/New values or metadata
     },
     ipAddress: {
+        type: String
+    },
+    device: {
         type: String
     }
 }, {

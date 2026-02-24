@@ -81,6 +81,14 @@ const productSchema = mongoose.Schema({
         type: Boolean,
         default: true
     },
+    isDeleted: {
+        type: Boolean,
+        default: false
+    },
+    deletedAt: {
+        type: Date,
+        default: null
+    },
     user: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
@@ -96,7 +104,7 @@ productSchema.index({ sku: 1 });
 productSchema.index({ imei1: 1 });
 productSchema.index({ imei2: 1 });
 productSchema.index({ serialNumber: 1 });
-productSchema.index({ user: 1, isActive: 1 });
+productSchema.index({ user: 1, isActive: 1, isDeleted: 1 });
 
 // Virtual for profit (Admin only)
 productSchema.virtual('profit').get(function () {

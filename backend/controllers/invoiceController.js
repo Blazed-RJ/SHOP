@@ -278,7 +278,7 @@ export const getInvoices = async (req, res) => {
     try {
         const { startDate, endDate, status, type, search, limit = 50, skip = 0 } = req.query;
 
-        let query = { user: req.user.ownerId };
+        let query = { user: req.user.ownerId, isDeleted: { $ne: true } };
 
         if (startDate && endDate) {
             query.createdAt = {
@@ -523,7 +523,9 @@ export const deleteInvoice = async (req, res) => {
                 await restoreStock(invoice.items, req.user.ownerId, session);
             }
 
-            await Invoice.deleteOne({ _id: invoice._id }).session(session);
+            invoice.isDeleted = true;
+            invoice.deletedAt = new Date();
+            await invoice.save({ session });
 
             // Ledger Entry: Reversal (Credit)
             if (invoice.customer) {
@@ -632,5 +634,72 @@ export const emailInvoice = async (req, res) => {
         if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid Invoice ID format' });
         console.error(error);
         res.status(500).json({ message: error.message || 'Failed to send email' });
+    }
+};
+// @desc    Get deleted invoices (Trash)
+// @route   GET /api/invoices/trash
+// @access  Private/Admin
+export const getDeletedInvoices = async (req, res) => {
+    try {
+        const { search, limit = 50, skip = 0 } = req.query;
+        let query = { user: req.user.ownerId, isDeleted: true };
+
+        if (search) {
+            query.$or = [
+                { invoiceNo: { $regex: search, $options: 'i' } },
+                { customerName: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const [invoices, total] = await Promise.all([
+            Invoice.find(query).sort({ deletedAt: -1 }).limit(Number(limit)).skip(Number(skip)),
+            Invoice.countDocuments(query)
+        ]);
+
+        res.json({ invoices, total, limit, skip });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Restore specific invoice from Trash
+// @route   PUT /api/invoices/:id/restore
+// @access  Private/Admin
+export const restoreInvoice = async (req, res) => {
+    try {
+        const result = await runInTransaction(async (session) => {
+            const invoice = await Invoice.findOne({ _id: req.params.id, user: req.user.ownerId, isDeleted: true }).session(session);
+
+            if (!invoice) {
+                res.status(404);
+                throw new Error('Deleted invoice not found');
+            }
+
+            // Restore the deleted flag
+            invoice.isDeleted = false;
+            invoice.deletedAt = null;
+            await invoice.save({ session });
+
+            // Note: Currently, we don't automatically deduct stock/re-add ledger for 'restore' of a hard deleted item to avoid complexity,
+            // as 'Void' is the primary way to safely cancel an active bill. Trash is mostly for recovering mistakenly 'deleted' records.
+
+            await AuditLog.create([{
+                user: req.user._id,
+                action: 'RESTORE',
+                target: 'Invoice',
+                targetId: invoice._id,
+                details: { invoiceNo: invoice.invoiceNo },
+                ipAddress: req.ip,
+                device: req.headers['user-agent']
+            }], { session });
+
+            return invoice;
+        });
+
+        res.json({ message: 'Invoice restored successfully', invoice: result });
+
+    } catch (error) {
+        console.error('Restore Invoice Error:', error);
+        res.status(res.statusCode === 200 ? 500 : res.statusCode).json({ message: error.message });
     }
 };

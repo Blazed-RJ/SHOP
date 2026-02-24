@@ -1,7 +1,7 @@
-import Customer from '../models/Customer.js';
 import LedgerEntry from '../models/LedgerEntry.js';
 import AccountGroup from '../models/AccountGroup.js';
 import AccountLedger from '../models/AccountLedger.js';
+import AuditLog from '../models/AuditLog.js';
 
 // @desc    Get all customers
 // @route   GET /api/customers
@@ -9,7 +9,7 @@ import AccountLedger from '../models/AccountLedger.js';
 export const getCustomers = async (req, res) => {
     try {
         const { search, limit = 50, skip = 0 } = req.query;
-        let filters = { isActive: true, user: req.user.ownerId };
+        let filters = { isActive: true, isDeleted: { $ne: true }, user: req.user.ownerId };
 
         if (search) {
             filters.$or = [
@@ -177,6 +177,7 @@ export const getCustomersWithDues = async (req, res) => {
         const customers = await Customer.find({
             balance: { $gt: 0 },
             isActive: true,
+            isDeleted: { $ne: true },
             user: req.user.ownerId
         }).sort({ balance: -1 });
 
@@ -202,10 +203,78 @@ export const deleteCustomer = async (req, res) => {
         }
 
         // Soft delete
-        customer.isActive = false;
+        customer.isDeleted = true;
+        customer.deletedAt = new Date();
         await customer.save();
 
+        // Audit Log
+        AuditLog.create({
+            user: req.user._id,
+            action: 'DELETE',
+            target: 'Customer',
+            targetId: customer._id,
+            details: { name: customer.name, phone: customer.phone },
+            ipAddress: req.ip,
+            device: req.headers['user-agent']
+        }).catch(err => console.error('AuditLog Error:', err.message));
+
         res.json({ message: 'Customer deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+// @desc    Get deleted customers (Trash)
+// @route   GET /api/customers/trash
+// @access  Private/Admin
+export const getDeletedCustomers = async (req, res) => {
+    try {
+        const { search, limit = 50, skip = 0 } = req.query;
+        let filters = { isDeleted: true, user: req.user.ownerId };
+
+        if (search) {
+            filters.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { phone: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const [customers, total] = await Promise.all([
+            Customer.find(filters).sort({ deletedAt: -1 }).limit(Number(limit)).skip(Number(skip)),
+            Customer.countDocuments(filters)
+        ]);
+
+        res.json({ customers, total, limit, skip });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Restore specific customer from Trash
+// @route   PUT /api/customers/:id/restore
+// @access  Private/Admin
+export const restoreCustomer = async (req, res) => {
+    try {
+        const customer = await Customer.findOne({ _id: req.params.id, user: req.user.ownerId, isDeleted: true });
+
+        if (!customer) {
+            return res.status(404).json({ message: 'Deleted customer not found' });
+        }
+
+        customer.isDeleted = false;
+        customer.deletedAt = null;
+        await customer.save();
+
+        AuditLog.create({
+            user: req.user._id,
+            action: 'RESTORE',
+            target: 'Customer',
+            targetId: customer._id,
+            details: { name: customer.name, phone: customer.phone },
+            ipAddress: req.ip,
+            device: req.headers['user-agent']
+        }).catch(err => console.error('AuditLog Error:', err.message));
+
+        res.json({ message: 'Customer restored successfully', customer });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

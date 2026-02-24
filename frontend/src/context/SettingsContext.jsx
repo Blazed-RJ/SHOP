@@ -41,6 +41,7 @@ export const SettingsProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         refreshSettings();
     }, [refreshSettings]);
 

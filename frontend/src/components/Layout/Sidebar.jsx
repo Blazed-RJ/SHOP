@@ -30,7 +30,7 @@ import { BACKEND_URL } from '../../utils/api';
 import DeviceModal from './DeviceModal';
 
 const Sidebar = ({ isOpen, onClose }) => {
-    const { user, logout, isAdmin } = useAuth();
+    const { user, logout } = useAuth();
     const { settings, theme, toggleTheme } = useSettings();
     const { isClientView, toggleClientView } = useClientView();
     const navigate = useNavigate();

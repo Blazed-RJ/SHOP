@@ -26,9 +26,23 @@ const InvoiceHistory = () => {
     // Void Modal State
     const [showVoidModal, setShowVoidModal] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
-    const [voidReason, setVoidReason] = useState('');
+
+    const loadInvoices = async () => {
+        try {
+            setLoading(true);
+            const { data } = await api.get('/invoices');
+            setInvoices(data.invoices || []);
+            setFilteredInvoices(data.invoices || []);
+            setLoading(false);
+        } catch (error) {
+            console.error('Failed to load invoices:', error);
+            toast.error('Failed to load invoices');
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadInvoices();
     }, []);
 
@@ -56,33 +70,19 @@ const InvoiceHistory = () => {
             filtered = filtered.filter(inv => inv.status === statusFilter);
         }
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setFilteredInvoices(filtered);
     }, [searchQuery, statusFilter, invoices]);
 
-    const loadInvoices = async () => {
-        try {
-            setLoading(true);
-            const { data } = await api.get('/invoices');
-            setInvoices(data.invoices || []);
-            setFilteredInvoices(data.invoices || []);
-            setLoading(false);
-        } catch (error) {
-            console.error('Failed to load invoices:', error);
-            toast.error('Failed to load invoices');
-            setLoading(false);
-        }
-    };
-
     const handleVoidClick = (invoice) => {
         setSelectedInvoice(invoice);
-        setVoidReason(''); // We can keep reason for our own tracking if we add 'reason' to delete endpoint later, but for now standard delete.
         setShowVoidModal(true);
     };
 
     const confirmDelete = async () => {
         try {
             // Hard Delete API Call
-            const res = await api.delete(`/invoices/${selectedInvoice._id}`);
+            await api.delete(`/invoices/${selectedInvoice._id}`);
             // alert('Response: ' + JSON.stringify(res.data)); // Optional Debug
             toast.success('Invoice deleted successfully');
             setShowVoidModal(false);
@@ -91,21 +91,6 @@ const InvoiceHistory = () => {
             console.error('Delete error:', error);
             const msg = error.response?.data?.message || 'Failed to delete invoice';
             toast.error(msg);
-        }
-    };
-
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'Paid':
-                return 'bg-green-100 text-green-700';
-            case 'Partial':
-                return 'bg-yellow-100 text-yellow-700';
-            case 'Due':
-                return 'bg-red-100 text-red-700';
-            case 'Void':
-                return 'bg-gray-200 text-gray-500 line-through';
-            default:
-                return 'bg-gray-100 text-gray-700';
         }
     };
 

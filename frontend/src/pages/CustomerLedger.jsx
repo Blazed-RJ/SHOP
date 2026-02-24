@@ -63,7 +63,7 @@ const CustomerLedger = ({ isPublic = false }) => {
             await api.post(`/ledger/recalculate/${id}`);
             toast.success('Ledger recalculated');
             loadData();
-        } catch (error) {
+        } catch {
             toast.error('Recalculation failed');
         }
     };

@@ -27,8 +27,18 @@ const invoiceSchema = mongoose.Schema({
     // Ad-Hoc Customer Details (Snapshot)
     customerName: { type: String, required: true },
     customerPhone: { type: String, required: true },
-    customerAddress: String,
-    customerGstin: String, // Optional GSTIN for customer
+    customerAddress: { type: String },
+    customerGstin: { type: String }, // Optional GSTIN for customer
+
+    // Soft delete support
+    isDeleted: {
+        type: Boolean,
+        default: false
+    },
+    deletedAt: {
+        type: Date,
+        default: null
+    },
     // Snapshot of Shop Details (Editable per invoice)
     sellerDetails: {
         storeName: String,

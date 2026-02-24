@@ -26,6 +26,7 @@ const LetterheadList = () => {
     }, [searchTerm]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadLetterheads();
     }, [loadLetterheads]);
 
@@ -37,7 +38,7 @@ const LetterheadList = () => {
             await api.delete(`/letterheads/${id}`);
             toast.success('Deleted successfully');
             loadLetterheads();
-        } catch (error) {
+        } catch {
             toast.error('Failed to delete');
         }
     };

@@ -8,10 +8,12 @@ import { ArrowLeft, RefreshCw, Printer, Plus, X, Edit2, Paperclip, Trash2, Share
 import ConfirmationModal from '../components/ConfirmationModal';
 import toast from 'react-hot-toast';
 import { sharePdf } from '../utils/pdfShare';
+import { useSettings } from '../context/SettingsContext';
 
 const SupplierLedger = ({ isPublic = false }) => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { settings } = useSettings();
     const [supplier, setSupplier] = useState(null);
     const [ledger, setLedger] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -36,11 +38,7 @@ const SupplierLedger = ({ isPublic = false }) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [entryToDelete, setEntryToDelete] = useState(null);
 
-    useEffect(() => {
-        loadData();
-    }, [id, isPublic]);
-
-    const loadData = async () => {
+    const loadData = React.useCallback(async () => {
         try {
             setLoading(true);
             if (isPublic) {
@@ -56,19 +54,24 @@ const SupplierLedger = ({ isPublic = false }) => {
                 setLedger(ledgerRes.data);
             }
             setLoading(false);
-        } catch (error) {
-            console.error('Error loading supplier ledger:', error);
+        } catch {
+            console.error('Error loading supplier ledger');
             if (!isPublic) toast.error('Failed to load supplier ledger');
             setLoading(false);
         }
-    };
+    }, [id, isPublic]);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        loadData();
+    }, [loadData]);
 
     const handleRecalculate = async () => {
         try {
             await api.post(`/supplier-ledger/recalculate/${id}`);
             toast.success('Ledger recalculated');
             loadData();
-        } catch (error) {
+        } catch {
             toast.error('Recalculation failed');
         }
     };

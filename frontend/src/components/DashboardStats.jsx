@@ -42,6 +42,7 @@ const DashboardStats = () => {
         }).format(value);
     };
 
+    // eslint-disable-next-line no-unused-vars
     const StatCard = ({ title, value, icon: Icon, colorClass, borderClass, bgClass, showAddButton }) => (
         <div className={`relative overflow-hidden rounded-2xl border ${borderClass} ${bgClass} p-6 transition-all duration-300 hover:shadow-lg group`}>
             {/* Background Icon */}

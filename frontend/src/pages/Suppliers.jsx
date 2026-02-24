@@ -51,6 +51,7 @@ const Suppliers = () => {
             toast.error('Access denied. Admin only.');
             return;
         }
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadSuppliers();
     }, [isAdmin, navigate, loadSuppliers]);
 
@@ -61,6 +62,7 @@ const Suppliers = () => {
                 s.phone.includes(searchQuery) ||
                 s.email?.toLowerCase().includes(searchQuery.toLowerCase())
             );
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setFilteredSuppliers(filtered);
         } else {
             setFilteredSuppliers(suppliers);
@@ -82,7 +84,7 @@ const Suppliers = () => {
             toast.success('Supplier deleted successfully');
             loadSuppliers();
             setSupplierToDelete(null);
-        } catch (error) {
+        } catch {
             toast.error('Failed to delete supplier');
         }
     };

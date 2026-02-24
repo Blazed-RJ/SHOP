@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout/Layout';
 import api from '../utils/api';
-import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Plus, Trash2, Save, Calendar, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatINR } from '../utils/currency';
@@ -24,7 +23,6 @@ const PurchaseEntry = () => {
     const [items, setItems] = useState([]);
     const [productSearch, setProductSearch] = useState('');
     const [searchResults, setSearchResults] = useState([]);
-    const [isSearching, setIsSearching] = useState(false);
 
     // Current editing item (for search selection)
     const [currentItemIndex, setCurrentItemIndex] = useState(null);
@@ -44,20 +42,18 @@ const PurchaseEntry = () => {
     }, [supplierIdParam]);
 
     // Product Search
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const searchProducts = useCallback(
         debounce(async (query) => {
             if (!query) {
                 setSearchResults([]);
                 return;
             }
-            setIsSearching(true);
             try {
                 const { data } = await api.get(`/products?search=${encodeURIComponent(query)}&limit=10`);
                 setSearchResults(data.products || []);
             } catch (error) {
                 console.error(error);
-            } finally {
-                setIsSearching(false);
             }
         }, 500),
         []

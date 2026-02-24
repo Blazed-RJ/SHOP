@@ -122,7 +122,8 @@ export const createProduct = async (req, res) => {
             target: 'Product',
             targetId: product._id,
             details: { name: product.name, sku: product.sku },
-            ipAddress: req.ip
+            ipAddress: req.ip,
+            device: req.headers['user-agent']
         }).catch(err => console.error('AuditLog Error:', err.message));
 
         res.status(201).json(product);
@@ -306,7 +307,8 @@ export const createProductsBulk = async (req, res) => {
                 target: 'Product',
                 targetId: insertedProducts[0]?._id,
                 details: { count: insertedProducts.length, failedCount: errorMessages.length },
-                ipAddress: req.ip
+                ipAddress: req.ip,
+                device: req.headers['user-agent']
             }).catch(err => console.error('AuditLog Error:', err.message));
         }
 
@@ -355,7 +357,8 @@ export const updateProduct = async (req, res) => {
             target: 'Product',
             targetId: product._id,
             details: { previous: previousData, changes: req.body },
-            ipAddress: req.ip
+            ipAddress: req.ip,
+            device: req.headers['user-agent']
         }).catch(err => console.error('AuditLog Error:', err.message));
 
         res.json(updatedProduct);
@@ -430,7 +433,8 @@ export const deleteProductsBulk = async (req, res) => {
             target: 'Product',
             targetId: validProducts[0]._id, // logging first one as reference
             details: { count: validProducts.length, ids: validProducts.map(p => p._id) },
-            ipAddress: req.ip
+            ipAddress: req.ip,
+            device: req.headers['user-agent']
         }).catch(err => console.error('AuditLog Error:', err.message));
 
         res.json({ message: `Successfully deleted ${validProducts.length} products`, count: validProducts.length });
@@ -511,6 +515,69 @@ export const getExpiringBatches = async (req, res) => {
 
         res.json(batches);
     } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+// @desc    Get deleted products (Trash)
+// @route   GET /api/products/trash
+// @access  Private/Admin
+export const getDeletedProducts = async (req, res) => {
+    try {
+        const { search, category, limit = 50, skip = 0 } = req.query;
+        let filters = { isDeleted: true, user: req.user.ownerId };
+
+        const parsedLimit = Math.min(Math.max(Number(limit) || 50, 1), 2000);
+        const parsedSkip = Math.max(Number(skip) || 0, 0);
+
+        if (search) {
+            const safeSearch = escapeRegex(search);
+            const searchRegex = { $regex: safeSearch, $options: 'i' };
+            filters.$or = [
+                { name: searchRegex },
+                { sku: searchRegex }
+            ];
+        }
+        if (category) filters.category = category;
+
+        const [products, total] = await Promise.all([
+            Product.find(filters).sort({ deletedAt: -1 }).limit(parsedLimit).skip(parsedSkip),
+            Product.countDocuments(filters)
+        ]);
+
+        res.json({ products, total, limit: parsedLimit, skip: parsedSkip });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Restore specific product from Trash
+// @route   PUT /api/products/:id/restore
+// @access  Private/Admin
+export const restoreProduct = async (req, res) => {
+    try {
+        const product = await Product.findOne({ _id: req.params.id, user: req.user.ownerId, isDeleted: true });
+
+        if (!product) {
+            return res.status(404).json({ message: 'Deleted product not found' });
+        }
+
+        product.isDeleted = false;
+        product.deletedAt = null;
+        await product.save();
+
+        AuditLog.create({
+            user: req.user._id,
+            action: 'RESTORE',
+            target: 'Product',
+            targetId: product._id,
+            details: { name: product.name, sku: product.sku },
+            ipAddress: req.ip,
+            device: req.headers['user-agent']
+        }).catch(err => console.error('AuditLog Error:', err.message));
+
+        res.json({ message: 'Product restored successfully', product });
+    } catch (error) {
+        if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid Product ID format' });
         res.status(500).json({ message: error.message });
     }
 };

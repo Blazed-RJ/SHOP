@@ -9,7 +9,6 @@ import {
     BookOpen,
     Calendar,
     TrendingUp,
-    TrendingDown,
     IndianRupee,
     ArrowUpCircle,
     ArrowDownCircle,
@@ -57,6 +56,7 @@ const Daybook = () => {
     }, [selectedDate]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadDaybook();
     }, [loadDaybook]);
 

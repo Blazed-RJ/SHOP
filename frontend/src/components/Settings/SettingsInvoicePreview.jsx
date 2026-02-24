@@ -41,9 +41,12 @@ const SettingsInvoicePreview = ({ settings, formData }) => {
                 ...formData.invoiceTemplate
             },
             // Make sure style props are at top level as expected by templates
-            logo: (formData.logo || settings?.logo) && typeof (formData.logo || settings?.logo) === 'string' && !(formData.logo || settings?.logo).startsWith('http') && !(formData.logo || settings?.logo).startsWith('data:')
-                ? `${BACKEND_URL}${formData.logo || settings?.logo}`
-                : (formData.logo || settings?.logo),
+            logo: (() => {
+                const finalLogo = formData.logo || settings?.logo;
+                return finalLogo && typeof finalLogo === 'string' && !finalLogo.startsWith('http') && !finalLogo.startsWith('data:')
+                    ? `${BACKEND_URL}${finalLogo}`
+                    : finalLogo;
+            })(),
 
             shopName: formData.shopName || settings?.shopName,
             address: formData.address || settings?.address,

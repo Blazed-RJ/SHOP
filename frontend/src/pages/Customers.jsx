@@ -14,7 +14,6 @@ import {
     Eye,
     X,
     Phone,
-    Mail,
     IndianRupee
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -44,6 +43,7 @@ const Customers = () => {
     }, []);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadCustomers();
     }, [loadCustomers]);
 

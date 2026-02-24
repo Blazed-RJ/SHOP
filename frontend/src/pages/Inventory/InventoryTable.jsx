@@ -7,6 +7,7 @@ const InventoryTable = ({ products, loading, onEdit, onDelete, onBulkDelete, sor
 
     // Clear selection if products change (e.g., after filter or delete)
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedIds(new Set());
     }, [products]);
 
@@ -50,11 +51,6 @@ const InventoryTable = ({ products, loading, onEdit, onDelete, onBulkDelete, sor
             </div>
         );
     }
-
-    const getClassNamesFor = (name) => {
-        if (!sortConfig) return;
-        return sortConfig.key === name ? sortConfig.direction : undefined;
-    };
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-brand-100 dark:border-gray-700 overflow-hidden hidden md:block">

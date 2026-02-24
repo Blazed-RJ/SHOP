@@ -1,13 +1,14 @@
 import Supplier from '../models/Supplier.js';
 import AccountGroup from '../models/AccountGroup.js';
 import AccountLedger from '../models/AccountLedger.js';
+import AuditLog from '../models/AuditLog.js';
 
 // @desc    Get all suppliers
 // @route   GET /api/suppliers
 // @access  Private/Admin
 export const getSuppliers = async (req, res) => {
     try {
-        const suppliers = await Supplier.find({ user: req.user.ownerId, isActive: true }).sort({ name: 1 });
+        const suppliers = await Supplier.find({ user: req.user.ownerId, isActive: true, isDeleted: { $ne: true } }).sort({ name: 1 });
         res.json(suppliers);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -157,9 +158,63 @@ export const deleteSupplier = async (req, res) => {
         }
 
         // Soft delete
-        supplier.isActive = false;
+        supplier.isDeleted = true;
+        supplier.deletedAt = new Date();
         await supplier.save();
+
+        // Audit Log
+        AuditLog.create({
+            user: req.user._id,
+            action: 'DELETE',
+            target: 'Supplier',
+            targetId: supplier._id,
+            details: { name: supplier.name, phone: supplier.phone },
+            ipAddress: req.ip
+        }).catch(err => console.error('AuditLog Error:', err.message));
+
         res.json({ message: 'Supplier deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+// @desc    Get deleted suppliers (Trash)
+// @route   GET /api/suppliers/trash
+// @access  Private/Admin
+export const getDeletedSuppliers = async (req, res) => {
+    try {
+        const suppliers = await Supplier.find({ user: req.user.ownerId, isDeleted: true }).sort({ name: 1 });
+        res.json(suppliers);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Restore specific supplier from Trash
+// @route   PUT /api/suppliers/:id/restore
+// @access  Private/Admin
+export const restoreSupplier = async (req, res) => {
+    try {
+        const supplier = await Supplier.findOne({ _id: req.params.id, user: req.user.ownerId, isDeleted: true });
+
+        if (!supplier) {
+            return res.status(404).json({ message: 'Deleted supplier not found' });
+        }
+
+        supplier.isDeleted = false;
+        supplier.deletedAt = null;
+        await supplier.save();
+
+        AuditLog.create({
+            user: req.user._id,
+            action: 'RESTORE',
+            target: 'Supplier',
+            targetId: supplier._id,
+            details: { name: supplier.name, phone: supplier.phone },
+            ipAddress: req.ip,
+            device: req.headers['user-agent']
+        }).catch(err => console.error('AuditLog Error:', err.message));
+
+        res.json({ message: 'Supplier restored successfully', supplier });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

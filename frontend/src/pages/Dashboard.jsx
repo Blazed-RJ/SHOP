@@ -9,7 +9,6 @@ import LiquidBackground from '../components/UI/LiquidBackground';
 import {
     ShoppingCart,
     Package,
-    IndianRupee,
     AlertCircle,
     TrendingUp,
     Users,
@@ -19,8 +18,7 @@ import {
     History,
     Activity,
     Box,
-    Sparkles,
-    AlertTriangle
+    Sparkles
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -40,21 +38,16 @@ const Dashboard = () => {
     });
     const [loading, setLoading] = useState(true);
     const [lowStockProducts, setLowStockProducts] = useState([]); // Keep this if it's still used later
-    const [expiringCount, setExpiringCount] = useState(0);
 
     const { recentInvoices } = stats;
 
     const loadDashboardData = useCallback(async () => {
         try {
             setLoading(true);
-            const [statsRes, expiryRes] = await Promise.all([
-                api.get('/dashboard/stats'),
-                api.get('/products/expiry-alert?days=30')
-            ]);
+            const statsRes = await api.get('/dashboard/stats');
 
             setStats(statsRes.data);
             setLowStockProducts(statsRes.data.lowStockProducts || []);
-            setExpiringCount(expiryRes.data.length);
 
             setLoading(false);
         } catch (error) {
@@ -64,6 +57,7 @@ const Dashboard = () => {
     }, []);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadDashboardData();
     }, [loadDashboardData]);
 

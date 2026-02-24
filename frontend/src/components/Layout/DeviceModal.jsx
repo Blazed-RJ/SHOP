@@ -22,21 +22,21 @@ const DeviceModal = ({ onClose, onLogoutCurrent }) => {
     const currentDeviceId = localStorage.getItem('deviceId');
 
     useEffect(() => {
-        fetchDevices();
-    }, []);
+        const fetchDevices = async () => {
+            try {
+                const { data } = await api.get('/auth/devices', {
+                    headers: { 'x-device-id': currentDeviceId }
+                });
+                setDevices(data);
+            } catch {
+                toast.error('Could not load devices');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const fetchDevices = async () => {
-        try {
-            const { data } = await api.get('/auth/devices', {
-                headers: { 'x-device-id': currentDeviceId }
-            });
-            setDevices(data);
-        } catch {
-            toast.error('Could not load devices');
-        } finally {
-            setLoading(false);
-        }
-    };
+        fetchDevices();
+    }, [currentDeviceId]);
 
     const handleRemove = async (deviceId, isCurrent) => {
         if (isCurrent) {
@@ -94,8 +94,8 @@ const DeviceModal = ({ onClose, onLogoutCurrent }) => {
                             <div
                                 key={device.id}
                                 className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${device.isCurrent
-                                        ? 'bg-amber-500/10 border-amber-500/30'
-                                        : 'bg-white/5 border-white/10 hover:border-white/20'
+                                    ? 'bg-amber-500/10 border-amber-500/30'
+                                    : 'bg-white/5 border-white/10 hover:border-white/20'
                                     }`}
                             >
                                 <DeviceIcon name={device.name} />
@@ -114,8 +114,8 @@ const DeviceModal = ({ onClose, onLogoutCurrent }) => {
                                     onClick={() => handleRemove(device.id, device.isCurrent)}
                                     disabled={removing === device.id}
                                     className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${device.isCurrent
-                                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
-                                            : 'bg-white/5 text-gray-400 hover:bg-red-500/20 hover:text-red-400 border border-white/10'
+                                        ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                                        : 'bg-white/5 text-gray-400 hover:bg-red-500/20 hover:text-red-400 border border-white/10'
                                         }`}
                                 >
                                     {removing === device.id ? (

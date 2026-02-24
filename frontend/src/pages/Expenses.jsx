@@ -70,7 +70,7 @@ const Expenses = () => {
             toast.success('Expense head deleted successfully');
             fetchExpenseHeads();
             setExpenseToDelete(null);
-        } catch (error) {
+        } catch {
             toast.error('Failed to delete expense head');
         }
     };

@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { BACKEND_URL } from '../utils/api';
 import { useSettings } from '../context/SettingsContext';
-import { formatINR } from '../utils/currency';
-import { formatDate } from '../utils/date';
 import { Printer, ArrowLeft, Download, Share2, Mail, FileText, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
