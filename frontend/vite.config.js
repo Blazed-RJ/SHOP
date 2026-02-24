@@ -1,6 +1,18 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// Extract exact npm package name from any absolute resolved path
+function getPkgName(id) {
+  const m = id.match(/node_modules[/\\]((?:@[^/\\]+[/\\])?[^/\\]+)/);
+  return m ? m[1].replace(/\\/g, '/') : null;
+}
+
+const chartPkgs = new Set([
+  'recharts', 'd3', 'd3-scale', 'd3-shape', 'd3-array', 'd3-color',
+  'd3-format', 'd3-interpolate', 'd3-path', 'd3-time', 'd3-time-format',
+  'internmap', 'robust-predicates'
+]);
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -19,30 +31,21 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
+          const pkg = getPkgName(id);
+          if (!pkg) return 'vendor';
 
-          // ── Most specific first ───────────────────────────────────────────
-          if (id.includes('node_modules/xlsx')) return 'vendor-excel';
-          if (id.includes('node_modules/recharts') ||
-            id.includes('node_modules/d3') ||
-            id.includes('node_modules/internmap') ||
-            id.includes('node_modules/robust-predicates') ||
-            id.includes('node_modules/victory')) return 'vendor-charts';
-          if (id.includes('node_modules/lucide-react')) return 'vendor-icons';
-          if (id.includes('node_modules/@react-oauth') ||
-            id.includes('node_modules/google-auth-library')) return 'vendor-google';
-          if (id.includes('node_modules/date-fns') ||
-            id.includes('node_modules/lodash')) return 'vendor-utils';
+          if (pkg === 'xlsx') return 'vendor-excel';
+          if (chartPkgs.has(pkg)) return 'vendor-charts';
+          if (pkg === 'lucide-react') return 'vendor-icons';
+          if (pkg === '@react-oauth/google' || pkg === 'google-auth-library') return 'vendor-google';
+          if (pkg === 'date-fns' || pkg === 'lodash') return 'vendor-utils';
+          if (pkg === 'react-dom') return 'vendor-react-dom';
+          if (pkg === 'react-router-dom' || pkg === 'react-router') return 'vendor-router';
+          if (pkg === 'react' || pkg === 'scheduler') return 'vendor-react';
 
-          // ── React family (order matters: dom > router > react) ────────────
-          if (id.includes('react-dom')) return 'vendor-react-dom';
-          if (id.includes('react-router')) return 'vendor-router';
-          if (id.includes('react')) return 'vendor-react';
-
-          // ── Everything else ───────────────────────────────────────────────
           return 'vendor';
         }
       }
     }
   }
 })
-
