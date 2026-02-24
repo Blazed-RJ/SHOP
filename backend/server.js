@@ -53,7 +53,7 @@ app.use(
                 "img-src": ["'self'", "data:", "https://lh3.googleusercontent.com"],
             },
         },
-        crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+        crossOriginOpenerPolicy: false,
     })
 );
 

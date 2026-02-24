@@ -15,15 +15,16 @@ const issueOtp = async (user, logTag = '') => {
 
     const emailConfigured = process.env.EMAIL_USER && process.env.EMAIL_PASS;
     if (emailConfigured && user.email) {
-        await sendEmail({
+        // Fire-and-forget: don't await email — send OTP response immediately
+        sendEmail({
             to: user.email,
             subject: 'Login Verification Code - Shop App',
             html: `<h3>Your Verification Code is: ${otp}</h3><p>This code expires in 10 minutes.</p>`
-        });
+        }).catch(err => console.error('[EMAIL ERROR]', err.message));
     } else if (process.env.NODE_ENV !== 'production') {
         console.log(`[DEV MODE] OTP${logTag ? ' (' + logTag + ')' : ''}: ${otp}`);
     } else {
-        throw new Error('Email configuration missing on server.');
+        console.warn('[WARN] Email not configured — OTP will not be sent.');
     }
 
     return {
