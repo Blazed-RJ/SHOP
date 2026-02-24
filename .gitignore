@@ -37,3 +37,7 @@ backend/uploads/
 
 # OS
 Thumbs.db
+-e 
+# Environment files
+*.env
+*.env.*
