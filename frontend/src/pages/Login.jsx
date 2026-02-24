@@ -37,7 +37,7 @@ const Login = () => {
                 navigate('/dashboard');
             }
         } else {
-            toast.error(result.error);
+            toast.error(result.error || 'An unexpected error occurred during login.');
         }
 
         setLoading(false);

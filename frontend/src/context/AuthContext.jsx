@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             return {
                 success: false,
-                error: error.response?.data?.message || error.message || 'Login failed. Check if backend is running.'
+                error: error.response?.data?.message || error.message || 'Login failed. Please check your credentials or network.'
             };
         }
     };
