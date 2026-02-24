@@ -222,27 +222,34 @@ const Login = () => {
                         <GoogleLogin
                             onSuccess={async (credentialResponse) => {
                                 setLoading(true);
-                                const result = await googleLogin(credentialResponse.credential);
-                                if (result.success) {
-                                    if (result.requireOtp) {
-                                        setTempUserId(result.userId);
-                                        setEmailMasked(result.emailMasked);
-                                        setShowOtpInput(true);
-                                        toast.success('Verification code sent to email');
+                                try {
+                                    const result = await googleLogin(credentialResponse.credential);
+                                    if (result.success) {
+                                        if (result.requireOtp) {
+                                            setTempUserId(result.userId);
+                                            setEmailMasked(result.emailMasked);
+                                            setShowOtpInput(true);
+                                            toast.success('Verification code sent to email');
+                                        } else {
+                                            toast.success(`Welcome back, ${result.user.name}!`);
+                                            navigate('/dashboard');
+                                        }
                                     } else {
-                                        toast.success(`Welcome back, ${result.user.name}!`);
-                                        navigate('/dashboard');
+                                        toast.error(result.error || 'Google Sign-In failed. Please try again.');
                                     }
-                                } else {
-                                    toast.error(result.error);
+                                } catch (err) {
+                                    toast.error('Google Sign-In failed. Please try again.');
+                                } finally {
+                                    setLoading(false);
                                 }
-                                setLoading(false);
                             }}
                             onError={() => {
-                                toast.error('Google authorization failed');
+                                setLoading(false);
+                                toast.error('Google Sign-In was cancelled or failed. Please try again.');
                             }}
                             theme="filled_black"
                             shape="circle"
+                            useOneTap={false}
                         />
                     </div>
 
