@@ -103,7 +103,14 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
+    const logout = async () => {
+        try {
+            const deviceId = localStorage.getItem('deviceId');
+            // Tell backend to remove this device from trusted list
+            await api.post('/auth/logout', { deviceId });
+        } catch {
+            // Ignore errors — always clear local state regardless
+        }
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);

@@ -116,7 +116,19 @@ const authUser = async (req, res) => {
                 });
             }
 
-            // Always generate OTP on every login
+            // Skip OTP if device is trusted (cleared on logout)
+            if (deviceId && user.trustedDevices && user.trustedDevices.includes(deviceId)) {
+                return res.json({
+                    _id: user._id,
+                    name: user.name,
+                    username: user.username,
+                    role: user.role,
+                    ownerId: user.ownerId,
+                    token: generateToken(user._id),
+                });
+            }
+
+            // Not trusted — generate OTP
             const otp = Math.floor(100000 + Math.random() * 900000).toString();
             // OTP Expires in 10 minutes
             const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
@@ -272,4 +284,21 @@ const verifyOTP = async (req, res) => {
     }
 };
 
-export { registerUser, authUser, googleLogin, createStaff, getStaff, verifyOTP };
+// @desc    Logout — remove device from trusted list so next login requires OTP
+// @route   POST /api/auth/logout
+// @access  Private
+const logoutUser = async (req, res) => {
+    try {
+        const { deviceId } = req.body;
+        if (deviceId && req.user) {
+            await User.findByIdAndUpdate(req.user._id, {
+                $pull: { trustedDevices: deviceId }
+            });
+        }
+        res.json({ message: 'Logged out successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export { registerUser, authUser, googleLogin, createStaff, getStaff, verifyOTP, logoutUser };
