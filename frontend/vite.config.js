@@ -21,11 +21,17 @@ export default defineConfig({
           if (!id.includes('node_modules')) return;
 
           // ── Most specific first ───────────────────────────────────────────
-          if (id.includes('xlsx')) return 'vendor-excel';
-          if (id.includes('recharts') || id.includes('/d3-')) return 'vendor-charts';
-          if (id.includes('lucide-react')) return 'vendor-icons';
-          if (id.includes('@react-oauth') || id.includes('google-auth-library')) return 'vendor-google';
-          if (id.includes('date-fns') || id.includes('lodash')) return 'vendor-utils';
+          if (id.includes('node_modules/xlsx')) return 'vendor-excel';
+          if (id.includes('node_modules/recharts') ||
+            id.includes('node_modules/d3') ||
+            id.includes('node_modules/internmap') ||
+            id.includes('node_modules/robust-predicates') ||
+            id.includes('node_modules/victory')) return 'vendor-charts';
+          if (id.includes('node_modules/lucide-react')) return 'vendor-icons';
+          if (id.includes('node_modules/@react-oauth') ||
+            id.includes('node_modules/google-auth-library')) return 'vendor-google';
+          if (id.includes('node_modules/date-fns') ||
+            id.includes('node_modules/lodash')) return 'vendor-utils';
 
           // ── React family (order matters: dom > router > react) ────────────
           if (id.includes('react-dom')) return 'vendor-react-dom';
