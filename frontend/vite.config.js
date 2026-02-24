@@ -7,12 +7,6 @@ function getPkgName(id) {
   return m ? m[1].replace(/\\/g, '/') : null;
 }
 
-const chartPkgs = new Set([
-  'recharts', 'd3', 'd3-scale', 'd3-shape', 'd3-array', 'd3-color',
-  'd3-format', 'd3-interpolate', 'd3-path', 'd3-time', 'd3-time-format',
-  'internmap', 'robust-predicates'
-]);
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -34,15 +28,31 @@ export default defineConfig({
           const pkg = getPkgName(id);
           if (!pkg) return 'vendor';
 
+          // ── PDF / canvas (heavy — isolate so they load lazily per page) ──
+          if (pkg === 'jspdf' || pkg === 'html2canvas') return 'vendor-pdf';
+
+          // ── Excel ─────────────────────────────────────────────────────────
           if (pkg === 'xlsx') return 'vendor-excel';
-          if (chartPkgs.has(pkg)) return 'vendor-charts';
+
+          // ── QR code libs ──────────────────────────────────────────────────
+          if (pkg === 'qrcode' || pkg === 'qrcode.react') return 'vendor-qr';
+
+          // ── Time / date ───────────────────────────────────────────────────
+          if (pkg === 'moment-timezone' || pkg === 'moment') return 'vendor-date';
+
+          // ── Icons ─────────────────────────────────────────────────────────
           if (pkg === 'lucide-react') return 'vendor-icons';
-          if (pkg === '@react-oauth/google' || pkg === 'google-auth-library') return 'vendor-google';
-          if (pkg === 'date-fns' || pkg === 'lodash') return 'vendor-utils';
+
+          // ── Google OAuth ──────────────────────────────────────────────────
+          if (pkg === '@react-oauth/google' ||
+            pkg === 'google-auth-library') return 'vendor-google';
+
+          // ── React family (dom > router > react — order matters) ───────────
           if (pkg === 'react-dom') return 'vendor-react-dom';
           if (pkg === 'react-router-dom' || pkg === 'react-router') return 'vendor-router';
           if (pkg === 'react' || pkg === 'scheduler') return 'vendor-react';
 
+          // ── Everything else ───────────────────────────────────────────────
           return 'vendor';
         }
       }
