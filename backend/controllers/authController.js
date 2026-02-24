@@ -116,19 +116,7 @@ const authUser = async (req, res) => {
                 });
             }
 
-            // Check Trusted Device
-            if (deviceId && user.trustedDevices && user.trustedDevices.includes(deviceId)) {
-                return res.json({
-                    _id: user._id,
-                    name: user.name,
-                    username: user.username,
-                    role: user.role,
-                    ownerId: user.ownerId,
-                    token: generateToken(user._id),
-                });
-            }
-
-            // Device Not Trusted: Generate OTP
+            // Always generate OTP on every login
             const otp = Math.floor(100000 + Math.random() * 900000).toString();
             // OTP Expires in 10 minutes
             const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
