@@ -57,16 +57,15 @@ app.use(
     })
 );
 
+// Trust Railway's reverse proxy (fixes ERR_ERL_UNEXPECTED_X_FORWARDED_FOR)
+app.set('trust proxy', 1);
+
 // Global Rate Limiting (generous — auth routes have their own stricter limiter)
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 500,
     standardHeaders: true,
     legacyHeaders: false,
-    skip: (req) => {
-        const ip = req.ip || req.socket.remoteAddress;
-        return ip === '::1' || ip === '127.0.0.1' || ip === '::ffff:127.0.0.1';
-    },
 });
 app.use(limiter);
 
