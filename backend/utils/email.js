@@ -1,21 +1,14 @@
 import nodemailer from 'nodemailer';
 
-const transporter = nodemailer.createTransport(
-    process.env.EMAIL_HOST ? {
-        host: process.env.EMAIL_HOST,
-        port: process.env.EMAIL_PORT || 587,
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        }
-    } : {
-        service: 'gmail', // Simplest for MVP, or use host/port from env
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        }
+const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
+    port: parseInt(process.env.EMAIL_PORT) || 587,
+    secure: false,
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     }
-);
+});
 
 export const sendEmail = async ({ to, subject, html }) => {
     try {
