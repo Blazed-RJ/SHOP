@@ -9,6 +9,7 @@ const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [resendLoading, setResendLoading] = useState(false);
     const navigate = useNavigate();
     const { login, googleLogin, verifyOTP } = useAuth();
     const { settings } = useSettings();
@@ -16,14 +17,7 @@ const Login = () => {
     const [otp, setOtp] = useState('');
     const [tempUserId, setTempUserId] = useState(null);
     const [emailMasked, setEmailMasked] = useState('');
-
-    React.useEffect(() => {
-        let deviceId = localStorage.getItem('deviceId');
-        if (!deviceId) {
-            deviceId = crypto.randomUUID();
-            localStorage.setItem('deviceId', deviceId);
-        }
-    }, []);
+    // deviceId is generated at app startup in main.jsx
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -52,10 +46,8 @@ const Login = () => {
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
         setLoading(true);
-
         const deviceId = localStorage.getItem('deviceId');
         const result = await verifyOTP(tempUserId, otp, deviceId);
-
         if (result.success) {
             toast.success(`Welcome back, ${result.user.name}!`);
             navigate('/dashboard');
@@ -63,6 +55,18 @@ const Login = () => {
             toast.error(result.error);
         }
         setLoading(false);
+    };
+
+    const handleResendOtp = async () => {
+        setResendLoading(true);
+        try {
+            const { data } = await import('../utils/api').then(m => m.default.post('/auth/resend-otp', { userId: tempUserId }));
+            setEmailMasked(data.emailMasked);
+            toast.success('New verification code sent!');
+        } catch {
+            toast.error('Failed to resend code. Try again.');
+        }
+        setResendLoading(false);
     };
 
     // New Gold Standard Background
@@ -184,13 +188,23 @@ const Login = () => {
                                 {loading ? 'Verifying...' : 'Verify & Trust Device'}
                             </button>
 
-                            <button
-                                type="button"
-                                onClick={() => setShowOtpInput(false)}
-                                className="w-full py-3 text-sm text-gray-500 hover:text-white transition-colors font-medium border border-transparent hover:border-white/10 rounded-xl"
-                            >
-                                Cancel Verification
-                            </button>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleResendOtp}
+                                    disabled={resendLoading}
+                                    className="flex-1 py-3 text-sm text-amber-500 hover:text-amber-400 transition-colors font-bold border border-amber-500/30 hover:border-amber-500/60 rounded-xl"
+                                >
+                                    {resendLoading ? 'Sending...' : 'Resend Code'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowOtpInput(false)}
+                                    className="flex-1 py-3 text-sm text-gray-500 hover:text-white transition-colors font-medium border border-transparent hover:border-white/10 rounded-xl"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
                         </form>
                     )}
 

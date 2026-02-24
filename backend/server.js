@@ -27,6 +27,13 @@ import rateLimit from 'express-rate-limit';
 
 // Config
 dotenv.config();
+
+// Crash early if critical env vars are missing
+if (!process.env.JWT_SECRET) {
+    console.error('FATAL: JWT_SECRET is not set. Refusing to start.');
+    process.exit(1);
+}
+
 connectDB();
 
 const app = express();
@@ -43,21 +50,20 @@ app.use(
                 "script-src": ["'self'", "https://accounts.google.com", "https://apis.google.com"],
                 "frame-src": ["'self'", "https://accounts.google.com"],
                 "connect-src": ["'self'", "https://accounts.google.com", "https://oauth2.googleapis.com"],
-                "img-src": ["'self'", "data:", "https://lh3.googleusercontent.com"], // For Google avatars
+                "img-src": ["'self'", "data:", "https://lh3.googleusercontent.com"],
             },
         },
         crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     })
 );
 
-// Rate Limiting
+// Global Rate Limiting (generous — auth routes have their own stricter limiter)
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10000, // Increased limit for dev
+    windowMs: 15 * 60 * 1000,
+    max: 500,
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => {
-        // Skip rate limiting for localhost
         const ip = req.ip || req.socket.remoteAddress;
         return ip === '::1' || ip === '127.0.0.1' || ip === '::ffff:127.0.0.1';
     },

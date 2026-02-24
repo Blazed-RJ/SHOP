@@ -79,22 +79,15 @@ const Register = () => {
                             <p className="text-amber-500/60 mt-2 font-medium">Join our POS system</p>
                         </div>
 
-                        {/* Info Alert (Gold) */}
+                        {/* Info Alert */}
                         <div className="mb-8 p-0.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-xl">
                             <div className="bg-[#0f0f11]/90 rounded-[10px] p-4 flex items-start">
                                 <AlertCircle className="w-5 h-5 text-amber-500 mr-3 mt-0.5 flex-shrink-0" />
                                 <div className="text-sm text-gray-300">
-                                    <p className="font-bold text-amber-500 mb-1 tracking-wide uppercase text-xs">Shop Code Logic</p>
-                                    <ul className="space-y-1.5 text-xs font-medium text-gray-400">
-                                        <li className="flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                            <span>Code <span className="font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">OWNER2026</span> → Admin</span>
-                                        </li>
-                                        <li className="flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
-                                            <span>Wrong/Empty code → Staff access</span>
-                                        </li>
-                                    </ul>
+                                    <p className="font-bold text-amber-500 mb-1 tracking-wide uppercase text-xs">Shop Code</p>
+                                    <p className="text-xs font-medium text-gray-400">
+                                        Enter your shop code to register as Admin. Leave blank to join as Staff.
+                                    </p>
                                 </div>
                             </div>
                         </div>
