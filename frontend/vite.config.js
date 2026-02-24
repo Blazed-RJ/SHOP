@@ -14,22 +14,29 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('xlsx')) return 'vendor-excel';
-            if (id.includes('react-dom')) return 'vendor-react-dom';
-            if (id.includes('react-router')) return 'vendor-router';
-            if (id.includes('react')) return 'vendor-react';
-            if (id.includes('lucide-react')) return 'vendor-icons';
-            if (id.includes('recharts') || id.includes('d3-')) return 'vendor-charts';
-            if (id.includes('@react-oauth') || id.includes('google-auth')) return 'vendor-google';
-            return 'vendor';
-          }
+          if (!id.includes('node_modules')) return;
+
+          // ── Most specific first ───────────────────────────────────────────
+          if (id.includes('xlsx')) return 'vendor-excel';
+          if (id.includes('recharts') || id.includes('/d3-')) return 'vendor-charts';
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          if (id.includes('@react-oauth') || id.includes('google-auth-library')) return 'vendor-google';
+          if (id.includes('date-fns') || id.includes('lodash')) return 'vendor-utils';
+
+          // ── React family (order matters: dom > router > react) ────────────
+          if (id.includes('react-dom')) return 'vendor-react-dom';
+          if (id.includes('react-router')) return 'vendor-router';
+          if (id.includes('react')) return 'vendor-react';
+
+          // ── Everything else ───────────────────────────────────────────────
+          return 'vendor';
         }
       }
     }
   }
 })
+
