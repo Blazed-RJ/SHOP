@@ -24,7 +24,11 @@ const userSchema = mongoose.Schema({
     avatar: { type: String }, // Path to local image
     otp: { type: String },
     otpExpires: { type: Date },
-    trustedDevices: [{ type: String }], // Array of trusted device IDs
+    trustedDevices: [{
+        id: { type: String, required: true },
+        name: { type: String, default: 'Unknown Device' },
+        addedAt: { type: Date, default: Date.now }
+    }],
 }, {
     timestamps: true // Will use server time (IST via env)
 });

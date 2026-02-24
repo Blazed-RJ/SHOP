@@ -6,17 +6,14 @@ import { sendEmail } from '../utils/email.js';
 const MAX_TRUSTED_DEVICES = 5;
 
 // ─── Shared OTP Helper ─────────────────────────────────────────────────────
-// Generates OTP, saves to user, emails it. Returns { success, otpResponse }.
 const issueOtp = async (user, logTag = '') => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-
     user.otp = otp;
     user.otpExpires = otpExpires;
     await user.save();
 
     const emailConfigured = process.env.EMAIL_USER && process.env.EMAIL_PASS;
-
     if (emailConfigured && user.email) {
         await sendEmail({
             to: user.email,
@@ -37,9 +34,20 @@ const issueOtp = async (user, logTag = '') => {
     };
 };
 
-// ─── isTrusted Helper ──────────────────────────────────────────────────────
+// ─── isTrusted Helper (works with {id, name, addedAt} objects) ─────────────
 const isTrusted = (user, deviceId) =>
-    deviceId && user.trustedDevices && user.trustedDevices.includes(deviceId);
+    deviceId && user.trustedDevices?.some(d => d.id === deviceId);
+
+// ─── addTrustedDevice Helper ───────────────────────────────────────────────
+const addTrustedDevice = (user, deviceId, deviceName) => {
+    if (!deviceId) return;
+    if (!user.trustedDevices) user.trustedDevices = [];
+    if (user.trustedDevices.some(d => d.id === deviceId)) return; // already trusted
+    if (user.trustedDevices.length >= MAX_TRUSTED_DEVICES) {
+        user.trustedDevices.shift(); // remove oldest
+    }
+    user.trustedDevices.push({ id: deviceId, name: deviceName || 'Unknown Device', addedAt: new Date() });
+};
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -47,33 +55,17 @@ const isTrusted = (user, deviceId) =>
 const registerUser = async (req, res) => {
     try {
         const { name, username, email, password, shopCode } = req.body;
-
         const userExists = await User.findOne({ $or: [{ username }, { email }] });
-        if (userExists) {
-            return res.status(400).json({ message: 'User already exists (Username or Email)' });
-        }
+        if (userExists) return res.status(400).json({ message: 'User already exists (Username or Email)' });
 
         const isFirstAccount = (await User.countDocuments({})) === 0;
         const isAdmin = isFirstAccount || shopCode === process.env.ADMIN_SECRET_CODE;
 
-        const user = await User.create({
-            name, username, email, password,
-            role: isAdmin ? 'Admin' : 'Staff',
-        });
-
+        const user = await User.create({ name, username, email, password, role: isAdmin ? 'Admin' : 'Staff' });
         user.ownerId = user._id;
         await user.save();
 
-        res.status(201).json({
-            _id: user._id,
-            name: user.name,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-            ownerId: user.ownerId,
-            token: generateToken(user._id),
-        });
-
+        res.status(201).json({ _id: user._id, name: user.name, username: user.username, email: user.email, role: user.role, ownerId: user.ownerId, token: generateToken(user._id) });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -85,26 +77,11 @@ const registerUser = async (req, res) => {
 const createStaff = async (req, res) => {
     try {
         const { name, username, email, password } = req.body;
-
         const userExists = await User.findOne({ $or: [{ username }, { email }] });
-        if (userExists) {
-            return res.status(400).json({ message: 'User already exists' });
-        }
+        if (userExists) return res.status(400).json({ message: 'User already exists' });
 
-        const user = await User.create({
-            name, username, email, password,
-            role: 'Staff',
-            ownerId: req.user._id,
-        });
-
-        res.status(201).json({
-            _id: user._id,
-            name: user.name,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-            ownerId: user.ownerId
-        });
+        const user = await User.create({ name, username, email, password, role: 'Staff', ownerId: req.user._id });
+        res.status(201).json({ _id: user._id, name: user.name, username: user.username, email: user.email, role: user.role, ownerId: user.ownerId });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -117,23 +94,17 @@ const authUser = async (req, res) => {
     try {
         const { username, password, deviceId } = req.body;
 
-        // Demo Mode Bypass
         if (username === 'demo' && password === 'demo') {
             return res.json({ _id: 'demo123', name: 'Demo Admin', username: 'demo', role: 'Admin', token: 'demo-token-bypass' });
         }
 
         const user = await User.findOne({ username });
-
         if (user && (await user.matchPassword(password))) {
-            // Skip OTP if device is trusted
             if (isTrusted(user, deviceId)) {
                 return res.json({ _id: user._id, name: user.name, username: user.username, role: user.role, ownerId: user.ownerId, token: generateToken(user._id) });
             }
-
-            // Issue OTP
             const otpResponse = await issueOtp(user, username);
             return res.json(otpResponse);
-
         } else {
             res.status(401).json({ message: 'Invalid username or password' });
         }
@@ -147,14 +118,12 @@ const authUser = async (req, res) => {
 // @access  Public
 const googleLogin = async (req, res) => {
     const { token, deviceId } = req.body;
-
     try {
         const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
         const ticket = await client.verifyIdToken({ idToken: token, audience: process.env.GOOGLE_CLIENT_ID });
         const { name, email, picture, sub } = ticket.getPayload();
 
         let user = await User.findOne({ $or: [{ googleId: sub }, { email }] });
-
         if (user) {
             if (!user.googleId) { user.googleId = sub; if (!user.avatar) user.avatar = picture; await user.save(); }
         } else {
@@ -163,15 +132,11 @@ const googleLogin = async (req, res) => {
             await user.save();
         }
 
-        // Skip OTP if device is trusted
         if (isTrusted(user, deviceId)) {
             return res.json({ _id: user._id, name: user.name, username: user.username, role: user.role, ownerId: user.ownerId, avatar: user.avatar, token: generateToken(user._id) });
         }
-
-        // Issue OTP
         const otpResponse = await issueOtp(user, email);
         return res.json(otpResponse);
-
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -194,26 +159,15 @@ const getStaff = async (req, res) => {
 // @access  Public
 const verifyOTP = async (req, res) => {
     try {
-        const { userId, otp, deviceId } = req.body;
-
+        const { userId, otp, deviceId, deviceName } = req.body;
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         if (user.otp === otp && user.otpExpires > Date.now()) {
             user.otp = undefined;
             user.otpExpires = undefined;
-
-            // Add device to trusted list (cap at MAX_TRUSTED_DEVICES)
-            if (deviceId && !user.trustedDevices?.includes(deviceId)) {
-                if (!user.trustedDevices) user.trustedDevices = [];
-                if (user.trustedDevices.length >= MAX_TRUSTED_DEVICES) {
-                    user.trustedDevices.shift(); // Remove oldest device
-                }
-                user.trustedDevices.push(deviceId);
-            }
-
+            addTrustedDevice(user, deviceId, deviceName);
             await user.save();
-
             res.json({ _id: user._id, name: user.name, username: user.username, role: user.role, ownerId: user.ownerId, token: generateToken(user._id) });
         } else {
             res.status(400).json({ message: 'Invalid or expired Code' });
@@ -223,14 +177,50 @@ const verifyOTP = async (req, res) => {
     }
 };
 
-// @desc    Logout — remove device from trusted list so next login requires OTP
+// @desc    List trusted devices for the current user
+// @route   GET /api/auth/devices
+// @access  Private
+const getDevices = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('trustedDevices');
+        const currentDeviceId = req.headers['x-device-id'];
+        const devices = (user.trustedDevices || []).map(d => ({
+            id: d.id,
+            name: d.name,
+            addedAt: d.addedAt,
+            isCurrent: d.id === currentDeviceId
+        }));
+        res.json(devices);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Remove a specific trusted device
+// @route   DELETE /api/auth/devices/:deviceId
+// @access  Private
+const removeDevice = async (req, res) => {
+    try {
+        const { deviceId } = req.params;
+        await User.findByIdAndUpdate(req.user._id, {
+            $pull: { trustedDevices: { id: deviceId } }
+        });
+        res.json({ message: 'Device removed' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Logout — remove current device from trusted list
 // @route   POST /api/auth/logout
 // @access  Private
 const logoutUser = async (req, res) => {
     try {
         const { deviceId } = req.body;
         if (deviceId && req.user) {
-            await User.findByIdAndUpdate(req.user._id, { $pull: { trustedDevices: deviceId } });
+            await User.findByIdAndUpdate(req.user._id, {
+                $pull: { trustedDevices: { id: deviceId } }
+            });
         }
         res.json({ message: 'Logged out successfully' });
     } catch (error) {
@@ -246,7 +236,6 @@ const resendOtp = async (req, res) => {
         const { userId } = req.body;
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: 'User not found' });
-
         const otpResponse = await issueOtp(user, 'resend');
         return res.json(otpResponse);
     } catch (error) {
@@ -254,4 +243,4 @@ const resendOtp = async (req, res) => {
     }
 };
 
-export { registerUser, authUser, googleLogin, createStaff, getStaff, verifyOTP, logoutUser, resendOtp };
+export { registerUser, authUser, googleLogin, createStaff, getStaff, verifyOTP, logoutUser, resendOtp, getDevices, removeDevice };
