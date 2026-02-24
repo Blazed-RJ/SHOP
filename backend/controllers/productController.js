@@ -1,6 +1,7 @@
 import Product from '../models/Product.js';
 import Batch from '../models/Batch.js';
 import AuditLog from '../models/AuditLog.js';
+import Category from '../models/Category.js';
 
 // Helper for regex escaping to prevent ReDoS and regex errors
 const escapeRegex = (text) => text.toString().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
@@ -140,29 +141,61 @@ export const createProductsBulk = async (req, res) => {
             return res.status(400).json({ message: 'Invalid or empty product data array' });
         }
 
-        const validProducts = [];
-        for (const p of productsData) {
-            if (!p || typeof p !== 'object') continue;
+        const validProductsToInsert = [];
+        const errorMessages = [];
+        // Valid Indian GST slabs — must match Product.js schema enum
+        const VALID_GST = [0, 5, 12, 18, 28];
+        const snapGst = (val) => {
+            const num = parseFloat(val);
+            if (isNaN(num)) return 18;
+            return VALID_GST.reduce((prev, curr) =>
+                Math.abs(curr - num) < Math.abs(prev - num) ? curr : prev, 18);
+        };
+        const skuSet = new Set();
 
-            let finalSku = p.sku ? String(p.sku).trim() : '';
-            if (!finalSku) {
-                const timestamp = Date.now().toString().slice(-6);
-                const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-                finalSku = `PROD-${timestamp}-${random}`;
+        for (let i = 0; i < productsData.length; i++) {
+            const p = productsData[i];
+            const rowLabel = `Row ${i + 2}`;
+            if (!p || typeof p !== 'object') {
+                errorMessages.push(`${rowLabel}: Invalid row object`);
+                continue;
             }
 
-            validProducts.push({
-                name: p.name,
-                category: p.category,
-                subCategory: p.subCategory || '',
-                subSubCategory: p.subSubCategory || '',
-                costPrice: p.costPrice || 0,
-                sellingPrice: p.sellingPrice || 0,
-                margin: p.margin || 0,
-                gstPercent: p.gstPercent || 18,
+            // Required field validation
+            const name = p.name ? String(p.name).trim() : '';
+            const category = p.category ? String(p.category).trim() : '';
+            if (!name) {
+                errorMessages.push(`${rowLabel}: Missing product name`);
+                continue;
+            }
+            if (!category) {
+                errorMessages.push(`${rowLabel} (${name}): Missing category`);
+                continue;
+            }
+
+            let finalSku = p.sku ? String(p.sku).trim() : '';
+            if (!finalSku || skuSet.has(finalSku)) {
+                // Generate a unique SKU to avoid duplicate key errors within the same batch
+                const timestamp = Date.now().toString().slice(-6);
+                const random = Math.floor(Math.random() * 9000 + 1000).toString();
+                finalSku = `PROD-${timestamp}-${random}`;
+            }
+            skuSet.add(finalSku);
+
+            const gstPercent = snapGst(p.gstPercent);
+
+            validProductsToInsert.push({
+                name,
+                category,
+                subCategory: p.subCategory ? String(p.subCategory).trim() : '',
+                subSubCategory: p.subSubCategory ? String(p.subSubCategory).trim() : '',
+                costPrice: Number(p.costPrice) || 0,
+                sellingPrice: Number(p.sellingPrice) || 0,
+                margin: Number(p.margin) || 0,
+                gstPercent: gstPercent,
                 isTaxInclusive: p.isTaxInclusive !== undefined ? p.isTaxInclusive : true,
-                stock: p.stock || 0,
-                minStockAlert: p.minStockAlert || 5,
+                stock: Number(p.stock) || 0,
+                minStockAlert: Number(p.minStockAlert) || 5,
                 sku: finalSku,
                 imei1: p.imei1 || '',
                 imei2: p.imei2 || '',
@@ -173,26 +206,119 @@ export const createProductsBulk = async (req, res) => {
             });
         }
 
-        if (validProducts.length === 0) {
-            return res.status(400).json({ message: 'No valid product objects provided' });
+        if (validProductsToInsert.length === 0) {
+            return res.status(400).json({
+                message: 'No valid products to insert. Check that Name and Category columns are filled.',
+                count: 0,
+                failedCount: errorMessages.length,
+                errors: errorMessages,
+            });
         }
 
-        // Use insertMany for efficient bulk insertion
-        const insertedProducts = await Product.insertMany(validProducts);
+        // --- AUTO-CREATE CATEGORY FOLDERS ---
+        // 1. Collect all unique paths
+        const uniquePaths = new Set();
+        validProductsToInsert.forEach(p => {
+            const cat = p.category;
+            const subCat = p.subCategory;
+            const subSubCat = p.subSubCategory;
 
-        // Single Bulk Audit Log (non-blocking)
-        AuditLog.create({
-            user: req.user._id,
-            action: 'CREATE_BULK',
-            target: 'Product',
-            targetId: insertedProducts[0]?._id, // Just linking the first one as reference
-            details: { count: insertedProducts.length },
-            ipAddress: req.ip
-        }).catch(err => console.error('AuditLog Error:', err.message));
+            if (cat) uniquePaths.add(JSON.stringify(['root', cat]));
+            if (cat && subCat) uniquePaths.add(JSON.stringify(['sub', cat, subCat]));
+            if (cat && subCat && subSubCat) uniquePaths.add(JSON.stringify(['subsub', cat, subCat, subSubCat]));
+        });
 
-        res.status(201).json({ message: `Successfully imported ${insertedProducts.length} products`, count: insertedProducts.length });
+        // 2. Fetch existing categories to avoid duplicates
+        const existingCats = await Category.find({ user: req.user.ownerId });
+        const catMap = new Map(); // unique identifier -> Category doc
+
+        // Helper to get consistent map key
+        const getCatKey = (name, parentId) => `${name.toLowerCase()}_${parentId ? String(parentId) : 'null'}`;
+        existingCats.forEach(c => catMap.set(getCatKey(c.name, c.parentCategory), c));
+
+        // 3. Helper to create or get a category
+        const createOrGetCategory = async (name, parentId) => {
+            const key = getCatKey(name, parentId);
+            if (catMap.has(key)) return catMap.get(key);
+
+            const newCat = await Category.create({ name, parentCategory: parentId, user: req.user.ownerId });
+            catMap.set(key, newCat);
+            return newCat;
+        };
+
+        // 4. Create missing folders level by level
+        const rootDocs = new Map(); // rootName -> Doc
+        const subDocs = new Map(); // rootName_subName -> Doc
+
+        // Roots
+        for (const str of uniquePaths) {
+            const path = JSON.parse(str);
+            if (path[0] === 'root') {
+                const doc = await createOrGetCategory(path[1], null);
+                rootDocs.set(path[1], doc);
+            }
+        }
+        // Subs
+        for (const str of uniquePaths) {
+            const path = JSON.parse(str);
+            if (path[0] === 'sub') {
+                const parentDoc = rootDocs.get(path[1]);
+                if (parentDoc) {
+                    const doc = await createOrGetCategory(path[2], parentDoc._id);
+                    subDocs.set(`${path[1]}_${path[2]}`, doc);
+                }
+            }
+        }
+        // SubSubs
+        for (const str of uniquePaths) {
+            const path = JSON.parse(str);
+            if (path[0] === 'subsub') {
+                const parentDoc = subDocs.get(`${path[1]}_${path[2]}`);
+                if (parentDoc) {
+                    await createOrGetCategory(path[3], parentDoc._id);
+                }
+            }
+        }
+        // --- END AUTO-CREATE CATEGORY FOLDERS ---
+
+        let insertedProducts = [];
+        try {
+            // ordered:false => continue inserting even if some documents fail (e.g., duplicate key)
+            insertedProducts = await Product.insertMany(validProductsToInsert, { ordered: false });
+        } catch (insertError) {
+            if (insertError.name === 'MongoBulkWriteError') {
+                // Partial success — collect what was inserted and what failed
+                insertedProducts = insertError.insertedDocs || [];
+                (insertError.writeErrors || []).forEach(err => {
+                    const doc = validProductsToInsert[err.index];
+                    errorMessages.push(`DB: "${doc?.name || 'unknown'}" — ${err.errmsg || err.message}`);
+                });
+            } else {
+                throw insertError;
+            }
+        }
+
+        // Audit Log (non-blocking)
+        if (insertedProducts.length > 0) {
+            AuditLog.create({
+                user: req.user._id,
+                action: 'CREATE_BULK',
+                target: 'Product',
+                targetId: insertedProducts[0]?._id,
+                details: { count: insertedProducts.length, failedCount: errorMessages.length },
+                ipAddress: req.ip
+            }).catch(err => console.error('AuditLog Error:', err.message));
+        }
+
+        const failedCount = productsData.length - insertedProducts.length;
+        res.status(insertedProducts.length > 0 ? 201 : 400).json({
+            message: `Successfully imported ${insertedProducts.length} of ${productsData.length} products`,
+            count: insertedProducts.length,
+            failedCount,
+            errors: errorMessages.slice(0, 20), // cap to keep response small
+        });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(500).json({ message: error.message });
     }
 };
 

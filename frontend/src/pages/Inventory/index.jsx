@@ -244,23 +244,85 @@ const Inventory = () => {
     };
 
     // Export to Excel
-    const handleExport = () => {
-        const exportData = products.map(p => ({
-            Name: p.name,
-            SKU: p.sku || '',
-            Category: p.category,
-            SubCategory: p.subCategory || '',
-            SubSubCategory: p.subSubCategory || '',
-            CostPrice: p.costPrice,
-            SellingPrice: p.sellingPrice,
-            Stock: p.stock,
-            Value: p.stock * p.sellingPrice
-        }));
+    const handleExport = async () => {
+        try {
+            const toastId = toast.loading('Preparing export...');
 
-        const ws = XLSX.utils.json_to_sheet(exportData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Inventory");
-        XLSX.writeFile(wb, "Inventory_Report.xlsx");
+            // Fetch all categories to include empty ones
+            const { data: allCategories } = await api.get('/categories');
+
+            const catMap = new Map(allCategories.map(c => [String(c._id), c]));
+            const pathsToExport = new Set();
+
+            allCategories.forEach(cat => {
+                let current = cat;
+                const path = [];
+                while (current) {
+                    path.unshift(current.name);
+                    const parentId = typeof current.parentCategory === 'object' ? current.parentCategory?._id : current.parentCategory;
+                    current = parentId ? catMap.get(String(parentId)) : null;
+                }
+                if (path.length > 0) {
+                    pathsToExport.add(JSON.stringify([path[0] || '', path[1] || '', path[2] || '']));
+                }
+            });
+
+            const pathsWithProducts = new Set();
+            const exportData = products.map(p => {
+                const cat = p.category || '';
+                const sub = p.subCategory || '';
+                const subSub = p.subSubCategory || '';
+                pathsWithProducts.add(JSON.stringify([cat, sub, subSub]));
+
+                return {
+                    Name: p.name,
+                    SKU: p.sku || '',
+                    Category: cat,
+                    SubCategory: sub,
+                    SubSubCategory: subSub,
+                    CostPrice: p.costPrice,
+                    SellingPrice: p.sellingPrice,
+                    Stock: p.stock,
+                    Value: p.stock * p.sellingPrice
+                };
+            });
+
+            // Add empty categories
+            pathsToExport.forEach(pathStr => {
+                if (!pathsWithProducts.has(pathStr)) {
+                    const pathArr = JSON.parse(pathStr);
+                    exportData.push({
+                        Name: '', // Blank
+                        SKU: '',
+                        Category: pathArr[0],
+                        SubCategory: pathArr[1],
+                        SubSubCategory: pathArr[2],
+                        CostPrice: '',
+                        SellingPrice: '',
+                        Stock: '',
+                        Value: ''
+                    });
+                }
+            });
+
+            // Sort logically: Category -> SubCategory -> SubSubCategory -> Name
+            exportData.sort((a, b) => {
+                if (a.Category !== b.Category) return (a.Category || '').localeCompare(b.Category || '');
+                if (a.SubCategory !== b.SubCategory) return (a.SubCategory || '').localeCompare(b.SubCategory || '');
+                if (a.SubSubCategory !== b.SubSubCategory) return (a.SubSubCategory || '').localeCompare(b.SubSubCategory || '');
+                return (a.Name || '').localeCompare(b.Name || '');
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+            XLSX.writeFile(wb, "Inventory_Report.xlsx");
+
+            toast.success('Export downloaded', { id: toastId });
+        } catch (error) {
+            console.error('Export error:', error);
+            toast.error('Failed to export data');
+        }
     };
 
     // Sorting Logic
@@ -383,15 +445,50 @@ const Inventory = () => {
         });
     }, [currentSubCategories, debouncedSearch, selectedCategory, stockFilter, categoryPath, products]);
 
+    const summaryProducts = useMemo(() => {
+        let result = [...products];
+
+        // Apply search and category filters first
+        if (debouncedSearch) {
+            const query = debouncedSearch.toLowerCase();
+            result = result.filter(p => p.name.toLowerCase().includes(query) || p.sku?.toLowerCase().includes(query));
+        }
+        if (selectedCategory !== 'All') {
+            result = result.filter(p => p.category === selectedCategory);
+        }
+        if (stockFilter !== 'all') {
+            if (stockFilter === 'low') {
+                result = result.filter(p => p.stock <= (p.minStockAlert || 5) && p.stock > 0);
+            } else if (stockFilter === 'out') {
+                result = result.filter(p => p.stock === 0);
+            }
+        }
+
+        // Apply folder path filter (include all nested products)
+        if (viewMode === 'folder' && categoryPath.length > 0) {
+            if (categoryPath.length > 0) {
+                result = result.filter(p => p.category === categoryPath[0].name);
+            }
+            if (categoryPath.length > 1) {
+                result = result.filter(p => p.subCategory === categoryPath[1].name);
+            }
+            if (categoryPath.length > 2) {
+                result = result.filter(p => p.subSubCategory === categoryPath[2].name);
+            }
+        }
+
+        return result;
+    }, [products, debouncedSearch, selectedCategory, stockFilter, categoryPath, viewMode]);
+
     const totalValue = useMemo(() => {
-        return filteredProducts.reduce((sum, p) => sum + (p.stock * p.sellingPrice), 0);
-    }, [filteredProducts]);
+        return summaryProducts.reduce((sum, p) => sum + ((p.stock || 0) * (p.sellingPrice || 0)), 0);
+    }, [summaryProducts]);
 
     return (
         <Layout>
             <div className="p-8 relative space-y-6">
                 <Header
-                    totalProducts={filteredProducts.length}
+                    totalProducts={summaryProducts.length}
                     totalValue={totalValue}
                     onAddProduct={() => { setEditingProduct(null); setShowModal(true); }}
                     onImport={() => setShowImportModal(true)}

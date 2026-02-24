@@ -120,10 +120,11 @@ const CategoryFolderView = ({
                                     {onDeleteCategory && (
                                         <button
                                             onClick={(e) => {
+                                                e.preventDefault();
                                                 e.stopPropagation();
                                                 onDeleteCategory(category);
                                             }}
-                                            className="absolute top-2 right-2 p-1.5 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-200 dark:hover:bg-red-900 transition-all duration-200 z-10 hover:scale-110 shadow-sm"
+                                            className="absolute top-2 right-2 p-1.5 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-200 dark:hover:bg-red-900 transition-all duration-200 z-50 hover:scale-110 shadow-sm"
                                             title="Delete Folder"
                                         >
                                             <Trash2 className="w-4 h-4" />
@@ -188,10 +189,11 @@ const CategoryFolderView = ({
                                     {onDeleteProduct && (
                                         <button
                                             onClick={(e) => {
+                                                e.preventDefault();
                                                 e.stopPropagation();
                                                 onDeleteProduct(product);
                                             }}
-                                            className="absolute top-2 right-2 p-1.5 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-200 dark:hover:bg-red-900 transition-all duration-200 z-10 hover:scale-110 shadow-sm"
+                                            className="absolute top-2 right-2 p-1.5 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-200 dark:hover:bg-red-900 transition-all duration-200 z-50 hover:scale-110 shadow-sm"
                                             title="Delete Product"
                                         >
                                             <Trash2 className="w-4 h-4" />
