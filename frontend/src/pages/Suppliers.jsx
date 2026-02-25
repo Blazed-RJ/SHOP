@@ -59,8 +59,8 @@ const Suppliers = () => {
         if (searchQuery) {
             const filtered = suppliers.filter(s =>
                 s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                s.phone.includes(searchQuery) ||
-                s.email?.toLowerCase().includes(searchQuery.toLowerCase())
+                (s.phone || '').includes(searchQuery) ||
+                (s.email || '').toLowerCase().includes(searchQuery.toLowerCase())
             );
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setFilteredSuppliers(filtered);
@@ -310,10 +310,10 @@ const SupplierModal = ({ supplier, onClose, onSuccess }) => {
 
         try {
             if (supplier) {
-                await api.put(`/suppliers/${supplier._id}`, formData);
+                await api.put(`/suppliers/${supplier._id}`, { ...formData, type: 'Supplier' });
                 toast.success('Supplier updated successfully');
             } else {
-                await api.post('/suppliers', formData);
+                await api.post('/suppliers', { ...formData, type: 'Supplier' });
                 toast.success('Supplier added successfully');
             }
             onSuccess();

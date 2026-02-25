@@ -3,15 +3,87 @@ import AccountGroup from '../models/AccountGroup.js';
 import AccountLedger from '../models/AccountLedger.js';
 import AuditLog from '../models/AuditLog.js';
 
-// @desc    Get all suppliers
+// @desc    Get all suppliers (type = 'Supplier' only)
 // @route   GET /api/suppliers
 // @access  Private/Admin
 export const getSuppliers = async (req, res) => {
     try {
-        const suppliers = await Supplier.find({ user: req.user.ownerId, isActive: true, isDeleted: { $ne: true } }).sort({ name: 1 });
+        const suppliers = await Supplier.find({
+            user: req.user.ownerId,
+            type: 'Supplier',
+            isActive: true,
+            isDeleted: { $ne: true }
+        }).sort({ name: 1 });
         res.json(suppliers);
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Get all expense heads (type = 'Expense' only)
+// @route   GET /api/suppliers/expense-heads
+// @access  Private
+export const getExpenseHeads = async (req, res) => {
+    try {
+        const heads = await Supplier.find({
+            user: req.user.ownerId,
+            type: 'Expense',
+            isActive: true,
+            isDeleted: { $ne: true }
+        }).sort({ name: 1 });
+        res.json(heads);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Helper: compute next due date from autopay config
+const computeNextDue = (frequency, dueDay, fromDate = new Date()) => {
+    const d = new Date(fromDate);
+    if (frequency === 'Monthly') {
+        // Next occurrence of dueDay in current or next month
+        d.setDate(dueDay);
+        if (d <= fromDate) d.setMonth(d.getMonth() + 1);
+    } else if (frequency === 'Weekly') {
+        // dueDay is 0 (Sun) - 6 (Sat)
+        const diff = (dueDay - d.getDay() + 7) % 7 || 7;
+        d.setDate(d.getDate() + diff);
+    } else if (frequency === 'Yearly') {
+        d.setMonth(0); d.setDate(dueDay);
+        if (d <= fromDate) d.setFullYear(d.getFullYear() + 1);
+    }
+    d.setHours(0, 0, 0, 0);
+    return d;
+};
+
+// @desc    Create expense head
+// @route   POST /api/suppliers/expense-heads
+// @access  Private
+export const createExpenseHead = async (req, res) => {
+    try {
+        const { name, autopay } = req.body;
+        const autopayData = {
+            enabled: autopay?.enabled || false,
+            amount: autopay?.amount || 0,
+            frequency: autopay?.frequency || 'Monthly',
+            dueDay: autopay?.dueDay || 1,
+            method: autopay?.method || 'Cash',
+            lastPaid: null,
+            nextDue: autopay?.enabled
+                ? computeNextDue(autopay.frequency || 'Monthly', autopay.dueDay || 1)
+                : null
+        };
+
+        const head = await Supplier.create({
+            name,
+            type: 'Expense',
+            phone: null,
+            user: req.user.ownerId,
+            autopay: autopayData
+        });
+        res.status(201).json(head);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
     }
 };
 
@@ -42,7 +114,7 @@ export const getSupplierById = async (req, res) => {
 // @access  Private/Admin
 export const createSupplier = async (req, res) => {
     try {
-        const { name, company, phone, email, address, gstNumber, type } = req.body;
+        const { name, company, phone, email, address, gstNumber } = req.body;
 
         const supplier = await Supplier.create({
             name,
@@ -51,7 +123,7 @@ export const createSupplier = async (req, res) => {
             email,
             address,
             gstNumber,
-            type,
+            type: 'Supplier', // Always force Supplier type on this endpoint
             user: req.user.ownerId
         });
 
