@@ -322,10 +322,17 @@ export const getDashboardSummary = async (req, res) => {
         const ownerId = new mongoose.Types.ObjectId(req.user.ownerId);
         const userId = new mongoose.Types.ObjectId(req.user._id);
 
-        // Match payments belonging to this owner (support both ownerId and _id for legacy records)
-        const userMatch = ownerId.equals(userId)
-            ? { user: ownerId }                          // owner IS the user — single match
-            : { user: { $in: [ownerId, userId] } };      // team member — match either
+        // Match payments belonging to this owner (support both ObjectId and String forms for legacy records)
+        const userMatch = {
+            user: {
+                $in: [
+                    ownerId,
+                    userId,
+                    ownerId.toString(),
+                    userId.toString()
+                ]
+            }
+        };
 
         // Bank methods (explicit allowlist — avoids capturing 'Credit' method as bank)
         const bankMethods = ['UPI', 'Card', 'Cheque', 'Bank Transfer', 'Online'];
