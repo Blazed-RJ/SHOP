@@ -165,9 +165,7 @@ function AppRoutes() {
 
       <Route path="/cash-bank" element={
         <ProtectedRoute>
-          <div className="min-h-screen relative p-4 lg:p-8 ml-0 md:ml-64 dark:bg-[#050505]">
-            <ChartOfAccounts />
-          </div>
+          <ChartOfAccounts />
         </ProtectedRoute>
       } />
 
