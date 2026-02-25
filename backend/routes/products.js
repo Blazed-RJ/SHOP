@@ -24,13 +24,13 @@ const router = express.Router();
 router.get('/', protect, getProducts);
 router.get('/expiry-alert', protect, getExpiringBatches);
 router.get('/search/:keyword', protect, searchProducts);
-router.get('/:id', protect, getProductById);
-router.get('/:id/batches', protect, getProductBatches);
-
 // Admin only routes
 router.get('/trash', protect, authorize('Admin'), getDeletedProducts);
 router.put('/:id/restore', protect, authorize('Admin'), restoreProduct);
 router.delete('/:id/hard-delete', protect, authorize('Admin'), hardDeleteProduct);
+
+router.get('/:id', protect, getProductById);
+router.get('/:id/batches', protect, getProductBatches);
 
 // Admin & Accountant routes
 router.post('/bulk', protect, authorize('Admin', 'Accountant'), createProductsBulk);
