@@ -42,9 +42,10 @@ const supplierSchema = mongoose.Schema({
     // Autopay configuration (for Expense Heads)
     autopay: {
         enabled: { type: Boolean, default: false },
-        amount: { type: Number, default: 0 },
+        amountType: { type: String, enum: ['Fixed', 'Variable'], default: 'Fixed' },
+        amount: { type: Number, default: 0 },   // Only used when amountType is 'Fixed'
         frequency: { type: String, enum: ['Monthly', 'Weekly', 'Yearly'], default: 'Monthly' },
-        dueDay: { type: Number, default: 1 }, // 1-31 for monthly, 0-6 for weekly
+        dueDay: { type: Number, default: 1 },   // 1-31 for monthly, 0-6 for weekly
         method: { type: String, enum: ['Cash', 'UPI', 'Card', 'Bank Transfer', 'Cheque', 'Online'], default: 'Cash' },
         lastPaid: { type: Date, default: null },
         nextDue: { type: Date, default: null }

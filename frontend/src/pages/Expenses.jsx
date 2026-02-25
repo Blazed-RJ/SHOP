@@ -183,7 +183,12 @@ const Expenses = () => {
                                             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-white/10 space-y-1">
                                                 <div className="flex items-center justify-between text-[10px]">
                                                     <span className="text-gray-400 flex items-center gap-1"><RefreshCcw className="w-2.5 h-2.5" /> {expense.autopay.frequency}</span>
-                                                    <span className="font-bold text-gray-700 dark:text-gray-300">{formatINR(expense.autopay.amount)}</span>
+                                                    <span className="font-bold text-gray-700 dark:text-gray-300">
+                                                        {expense.autopay.amountType === 'Variable'
+                                                            ? <span className="text-orange-500">Variable Bill</span>
+                                                            : formatINR(expense.autopay.amount)
+                                                        }
+                                                    </span>
                                                 </div>
                                                 <div className="flex items-center justify-between text-[10px]">
                                                     <span className="text-gray-400 flex items-center gap-1"><Calendar className="w-2.5 h-2.5" /> Next Due</span>
@@ -265,6 +270,7 @@ const ExpenseModal = ({ expense, onClose, onSuccess }) => {
     const [formData, setFormData] = useState({ name: expense?.name || '' });
     const [autopay, setAutopay] = useState({
         enabled: expense?.autopay?.enabled || false,
+        amountType: expense?.autopay?.amountType || 'Fixed',
         amount: expense?.autopay?.amount || '',
         frequency: expense?.autopay?.frequency || 'Monthly',
         dueDay: expense?.autopay?.dueDay || 1,
@@ -279,7 +285,7 @@ const ExpenseModal = ({ expense, onClose, onSuccess }) => {
             name: formData.name,
             autopay: {
                 ...autopay,
-                amount: Number(autopay.amount) || 0,
+                amount: autopay.amountType === 'Variable' ? 0 : (Number(autopay.amount) || 0),
                 dueDay: Number(autopay.dueDay) || 1,
             }
         };
@@ -348,20 +354,50 @@ const ExpenseModal = ({ expense, onClose, onSuccess }) => {
 
                         {autopay.enabled && (
                             <div className="p-4 pt-0 space-y-3 border-t border-gray-100 dark:border-gray-800">
-                                {/* Amount + Method row */}
-                                <div className="grid grid-cols-2 gap-3 mt-3">
+                                {/* Fixed vs Variable */}
+                                <div className="mt-3">
+                                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">Bill Amount Type</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {['Fixed', 'Variable'].map(type => (
+                                            <button
+                                                key={type}
+                                                type="button"
+                                                onClick={() => setAutopay(p => ({ ...p, amountType: type }))}
+                                                className={`py-2 rounded-lg text-xs font-bold border transition-all ${autopay.amountType === type
+                                                    ? type === 'Fixed'
+                                                        ? 'bg-blue-500 border-blue-500 text-white'
+                                                        : 'bg-orange-500 border-orange-500 text-white'
+                                                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-400'
+                                                    }`}
+                                            >
+                                                {type === 'Fixed' ? '📌 Fixed Amount' : '📊 Variable (e.g. Electricity)'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {autopay.amountType === 'Variable' && (
+                                        <p className="text-[10px] text-orange-500 mt-1.5">
+                                            Amount will be entered each time you pay — ideal for electricity, water, etc.
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Amount field — only for Fixed */}
+                                {autopay.amountType === 'Fixed' && (
                                     <div>
-                                        <label className="block text-xs font-semibold text-gray-500 mb-1">Amount (₹) *</label>
+                                        <label className="block text-xs font-semibold text-gray-500 mb-1">Fixed Amount (₹) *</label>
                                         <input
-                                            type="number"
-                                            min="1"
+                                            type="number" min="1"
                                             value={autopay.amount}
                                             onChange={(e) => setAutopay(p => ({ ...p, amount: e.target.value }))}
                                             className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500"
                                             placeholder="0"
-                                            required={autopay.enabled}
+                                            required={autopay.enabled && autopay.amountType === 'Fixed'}
                                         />
                                     </div>
+                                )}
+
+                                {/* Frequency + Due day row */}
+                                <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-500 mb-1">Frequency</label>
                                         <select
@@ -372,10 +408,6 @@ const ExpenseModal = ({ expense, onClose, onSuccess }) => {
                                             {Object.keys(FREQ_LABELS).map(f => <option key={f} value={f}>{f}</option>)}
                                         </select>
                                     </div>
-                                </div>
-
-                                {/* Due day + Method */}
-                                <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-500 mb-1">
                                             {autopay.frequency === 'Weekly' ? 'Day of Week (0=Sun)' : 'Day of Month'}
@@ -389,16 +421,18 @@ const ExpenseModal = ({ expense, onClose, onSuccess }) => {
                                             className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-500 mb-1">Payment Method</label>
-                                        <select
-                                            value={autopay.method}
-                                            onChange={(e) => setAutopay(p => ({ ...p, method: e.target.value }))}
-                                            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500"
-                                        >
-                                            {METHOD_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
-                                        </select>
-                                    </div>
+                                </div>
+
+                                {/* Method */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Payment Method</label>
+                                    <select
+                                        value={autopay.method}
+                                        onChange={(e) => setAutopay(p => ({ ...p, method: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500"
+                                    >
+                                        {METHOD_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
+                                    </select>
                                 </div>
                             </div>
                         )}
@@ -421,8 +455,9 @@ const ExpenseModal = ({ expense, onClose, onSuccess }) => {
 
 // ── Pay Now Modal ────────────────────────────────────────────────────────────
 const PayNowModal = ({ expense, onClose, onSuccess }) => {
+    const isVariable = expense.autopay?.amountType === 'Variable';
     const [formData, setFormData] = useState({
-        amount: expense.autopay?.amount || '',
+        amount: isVariable ? '' : (expense.autopay?.amount || ''),
         method: expense.autopay?.method || 'Cash',
         notes: '',
         date: new Date().toISOString().split('T')[0],

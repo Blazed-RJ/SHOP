@@ -320,6 +320,12 @@ export const getLedgerVouchers = async (req, res) => {
 export const getDashboardSummary = async (req, res) => {
     try {
         const ownerId = new mongoose.Types.ObjectId(req.user.ownerId);
+        const userId = new mongoose.Types.ObjectId(req.user._id);
+
+        // Match payments belonging to this owner (support both ownerId and _id for legacy records)
+        const userMatch = ownerId.equals(userId)
+            ? { user: ownerId }                          // owner IS the user — single match
+            : { user: { $in: [ownerId, userId] } };      // team member — match either
 
         // Bank methods (explicit allowlist — avoids capturing 'Credit' method as bank)
         const bankMethods = ['UPI', 'Card', 'Cheque', 'Bank Transfer', 'Online'];
@@ -328,7 +334,7 @@ export const getDashboardSummary = async (req, res) => {
         const [cashPayments, bankPayments, productValueAgg] = await Promise.all([
             // Cash In Hand: all Cash-method payments for this owner
             Payment.aggregate([
-                { $match: { user: ownerId, method: 'Cash' } },
+                { $match: { ...userMatch, method: 'Cash' } },
                 {
                     $group: {
                         _id: null,
@@ -343,7 +349,7 @@ export const getDashboardSummary = async (req, res) => {
             ]),
             // Cash In Bank: only genuine bank-method payments for this owner
             Payment.aggregate([
-                { $match: { user: ownerId, method: { $in: bankMethods } } },
+                { $match: { ...userMatch, method: { $in: bankMethods } } },
                 {
                     $group: {
                         _id: null,
