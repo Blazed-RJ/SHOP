@@ -19,7 +19,7 @@ import toast from 'react-hot-toast';
 import ConfirmationModal from '../components/ConfirmationModal';
 
 // ── helpers ────────────────────────────────────────────────────────────────
-const FREQ_LABELS = { Monthly: 'Monthly', Weekly: 'Weekly', Yearly: 'Yearly' };
+const FREQ_LABELS = { Daily: 'Daily', Weekly: 'Weekly', Monthly: 'Monthly', Yearly: 'Yearly' };
 const METHOD_OPTIONS = ['Cash', 'UPI', 'Card', 'Bank Transfer', 'Cheque', 'Online'];
 
 const isOverdue = (nextDue) => nextDue && new Date(nextDue) < new Date();
@@ -408,19 +408,21 @@ const ExpenseModal = ({ expense, onClose, onSuccess }) => {
                                             {Object.keys(FREQ_LABELS).map(f => <option key={f} value={f}>{f}</option>)}
                                         </select>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-500 mb-1">
-                                            {autopay.frequency === 'Weekly' ? 'Day of Week (0=Sun)' : 'Day of Month'}
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min={autopay.frequency === 'Weekly' ? 0 : 1}
-                                            max={autopay.frequency === 'Weekly' ? 6 : 31}
-                                            value={autopay.dueDay}
-                                            onChange={(e) => setAutopay(p => ({ ...p, dueDay: e.target.value }))}
-                                            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500"
-                                        />
-                                    </div>
+                                    {autopay.frequency !== 'Daily' && (
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 mb-1">
+                                                {autopay.frequency === 'Weekly' ? 'Day of Week (0=Sun)' : 'Day of Month'}
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min={autopay.frequency === 'Weekly' ? 0 : 1}
+                                                max={autopay.frequency === 'Weekly' ? 6 : 31}
+                                                value={autopay.dueDay}
+                                                onChange={(e) => setAutopay(p => ({ ...p, dueDay: e.target.value }))}
+                                                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Method */}

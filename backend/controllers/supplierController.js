@@ -40,14 +40,14 @@ export const getExpenseHeads = async (req, res) => {
 // Helper: compute next due date from autopay config
 const computeNextDue = (frequency, dueDay, fromDate = new Date()) => {
     const d = new Date(fromDate);
-    if (frequency === 'Monthly') {
-        // Next occurrence of dueDay in current or next month
-        d.setDate(dueDay);
-        if (d <= fromDate) d.setMonth(d.getMonth() + 1);
+    if (frequency === 'Daily') {
+        d.setDate(d.getDate() + 1);
     } else if (frequency === 'Weekly') {
-        // dueDay is 0 (Sun) - 6 (Sat)
         const diff = (dueDay - d.getDay() + 7) % 7 || 7;
         d.setDate(d.getDate() + diff);
+    } else if (frequency === 'Monthly') {
+        d.setDate(dueDay);
+        if (d <= fromDate) d.setMonth(d.getMonth() + 1);
     } else if (frequency === 'Yearly') {
         d.setMonth(0); d.setDate(dueDay);
         if (d <= fromDate) d.setFullYear(d.getFullYear() + 1);

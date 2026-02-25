@@ -44,7 +44,7 @@ const supplierSchema = mongoose.Schema({
         enabled: { type: Boolean, default: false },
         amountType: { type: String, enum: ['Fixed', 'Variable'], default: 'Fixed' },
         amount: { type: Number, default: 0 },   // Only used when amountType is 'Fixed'
-        frequency: { type: String, enum: ['Monthly', 'Weekly', 'Yearly'], default: 'Monthly' },
+        frequency: { type: String, enum: ['Daily', 'Weekly', 'Monthly', 'Yearly'], default: 'Monthly' },
         dueDay: { type: Number, default: 1 },   // 1-31 for monthly, 0-6 for weekly
         method: { type: String, enum: ['Cash', 'UPI', 'Card', 'Bank Transfer', 'Cheque', 'Online'], default: 'Cash' },
         lastPaid: { type: Date, default: null },
