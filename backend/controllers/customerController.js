@@ -1,3 +1,4 @@
+import Customer from '../models/Customer.js';
 import LedgerEntry from '../models/LedgerEntry.js';
 import AccountGroup from '../models/AccountGroup.js';
 import AccountLedger from '../models/AccountLedger.js';

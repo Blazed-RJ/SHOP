@@ -321,32 +321,37 @@ export const getDashboardSummary = async (req, res) => {
     try {
         const ownerId = new mongoose.Types.ObjectId(req.user.ownerId);
 
-        // 1. Calculate Cash In Hand (Method = 'Cash')
+        // Bank methods (explicit allowlist — avoids capturing 'Credit' method as bank)
+        const bankMethods = ['UPI', 'Card', 'Cheque', 'Bank Transfer', 'Online'];
+
+        // 1. Calculate Cash In Hand, Cash In Bank, and Product Value
         const [cashPayments, bankPayments, productValueAgg] = await Promise.all([
+            // Cash In Hand: all Cash-method payments for this owner
             Payment.aggregate([
                 { $match: { user: ownerId, method: 'Cash' } },
                 {
                     $group: {
                         _id: null,
                         totalDebit: {
-                            $sum: { $cond: [{ $eq: ["$type", "Debit"] }, "$amount", 0] }
+                            $sum: { $cond: [{ $eq: ['$type', 'Debit'] }, '$amount', 0] }
                         },
                         totalCredit: {
-                            $sum: { $cond: [{ $eq: ["$type", "Credit"] }, "$amount", 0] }
+                            $sum: { $cond: [{ $eq: ['$type', 'Credit'] }, '$amount', 0] }
                         }
                     }
                 }
             ]),
+            // Cash In Bank: only genuine bank-method payments for this owner
             Payment.aggregate([
-                { $match: { user: ownerId, method: { $ne: 'Cash' } } },
+                { $match: { user: ownerId, method: { $in: bankMethods } } },
                 {
                     $group: {
                         _id: null,
                         totalDebit: {
-                            $sum: { $cond: [{ $eq: ["$type", "Debit"] }, "$amount", 0] }
+                            $sum: { $cond: [{ $eq: ['$type', 'Debit'] }, '$amount', 0] }
                         },
                         totalCredit: {
-                            $sum: { $cond: [{ $eq: ["$type", "Credit"] }, "$amount", 0] }
+                            $sum: { $cond: [{ $eq: ['$type', 'Credit'] }, '$amount', 0] }
                         }
                     }
                 }
@@ -356,7 +361,7 @@ export const getDashboardSummary = async (req, res) => {
                 {
                     $group: {
                         _id: null,
-                        totalValue: { $sum: { $multiply: ["$stock", "$costPrice"] } }
+                        totalValue: { $sum: { $multiply: ['$stock', '$costPrice'] } }
                     }
                 }
             ])
@@ -366,8 +371,7 @@ export const getDashboardSummary = async (req, res) => {
         const cashInBank = bankPayments.length > 0 ? (bankPayments[0].totalDebit - bankPayments[0].totalCredit) : 0;
         const productValue = productValueAgg.length > 0 ? productValueAgg[0].totalValue : 0;
 
-        console.log(`[DEBUG] Dashboard Summary Request for User: ${req.user._id} (Owner: ${req.user.ownerId})`);
-        console.log(`[DEBUG] Calculated: CashInHand=${cashInHand}, Bank=${cashInBank}, Stock=${productValue}`);
+        console.log(`[Dashboard Summary] Owner: ${req.user.ownerId} | CashInHand=${cashInHand}, Bank=${cashInBank}, Stock=${productValue}`);
 
         res.json({
             cashInHand,
