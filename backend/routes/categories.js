@@ -122,7 +122,13 @@ router.post('/', protect, admin, upload.single('image'), async (req, res) => {
 // @access  Private (Admin)
 router.put('/:id', protect, admin, upload.single('image'), async (req, res) => {
     try {
-        const { name, description, parentCategory } = req.body;
+        const { name, description } = req.body;
+
+        // Sanitize parentCategory: treat empty string or 'null' string as null
+        let parentCategory = req.body.parentCategory;
+        if (parentCategory === '' || parentCategory === 'null') {
+            parentCategory = null;
+        }
 
         const category = await Category.findOne({ _id: req.params.id, user: req.user.ownerId });
 
@@ -148,12 +154,8 @@ router.put('/:id', protect, admin, upload.single('image'), async (req, res) => {
 
         category.name = name || category.name;
         category.description = description !== undefined ? description : category.description;
-        if (parentCategory !== undefined) {
-            if (parentCategory === '' || parentCategory === 'null') {
-                category.parentCategory = null;
-            } else {
-                category.parentCategory = parentCategory;
-            }
+        if (req.body.parentCategory !== undefined) {
+            category.parentCategory = parentCategory;
         }
 
         if (req.file) {
@@ -168,9 +170,10 @@ router.put('/:id', protect, admin, upload.single('image'), async (req, res) => {
         res.json(category);
     } catch (error) {
         console.error('Error updating category:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
+
 
 // @route   DELETE /api/categories/:id
 // @desc    Delete category (and all sub-categories)
