@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import toast from 'react-hot-toast';
+import { BACKEND_URL } from '../utils/api';
 
 const Login = () => {
     const [username, setUsername] = useState('');
@@ -103,7 +104,7 @@ const Login = () => {
                             <div className="relative inline-block mb-6">
                                 <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full"></div>
                                 <img
-                                    src={settings.logo}
+                                    src={settings.logo.startsWith('http') ? settings.logo : `${BACKEND_URL}${settings.logo}`}
                                     alt="Shop Logo"
                                     className="w-24 h-24 relative z-10 mx-auto object-contain drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]"
                                 />

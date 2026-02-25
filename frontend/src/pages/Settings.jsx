@@ -420,7 +420,7 @@ const Settings = () => {
                                                     {currentSettings?.logo ? (
                                                         <>
                                                             <img
-                                                                src={currentSettings.logo.startsWith('http') ? currentSettings.logo : `${BACKEND_URL}${currentSettings.logo} `}
+                                                                src={currentSettings.logo.startsWith('http') ? currentSettings.logo : `${BACKEND_URL}${currentSettings.logo}`}
                                                                 alt="Logo"
                                                                 className="h-full w-full object-contain p-2"
                                                             />
