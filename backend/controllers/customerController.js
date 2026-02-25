@@ -280,3 +280,33 @@ export const restoreCustomer = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// @desc    Permanently delete specific customer from Trash
+// @route   DELETE /api/customers/:id/hard-delete
+// @access  Private/Admin
+export const hardDeleteCustomer = async (req, res) => {
+    try {
+        const customer = await Customer.findOne({ _id: req.params.id, user: req.user.ownerId, isDeleted: true });
+
+        if (!customer) {
+            return res.status(404).json({ message: 'Deleted customer not found or already permanently deleted' });
+        }
+
+        await Customer.deleteOne({ _id: customer._id });
+
+        AuditLog.create({
+            user: req.user._id,
+            action: 'HARD_DELETE',
+            target: 'Customer',
+            targetId: customer._id,
+            details: { name: customer.name, phone: customer.phone },
+            ipAddress: req.ip,
+            device: req.headers['user-agent']
+        }).catch(err => console.error('AuditLog Error:', err.message));
+
+        res.json({ message: 'Customer permanently deleted' });
+    } catch (error) {
+        if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid Customer ID format' });
+        res.status(500).json({ message: error.message });
+    }
+};

@@ -7,7 +7,8 @@ import {
     getCustomersWithDues,
     deleteCustomer,
     getDeletedCustomers,
-    restoreCustomer
+    restoreCustomer,
+    hardDeleteCustomer
 } from '../controllers/customerController.js';
 import { protect } from '../middleware/auth.js';
 import { authorize } from '../middleware/rbac.js';
@@ -18,6 +19,7 @@ router.get('/', protect, getCustomers);
 router.get('/dues', protect, getCustomersWithDues);
 router.get('/trash', protect, authorize('Admin'), getDeletedCustomers);
 router.put('/:id/restore', protect, authorize('Admin'), restoreCustomer);
+router.delete('/:id/hard-delete', protect, authorize('Admin'), hardDeleteCustomer);
 router.get('/:id', protect, getCustomerById);
 router.post('/', protect, createCustomer);
 router.put('/:id', protect, updateCustomer);

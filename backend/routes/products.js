@@ -11,7 +11,8 @@ import {
     createProductsBulk,
     deleteProductsBulk,
     getDeletedProducts,
-    restoreProduct
+    restoreProduct,
+    hardDeleteProduct
 } from '../controllers/productController.js';
 import { protect } from '../middleware/auth.js';
 import { authorize } from '../middleware/rbac.js';
@@ -29,6 +30,7 @@ router.get('/:id/batches', protect, getProductBatches);
 // Admin only routes
 router.get('/trash', protect, authorize('Admin'), getDeletedProducts);
 router.put('/:id/restore', protect, authorize('Admin'), restoreProduct);
+router.delete('/:id/hard-delete', protect, authorize('Admin'), hardDeleteProduct);
 
 // Admin & Accountant routes
 router.post('/bulk', protect, authorize('Admin', 'Accountant'), createProductsBulk);

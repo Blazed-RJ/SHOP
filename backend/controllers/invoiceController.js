@@ -703,3 +703,33 @@ export const restoreInvoice = async (req, res) => {
         res.status(res.statusCode === 200 ? 500 : res.statusCode).json({ message: error.message });
     }
 };
+
+// @desc    Permanently delete specific invoice from Trash
+// @route   DELETE /api/invoices/:id/hard-delete
+// @access  Private/Admin
+export const hardDeleteInvoice = async (req, res) => {
+    try {
+        const invoice = await Invoice.findOne({ _id: req.params.id, user: req.user.ownerId, isDeleted: true });
+
+        if (!invoice) {
+            return res.status(404).json({ message: 'Deleted invoice not found or already permanently deleted' });
+        }
+
+        await Invoice.deleteOne({ _id: invoice._id });
+
+        AuditLog.create({
+            user: req.user._id,
+            action: 'HARD_DELETE',
+            target: 'Invoice',
+            targetId: invoice._id,
+            details: { invoiceNo: invoice.invoiceNo, grandTotal: invoice.grandTotal },
+            ipAddress: req.ip,
+            device: req.headers['user-agent']
+        }).catch(err => console.error('AuditLog Error:', err.message));
+
+        res.json({ message: 'Invoice permanently deleted' });
+    } catch (error) {
+        if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid Invoice ID format' });
+        res.status(500).json({ message: error.message });
+    }
+};

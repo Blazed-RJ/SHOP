@@ -291,3 +291,33 @@ export const restoreSupplier = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// @desc    Permanently delete specific supplier from Trash
+// @route   DELETE /api/suppliers/:id/hard-delete
+// @access  Private/Admin
+export const hardDeleteSupplier = async (req, res) => {
+    try {
+        const supplier = await Supplier.findOne({ _id: req.params.id, user: req.user.ownerId, isDeleted: true });
+
+        if (!supplier) {
+            return res.status(404).json({ message: 'Deleted supplier not found or already permanently deleted' });
+        }
+
+        await Supplier.deleteOne({ _id: supplier._id });
+
+        AuditLog.create({
+            user: req.user._id,
+            action: 'HARD_DELETE',
+            target: 'Supplier',
+            targetId: supplier._id,
+            details: { name: supplier.name, phone: supplier.phone },
+            ipAddress: req.ip,
+            device: req.headers['user-agent']
+        }).catch(err => console.error('AuditLog Error:', err.message));
+
+        res.json({ message: 'Supplier permanently deleted' });
+    } catch (error) {
+        if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid Supplier ID format' });
+        res.status(500).json({ message: error.message });
+    }
+};

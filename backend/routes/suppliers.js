@@ -8,7 +8,8 @@ import {
     getDeletedSuppliers,
     restoreSupplier,
     getExpenseHeads,
-    createExpenseHead
+    createExpenseHead,
+    hardDeleteSupplier
 } from '../controllers/supplierController.js';
 import { protect, admin } from '../middleware/auth.js';
 import { authorize } from '../middleware/rbac.js';
@@ -20,6 +21,7 @@ router.get('/expense-heads', protect, getExpenseHeads);
 router.post('/expense-heads', protect, createExpenseHead);
 router.get('/trash', protect, authorize('Admin'), getDeletedSuppliers);
 router.put('/:id/restore', protect, authorize('Admin'), restoreSupplier);
+router.delete('/:id/hard-delete', protect, authorize('Admin'), hardDeleteSupplier);
 
 router.get('/', protect, admin, getSuppliers);
 router.get('/:id', protect, admin, getSupplierById);

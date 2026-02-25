@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout/Layout';
 import api from '../utils/api';
 import {
@@ -15,6 +16,7 @@ import {
 import toast from 'react-hot-toast';
 
 const Trash = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('products');
     const [items, setItems] = useState([]);
@@ -62,6 +64,20 @@ const Trash = () => {
         } catch (error) {
             console.error('Restore error:', error);
             toast.error(error.response?.data?.message || 'Failed to restore item');
+        }
+    };
+
+    const handleHardDelete = async (id) => {
+        if (!window.confirm('Are you sure you want to permanently delete this item? This action cannot be undone.')) {
+            return;
+        }
+        try {
+            await api.delete(`/${activeTab}/${id}/hard-delete`);
+            toast.success('Item permanently deleted');
+            loadItems();
+        } catch (error) {
+            console.error('Hard delete error:', error);
+            toast.error(error.response?.data?.message || 'Failed to delete item permanently');
         }
     };
 
@@ -138,8 +154,8 @@ const Trash = () => {
                                 key={tab.id}
                                 onClick={() => { setActiveTab(tab.id); setSearchQuery(''); }}
                                 className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all whitespace-nowrap font-medium ${active
-                                        ? 'bg-red-500 text-white shadow-md shadow-red-500/20'
-                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                    ? 'bg-red-500 text-white shadow-md shadow-red-500/20'
+                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
                                     }`}
                             >
                                 <tab.icon className={`w-4 h-4 ${active ? 'text-white' : ''}`} />
@@ -203,13 +219,24 @@ const Trash = () => {
                                                 </div>
                                             </td>
                                             <td className="py-4 px-6 text-right">
-                                                <button
-                                                    onClick={() => handleRestore(item._id)}
-                                                    className="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
-                                                >
-                                                    <RefreshCw className="w-4 h-4" />
-                                                    <span>Restore</span>
-                                                </button>
+                                                <div className="flex items-center justify-end space-x-2">
+                                                    <button
+                                                        onClick={() => handleRestore(item._id)}
+                                                        className="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
+                                                    >
+                                                        <RefreshCw className="w-4 h-4" />
+                                                        <span>Restore</span>
+                                                    </button>
+                                                    {user?.role === 'Admin' && (
+                                                        <button
+                                                            onClick={() => handleHardDelete(item._id)}
+                                                            className="inline-flex items-center space-x-2 px-4 py-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-medium rounded-xl hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+                                                            title="Permanently Delete"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

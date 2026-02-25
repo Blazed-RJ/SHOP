@@ -382,6 +382,8 @@ export const deleteProduct = async (req, res) => {
         }
 
         product.isActive = false;
+        product.isDeleted = true;
+        product.deletedAt = new Date();
         await product.save();
 
         // Audit Log (non-blocking)
@@ -423,7 +425,7 @@ export const deleteProductsBulk = async (req, res) => {
         // Soft delete all matched
         await Product.updateMany(
             { _id: { $in: validProducts.map(p => p._id) } },
-            { $set: { isActive: false } }
+            { $set: { isActive: false, isDeleted: true, deletedAt: new Date() } }
         );
 
         // Audit Log (non-blocking)
@@ -561,6 +563,7 @@ export const restoreProduct = async (req, res) => {
             return res.status(404).json({ message: 'Deleted product not found' });
         }
 
+        product.isActive = true;
         product.isDeleted = false;
         product.deletedAt = null;
         await product.save();
@@ -576,6 +579,36 @@ export const restoreProduct = async (req, res) => {
         }).catch(err => console.error('AuditLog Error:', err.message));
 
         res.json({ message: 'Product restored successfully', product });
+    } catch (error) {
+        if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid Product ID format' });
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Permanently delete specific product from Trash
+// @route   DELETE /api/products/:id/hard-delete
+// @access  Private/Admin
+export const hardDeleteProduct = async (req, res) => {
+    try {
+        const product = await Product.findOne({ _id: req.params.id, user: req.user.ownerId, isDeleted: true });
+
+        if (!product) {
+            return res.status(404).json({ message: 'Deleted product not found or already permanently deleted' });
+        }
+
+        await Product.deleteOne({ _id: product._id });
+
+        AuditLog.create({
+            user: req.user._id,
+            action: 'HARD_DELETE',
+            target: 'Product',
+            targetId: product._id,
+            details: { name: product.name, sku: product.sku },
+            ipAddress: req.ip,
+            device: req.headers['user-agent']
+        }).catch(err => console.error('AuditLog Error:', err.message));
+
+        res.json({ message: 'Product permanently deleted' });
     } catch (error) {
         if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid Product ID format' });
         res.status(500).json({ message: error.message });

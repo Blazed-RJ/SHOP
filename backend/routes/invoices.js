@@ -8,7 +8,8 @@ import {
     voidInvoice,
     emailInvoice,
     getDeletedInvoices,
-    restoreInvoice
+    restoreInvoice,
+    hardDeleteInvoice
 } from '../controllers/invoiceController.js';
 import { protect } from '../middleware/auth.js';
 import { authorize } from '../middleware/rbac.js';
@@ -18,6 +19,7 @@ const router = express.Router();
 router.post('/', protect, createInvoice);
 router.get('/trash', protect, authorize('Admin'), getDeletedInvoices);
 router.put('/:id/restore', protect, authorize('Admin'), restoreInvoice);
+router.delete('/:id/hard-delete', protect, authorize('Admin'), hardDeleteInvoice);
 router.get('/', protect, getInvoices);
 router.get('/:id', protect, getInvoiceById);
 router.put('/:id/payment', protect, authorize('Admin', 'Accountant'), updateInvoicePayment);
