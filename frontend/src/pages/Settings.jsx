@@ -539,10 +539,70 @@ const Settings = () => {
                                                 />
                                             </div>
                                         </div>
+                                        <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Banking & Payment Details</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bank Name</label>
+                                                    <input
+                                                        type="text"
+                                                        value={formData.bankName}
+                                                        onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+                                                        className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 focus:border-slate-500 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
+                                                        placeholder="e.g. HDFC Bank"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Account Number</label>
+                                                    <input
+                                                        type="text"
+                                                        value={formData.accountNumber}
+                                                        onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+                                                        className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 focus:border-slate-500 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
+                                                        placeholder="0123456789"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">IFSC Code</label>
+                                                    <input
+                                                        type="text"
+                                                        value={formData.ifscCode}
+                                                        onChange={(e) => setFormData({ ...formData, ifscCode: e.target.value })}
+                                                        className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 focus:border-slate-500 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300 uppercase"
+                                                        placeholder="HDFC0001234"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bank Branch</label>
+                                                    <input
+                                                        type="text"
+                                                        value={formData.bankBranch}
+                                                        onChange={(e) => setFormData({ ...formData, bankBranch: e.target.value })}
+                                                        className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 focus:border-slate-500 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
+                                                        placeholder="Main Branch"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="mb-4">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    UPI ID (For QR Code)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.upiId}
+                                                    onChange={(e) => setFormData({ ...formData, upiId: e.target.value })}
+                                                    className="w-full px-5 py-3 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-slate-500/20 focus:border-slate-500 bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-300"
+                                                    placeholder="yourname@upi"
+                                                />
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                    Enter your UPI ID to automatically generate a QR code on invoices.
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
-
-                                {/* Banking & QR Tab Removed - Moved to Catalog */}
 
                                 {/* Invoice Design Tab */}
                                 {activeTab === 'invoice' && (
