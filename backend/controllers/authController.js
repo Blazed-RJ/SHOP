@@ -13,7 +13,7 @@ const issueOtp = async (user, logTag = '') => {
     user.otpExpires = otpExpires;
     await user.save();
 
-    const emailConfigured = process.env.EMAIL_USER && process.env.EMAIL_PASS;
+    const emailConfigured = process.env.BREVO_API_KEY || (process.env.EMAIL_USER && process.env.EMAIL_PASS);
     if (emailConfigured && user.email) {
         // Fire-and-forget: don't await email — send OTP response immediately
         sendEmail({
