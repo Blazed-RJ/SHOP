@@ -2,27 +2,38 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
-import { ChevronRight, ChevronDown, Folder, FileText, Plus } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Plus, Layers, UserPlus } from 'lucide-react';
+import GroupModal from './GroupModal';
+import LedgerModal from './LedgerModal';
 
 const ChartOfAccounts = () => {
     const [tree, setTree] = useState([]);
+    const [flatGroups, setFlatGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [expanded, setExpanded] = useState({});
+    const [isGroupModalOpen, setGroupModalOpen] = useState(false);
+    const [isLedgerModalOpen, setLedgerModalOpen] = useState(false);
+    const [selectedGroupId, setSelectedGroupId] = useState('');
+
+    const fetchChartAndGroups = async () => {
+        try {
+            setLoading(true);
+            const [chartRes, groupsRes] = await Promise.all([
+                api.get('/accounting/chart-of-accounts'),
+                api.get('/accounting/groups')
+            ]);
+            setTree(chartRes.data);
+            setFlatGroups(groupsRes.data);
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to load Chart of Accounts');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchChart = async () => {
-            try {
-                const { data } = await api.get('/accounting/chart-of-accounts');
-                setTree(data);
-                setLoading(false);
-            } catch (error) {
-                console.error(error);
-                toast.error('Failed to load Chart of Accounts');
-                setLoading(false);
-            }
-        };
-
-        fetchChart();
+        fetchChartAndGroups();
     }, []);
 
     const toggleExpand = (id) => {
@@ -65,9 +76,22 @@ const ChartOfAccounts = () => {
                     </span>
 
                     {isGroup && (
-                        <button className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded ml-2" title="Add Sub-Group or Ledger">
-                            <Plus size={12} />
-                        </button>
+                        <div className="flex ml-2" onClick={(e) => e.stopPropagation()}>
+                            <button
+                                onClick={() => { setSelectedGroupId(node._id); setLedgerModalOpen(true); }}
+                                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition"
+                                title="Add Ledger here"
+                            >
+                                <UserPlus size={14} />
+                            </button>
+                            <button
+                                onClick={() => { setGroupModalOpen(true); }}
+                                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition ml-1"
+                                title="Add Sub-Group here"
+                            >
+                                <Layers size={14} />
+                            </button>
+                        </div>
                     )}
                 </div>
 
@@ -105,10 +129,22 @@ const ChartOfAccounts = () => {
         <div className="p-6 bg-white dark:bg-black min-h-screen">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Chart of Accounts</h1>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
-                    <Plus size={18} />
-                    Create Group/Ledger
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => setGroupModalOpen(true)}
+                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center gap-2"
+                    >
+                        <Layers size={18} className="text-blue-500" />
+                        Create Group
+                    </button>
+                    <button
+                        onClick={() => { setSelectedGroupId(''); setLedgerModalOpen(true); }}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 shadow-sm shadow-blue-500/30"
+                    >
+                        <UserPlus size={18} />
+                        Create Ledger
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
@@ -122,6 +158,22 @@ const ChartOfAccounts = () => {
                     ))}
                 </div>
             </div>
+
+            <GroupModal
+                isOpen={isGroupModalOpen}
+                onClose={() => setGroupModalOpen(false)}
+                onSuccess={fetchChartAndGroups}
+                groups={flatGroups}
+            />
+
+            {/* Need to slightly modify LedgerModal to respect selectedGroupId if we want to pre-select it, but passing `groups` is enough for it to work right now. */}
+            <LedgerModal
+                isOpen={isLedgerModalOpen}
+                onClose={() => setLedgerModalOpen(false)}
+                onSuccess={fetchChartAndGroups}
+                groups={flatGroups}
+                initialGroup={selectedGroupId}
+            />
         </div>
     );
 };
