@@ -153,26 +153,28 @@ export const getChartOfAccounts = async (req, res) => {
         const ledgers = await AccountLedger.find().lean();
 
         // Build tree
-        // 1. Map groups by ID
+        // 1. Map groups by string ID (ObjectIds must be stringified as JS object keys)
         const groupMap = {};
         groups.forEach(g => {
             g.children = [];
             g.ledgers = [];
-            groupMap[g._id] = g;
+            groupMap[g._id.toString()] = g;
         });
 
-        // 2. Assign ledgers to groups
+        // 2. Assign ledgers to their parent groups
         ledgers.forEach(l => {
-            if (groupMap[l.group]) {
-                groupMap[l.group].ledgers.push(l);
+            const groupKey = l.group?.toString();
+            if (groupKey && groupMap[groupKey]) {
+                groupMap[groupKey].ledgers.push(l);
             }
         });
 
-        // 3. Build hierarchy
+        // 3. Build hierarchy (root groups have no parentGroup)
         const rootGroups = [];
         groups.forEach(g => {
-            if (g.parentGroup && groupMap[g.parentGroup]) {
-                groupMap[g.parentGroup].children.push(g);
+            const parentKey = g.parentGroup?.toString();
+            if (parentKey && groupMap[parentKey]) {
+                groupMap[parentKey].children.push(g);
             } else {
                 rootGroups.push(g);
             }
@@ -180,9 +182,11 @@ export const getChartOfAccounts = async (req, res) => {
 
         res.json(rootGroups);
     } catch (error) {
+        console.error('Chart of Accounts Error:', error);
         res.status(500).json({ message: error.message });
     }
 };
+
 
 // --- Vouchers (Transactions) ---
 
