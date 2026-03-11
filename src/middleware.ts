@@ -12,7 +12,15 @@ export async function middleware(req: NextRequest) {
   if (isStatic || isApiAuth) return NextResponse.next();
 
   // Get JWT token from cookie (Edge-safe — no DB calls)
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  // NextAuth v5 uses __Secure-authjs.session-token on HTTPS, authjs.session-token on HTTP
+  const secureCookie = nextUrl.protocol === 'https:';
+  const cookieName = secureCookie ? '__Secure-authjs.session-token' : 'authjs.session-token';
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET,
+    cookieName,
+    salt: cookieName,
+  });
   const isLoggedIn = !!token;
 
   // Redirect unauthenticated to login
