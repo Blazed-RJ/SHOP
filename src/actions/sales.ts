@@ -154,13 +154,13 @@ export async function createSale(input: CreateSaleInput): Promise<CreateSaleResu
       for (const line of lineResults) {
         // Insert invoice detail
         await tx.insert(invoiceDetails).values({
-          saleId,
+          saleId: saleId,
           inventoryItemId: line.inventoryItemId,
           batchId: line.batchId,
           quantity: line.quantity,
           unit: line.unit,
           priceAtSalePaise: line.priceAtSalePaise,
-          gstRateAtSale: line.gstRate,
+          gstRateAtSale: String(line.gstRate), // decimal columns require string in Drizzle PG
           totalLineCgstPaise: line.cgst,
           totalLineSgstPaise: line.sgst,
           totalLineIgstPaise: line.igst,
