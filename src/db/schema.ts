@@ -15,8 +15,12 @@ import {
   export const users = pgTable('users', {
     id: serial('id').primaryKey(),
     name: varchar('name', { length: 255 }).notNull(),
-    email: varchar('email', { length: 255 }).unique().notNull(),
-    passwordHash: text('password_hash').notNull(),
+    email: varchar('email', { length: 255 }).unique(), // Made nullable for phone-only users
+    passwordHash: text('password_hash'), // Made nullable for Google/Phone-only users
+    phone: varchar('phone', { length: 50 }).unique(),
+    phoneVerified: boolean('phone_verified').default(false),
+    image: text('image'), // For Google profile pictures
+    authProvider: varchar('auth_provider', { length: 50 }).default('credentials'), // credentials, google, phone
     role: varchar('role', { length: 50 }).default('cashier'), // admin, manager, cashier
     storeId: integer('store_id'), // For multi-branch
     isActive: boolean('is_active').default(true),
@@ -140,4 +144,14 @@ import {
     totalLineSgstPaise: bigint('total_line_sgst_paise', { mode: 'number' }).default(0),
     totalLineIgstPaise: bigint('total_line_igst_paise', { mode: 'number' }).default(0),
     totalLineAmountPaise: bigint('total_line_amount_paise', { mode: 'number' }).notNull(),
+  });
+
+  // 8. OTP Requests (for Phone Login)
+  export const otpRequests = pgTable('otp_requests', {
+    id: serial('id').primaryKey(),
+    phone: varchar('phone', { length: 50 }).notNull(),
+    otp: varchar('otp', { length: 10 }).notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    verified: boolean('verified').default(false),
+    createdAt: timestamp('created_at').defaultNow(),
   });
