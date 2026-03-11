@@ -8,7 +8,7 @@ import {
     boolean,
     text,
     bigint,
-    decimal,
+    real,
   } from 'drizzle-orm/pg-core';
   
   // 1. Users & Roles
@@ -59,7 +59,7 @@ import {
     barcode: varchar('barcode', { length: 150 }).unique(),
     category: varchar('category', { length: 100 }),
     hsnCode: varchar('hsn_code', { length: 50 }),
-    gstRate: decimal('gst_rate', { precision: 5, scale: 2 }).notNull(), // e.g., 18.00
+    gstRate: real('gst_rate').notNull(), // e.g., 18.00
     
     // Core pricing (stored in paise to avoid float math errors)
     basePricePaise: bigint('base_price_paise', { mode: 'number' }).notNull(),
@@ -68,7 +68,7 @@ import {
     // Multi-unit tracking
     primaryUnit: varchar('primary_unit', { length: 50 }).default('pcs'), // 'roll', 'box'
     secondaryUnit: varchar('secondary_unit', { length: 50 }), // 'meter', 'tablet'
-    conversionRate: decimal('conversion_rate', { precision: 10, scale: 4 }), // 1 roll = 100 meters
+    conversionRate: real('conversion_rate'), // 1 roll = 100 meters
     
     // JSONB for segment-specific dynamic data
     attributes: jsonb('attributes').default({}),
@@ -134,7 +134,7 @@ import {
     unit: varchar('unit', { length: 50 }),
     
     priceAtSalePaise: bigint('price_at_sale_paise', { mode: 'number' }).notNull(),
-    gstRateAtSale: decimal('gst_rate_at_sale', { precision: 5, scale: 2 }).notNull(),
+    gstRateAtSale: real('gst_rate_at_sale').notNull(),
     
     totalLineCgstPaise: bigint('total_line_cgst_paise', { mode: 'number' }).default(0),
     totalLineSgstPaise: bigint('total_line_sgst_paise', { mode: 'number' }).default(0),

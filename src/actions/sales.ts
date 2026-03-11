@@ -160,7 +160,7 @@ export async function createSale(input: CreateSaleInput): Promise<CreateSaleResu
           quantity: line.quantity,
           unit: line.unit,
           priceAtSalePaise: line.priceAtSalePaise,
-          gstRateAtSale: String(line.gstRate), // decimal columns require string in Drizzle PG
+          gstRateAtSale: line.gstRate,
           totalLineCgstPaise: line.cgst,
           totalLineSgstPaise: line.sgst,
           totalLineIgstPaise: line.igst,
