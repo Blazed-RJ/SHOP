@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { QueryProvider } from '@/components/providers/QueryProvider';
+import { SessionProvider } from 'next-auth/react';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Next ERP System',
-  description: 'Offline-First Next.js Point of Sale and ERP',
+  title: 'ERP System — Blazed',
+  description: 'Point of Sale & Inventory Management for Indian Businesses',
 };
 
 export default function RootLayout({
@@ -26,9 +27,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <QueryProvider>
-          {children}
-        </QueryProvider>
+        <SessionProvider>
+          <QueryProvider>
+            {children}
+          </QueryProvider>
+        </SessionProvider>
       </body>
     </html>
   );
