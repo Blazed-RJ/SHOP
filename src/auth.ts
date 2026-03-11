@@ -12,100 +12,107 @@ export interface AppUser extends User {
   phone?: string | null;
 }
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
-    Credentials({
-      id: 'credentials',
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      async authorize(credentials): Promise<any> {
-        if (!credentials?.email || !credentials?.password) return null;
+// Conditionally add providers based on environment variables
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const providers: any[] = [
+  Credentials({
+    id: 'credentials',
+    name: 'credentials',
+    credentials: {
+      email: { label: 'Email', type: 'email' },
+      password: { label: 'Password', type: 'password' },
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async authorize(credentials): Promise<any> {
+      if (!credentials?.email || !credentials?.password) return null;
 
-        const [user] = await db
-          .select()
-          .from(users)
-          .where(eq(users.email, credentials.email as string));
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, credentials.email as string));
 
-        if (!user || !user.isActive || !user.passwordHash) return null;
+      if (!user || !user.isActive || !user.passwordHash) return null;
 
-        const valid = await bcrypt.compare(
-          credentials.password as string,
-          user.passwordHash
+      const valid = await bcrypt.compare(
+        credentials.password as string,
+        user.passwordHash
+      );
+      if (!valid) return null;
+
+      return {
+        id: String(user.id),
+        name: user.name,
+        email: user.email,
+        role: user.role ?? 'cashier',
+        storeId: user.storeId,
+      } satisfies AppUser;
+    },
+  }),
+  Credentials({
+    id: 'phone-otp',
+    name: 'Phone OTP',
+    credentials: {
+      phone: { label: 'Phone', type: 'text' },
+      otp: { label: 'OTP', type: 'text' },
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async authorize(credentials): Promise<any> {
+      if (!credentials?.phone || !credentials?.otp) return null;
+      
+      const phoneStr = credentials.phone as string;
+      const otpStr = credentials.otp as string;
+      
+      const reqs = await db
+        .select()
+        .from(otpRequests)
+        .where(
+          and(
+            eq(otpRequests.phone, phoneStr),
+            eq(otpRequests.otp, otpStr),
+            eq(otpRequests.verified, false)
+          )
         );
-        if (!valid) return null;
-
-        return {
-          id: String(user.id),
-          name: user.name,
-          email: user.email,
-          role: user.role ?? 'cashier',
-          storeId: user.storeId,
-        } satisfies AppUser;
-      },
-    }),
-    Credentials({
-      id: 'phone-otp',
-      name: 'Phone OTP',
-      credentials: {
-        phone: { label: 'Phone', type: 'text' },
-        otp: { label: 'OTP', type: 'text' },
-      },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      async authorize(credentials): Promise<any> {
-        if (!credentials?.phone || !credentials?.otp) return null;
         
-        const phoneStr = credentials.phone as string;
-        const otpStr = credentials.otp as string;
-        
-        const reqs = await db
-          .select()
-          .from(otpRequests)
-          .where(
-            and(
-              eq(otpRequests.phone, phoneStr),
-              eq(otpRequests.otp, otpStr),
-              eq(otpRequests.verified, false)
-            )
-          );
-          
-        const otpReq = reqs[0];
-        
-        if (!otpReq) throw new Error('Invalid OTP');
-        if (otpReq.expiresAt < new Date()) throw new Error('OTP Expired');
-        
-        await db.update(otpRequests).set({ verified: true }).where(eq(otpRequests.id, otpReq.id));
-        
-        let [user] = await db.select().from(users).where(eq(users.phone, phoneStr));
-        if (!user) {
-          [user] = await db.insert(users).values({
-            name: `User ${phoneStr}`,
-            phone: phoneStr,
-            phoneVerified: true,
-            authProvider: 'phone',
-            role: 'cashier',
-          }).returning();
-        }
-        
-        if (!user.isActive) return null;
-        
-        return {
-          id: String(user.id),
-          name: user.name,
-          phone: user.phone,
-          role: user.role ?? 'cashier',
-          storeId: user.storeId,
-        } satisfies AppUser;
+      const otpReq = reqs[0];
+      
+      if (!otpReq) throw new Error('Invalid OTP');
+      if (otpReq.expiresAt < new Date()) throw new Error('OTP Expired');
+      
+      await db.update(otpRequests).set({ verified: true }).where(eq(otpRequests.id, otpReq.id));
+      
+      let [user] = await db.select().from(users).where(eq(users.phone, phoneStr));
+      if (!user) {
+        [user] = await db.insert(users).values({
+          name: `User ${phoneStr}`,
+          phone: phoneStr,
+          phoneVerified: true,
+          authProvider: 'phone',
+          role: 'cashier',
+        }).returning();
       }
-    }),
-  ],
+      
+      if (!user.isActive) return null;
+      
+      return {
+        id: String(user.id),
+        name: user.name,
+        phone: user.phone,
+        role: user.role ?? 'cashier',
+        storeId: user.storeId,
+      } satisfies AppUser;
+    }
+  }),
+];
+
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  providers.push(GoogleProvider({
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  }));
+}
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  providers,
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === 'google' && user.email) {
