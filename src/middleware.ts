@@ -1,38 +1,39 @@
-import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
-export default auth((req) => {
-  const { nextUrl, auth: session } = req;
-  const isLoggedIn = !!session?.user;
+export async function middleware(req: NextRequest) {
+  const { nextUrl } = req;
   const isLoginPage = nextUrl.pathname === '/login';
   const isApiAuth = nextUrl.pathname.startsWith('/api/auth');
+  const isStatic = nextUrl.pathname.startsWith('/_next') || nextUrl.pathname === '/favicon.ico';
 
-  // Always allow auth API routes
-  if (isApiAuth) return NextResponse.next();
+  // Always allow static and auth API routes
+  if (isStatic || isApiAuth) return NextResponse.next();
 
-  // Redirect unauthenticated users to login
+  // Get JWT token from cookie (Edge-safe — no DB calls)
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const isLoggedIn = !!token;
+
+  // Redirect unauthenticated to login
   if (!isLoggedIn && !isLoginPage) {
     return NextResponse.redirect(new URL('/login', nextUrl));
   }
 
-  // Redirect logged-in users away from login page
+  // Redirect logged-in away from login
   if (isLoggedIn && isLoginPage) {
     return NextResponse.redirect(new URL('/', nextUrl));
   }
 
-  // Role-based: cashiers cannot access admin-only areas
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  if (role === 'cashier') {
-    // Cashiers can only access POS
-    const allowedPaths = ['/', '/pos', '/inventory'];
-    const allowed = allowedPaths.some(p => nextUrl.pathname === p || nextUrl.pathname.startsWith(p + '/'));
-    if (!allowed) {
-      return NextResponse.redirect(new URL('/pos', nextUrl));
-    }
+  // Cashier: restrict to POS + inventory
+  if (token?.role === 'cashier') {
+    const allowed = ['/', '/pos', '/inventory'];
+    const ok = allowed.some(p => nextUrl.pathname === p || nextUrl.pathname.startsWith(p + '/'));
+    if (!ok) return NextResponse.redirect(new URL('/pos', nextUrl));
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
