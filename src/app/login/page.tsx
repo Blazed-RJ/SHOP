@@ -148,25 +148,19 @@ export default function LoginPage() {
               <form onSubmit={handleEmailLogin} className="space-y-5 animate-[fadeIn_0.5s_ease-out]">
                 <style jsx>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#525252] group-focus-within:text-amber-500 transition-colors">
-                    <Mail size={18} />
-                  </div>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="Email Address"
-                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl pl-14 sm:pl-12 pr-4 py-4 text-white text-sm placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all"
+                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl px-4 py-4 text-white text-sm placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all"
                   />
                 </div>
                 
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#525252] group-focus-within:text-amber-500 transition-colors">
-                    <Lock size={18} />
-                  </div>
                   <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="Password"
-                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl pl-14 sm:pl-12 pr-4 py-4 text-white text-sm tracking-widest placeholder:tracking-normal placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all"
+                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl px-4 py-4 text-white text-sm tracking-widest placeholder:tracking-normal placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all"
                   />
                 </div>
                 
                 <button type="submit" disabled={loading} className="group relative w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-100 disabled:opacity-50 text-black py-4 rounded-xl transition-all shadow-lg shadow-white/5 mt-6 font-bold text-sm overflow-hidden">
-                  <span className="relative z-10">{loading ? 'Authenticating...' : 'Sign In Node'}</span>
+                  <span className="relative z-10">{loading ? 'Authenticating...' : 'Sign In'}</span>
                   {!loading && <ChevronRight size={18} className="relative z-10 group-hover:translate-x-1 transition-transform" />}
                   <div className="absolute inset-0 h-full w-full object-cover opacity-10 bg-[linear-gradient(45deg,transparent_25%,rgba(0,0,0,1)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%,100%_100%] animate-[shimmer_2s_infinite]" />
                 </button>
@@ -174,11 +168,8 @@ export default function LoginPage() {
             ) : (
               <form onSubmit={handlePhoneLogin} className="space-y-5 animate-[fadeIn_0.5s_ease-out]">
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#525252] group-focus-within:text-amber-500 transition-colors">
-                    <Phone size={18} />
-                  </div>
                   <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} disabled={otpSent} required placeholder="Phone Number"
-                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl pl-14 sm:pl-12 pr-4 py-4 text-white text-sm placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl px-4 py-4 text-white text-sm placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 
@@ -189,11 +180,8 @@ export default function LoginPage() {
                       <button type="button" onClick={() => setOtpSent(false)} className="text-[11px] text-amber-500 font-bold hover:text-amber-400 transition-colors">Change Number</button>
                     </div>
                     <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-amber-500/50 group-focus-within:text-amber-500 transition-colors">
-                        <Fingerprint size={18} />
-                      </div>
                       <input type="text" value={otp} onChange={e => setOtp(e.target.value)} required placeholder="••••••" maxLength={6}
-                        className="w-full bg-amber-500/5 border border-amber-500/30 rounded-xl pl-12 pr-4 py-4 text-amber-500 text-xl tracking-[0.5em] font-medium placeholder:text-amber-500/20 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all shadow-[0_0_20px_rgba(245,158,11,0.05)]"
+                        className="w-full bg-amber-500/5 border border-amber-500/30 rounded-xl px-4 py-4 text-amber-500 text-xl tracking-[0.5em] font-medium text-center placeholder:text-amber-500/20 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all shadow-[0_0_20px_rgba(245,158,11,0.05)]"
                       />
                     </div>
                   </div>
