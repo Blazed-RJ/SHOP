@@ -152,7 +152,7 @@ export default function LoginPage() {
                     <Mail size={18} />
                   </div>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="Email Address"
-                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl pl-12 pr-4 py-4 text-white text-sm placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all"
+                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl pl-14 sm:pl-12 pr-4 py-4 text-white text-sm placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all"
                   />
                 </div>
                 
@@ -161,7 +161,7 @@ export default function LoginPage() {
                     <Lock size={18} />
                   </div>
                   <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="Password"
-                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl pl-12 pr-4 py-4 text-white text-sm tracking-widest placeholder:tracking-normal placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all"
+                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl pl-14 sm:pl-12 pr-4 py-4 text-white text-sm tracking-widest placeholder:tracking-normal placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all"
                   />
                 </div>
                 
@@ -178,7 +178,7 @@ export default function LoginPage() {
                     <Phone size={18} />
                   </div>
                   <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} disabled={otpSent} required placeholder="Phone Number"
-                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl pl-12 pr-4 py-4 text-white text-sm placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl pl-14 sm:pl-12 pr-4 py-4 text-white text-sm placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 
