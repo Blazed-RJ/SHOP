@@ -6,7 +6,7 @@ import { SessionProvider } from 'next-auth/react';
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' });
 
 export const metadata: Metadata = {
-  title: 'Blazed ERP — Inventory & Billing',
+  title: 'Neev — Inventory & Billing',
   description: 'Point of Sale & Inventory Management for Indian Businesses',
 };
 

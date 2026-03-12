@@ -116,12 +116,12 @@ export default function LoginPage() {
           {/* Brand Header */}
           <div className="text-center mb-10">
             <div className="group mx-auto w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center text-2xl font-black text-black shadow-[0_0_40px_rgba(245,158,11,0.2)] mb-6 transition-transform duration-500 hover:scale-105 hover:shadow-[0_0_60px_rgba(245,158,11,0.3)]">
-              B
+              N
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-white/90">
               Welcome back
             </h1>
-            <p className="text-[#737373] text-sm mt-2 font-medium">Log in to your Blazed ERP access node.</p>
+            <p className="text-[#737373] text-sm mt-2 font-medium">Log in to your Neev access node.</p>
           </div>
 
           {/* Premium Tab Bar */}

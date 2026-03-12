@@ -12,7 +12,7 @@ import { eq } from 'drizzle-orm';
 dotenv.config({ path: '.env.local' });
 
 async function seedAdmin() {
-  const email = 'admin@blazed.local';
+  const email = 'admin@neev.local';
   const password = 'admin123'; // Change this immediately after first login!
   const name = 'Admin';
 
