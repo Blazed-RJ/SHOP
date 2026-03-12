@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     // Mock sending SMS via logger (in production, call Twilio/MSG91 here)
     console.log(`\n\n===========================================`);
     console.log(`📲 MOCK SMS GATEWAY (DO NOT SHIP TO PROD)`); // Log it so we can see it in dev console (since we don't have SMS yet)
-    console.log(`Your Neev login code is: ${otp}`);
+    console.log(`Your Neevbill login code is: ${otp}`);
     console.log(`===========================================\n\n`);
 
     return NextResponse.json({ success: true, message: 'OTP sent successfully' });

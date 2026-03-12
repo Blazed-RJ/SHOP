@@ -121,7 +121,7 @@ export default function LoginPage() {
             <h1 className="text-3xl font-semibold tracking-tight text-white/90">
               Welcome back
             </h1>
-            <p className="text-[#737373] text-sm mt-2 font-medium">Log in to your Neev access node.</p>
+            <p className="text-[#737373] text-sm mt-2 font-medium">Log in to your Neevbill access node.</p>
           </div>
 
           {/* Premium Tab Bar */}

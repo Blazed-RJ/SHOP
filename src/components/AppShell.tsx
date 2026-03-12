@@ -15,7 +15,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black font-black text-sm shadow-sm transition-transform hover:scale-105">
             N
           </div>
-          <span className="text-white font-bold text-sm tracking-wide">Neev ERP</span>
+          <span className="text-white font-bold text-sm tracking-wide">Neevbill</span>
         </div>
         <button 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

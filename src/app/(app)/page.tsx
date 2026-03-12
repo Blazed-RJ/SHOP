@@ -19,7 +19,7 @@ export default async function DashboardPage() {
       <div className="border-b border-[#1e1d24] pb-4">
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
         <p className="text-[#8a8695] text-sm mt-0.5">
-          Welcome back, <span className="text-amber-400 font-semibold">Neev</span>.
+          Welcome back, <span className="text-amber-400 font-semibold">Neevbill</span>.
         </p>
       </div>
 
