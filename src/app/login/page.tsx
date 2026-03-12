@@ -102,7 +102,7 @@ export default function LoginPage() {
       
       {/* Main Centered Floating Glass Portal */}
       <div 
-        className="relative z-10 w-[92%] sm:w-full max-w-[480px] p-6 sm:p-8 md:p-12 mx-auto"
+        className="relative z-10 w-[92%] sm:w-full max-w-[540px] pt-8 pb-10 px-6 sm:p-12 mx-auto"
         style={{ transform: `translateY(${isMounted ? '0' : '20px'})`, opacity: isMounted ? 1 : 0, transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)' }}
       >
         
@@ -115,29 +115,29 @@ export default function LoginPage() {
           
           {/* Brand Header */}
           <div className="text-center mb-10">
-            <div className="group mx-auto w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center text-2xl font-black text-black shadow-[0_0_40px_rgba(245,158,11,0.2)] mb-6 transition-transform duration-500 hover:scale-105 hover:shadow-[0_0_60px_rgba(245,158,11,0.3)]">
+            <div className="group mx-auto w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center text-3xl font-black text-black shadow-[0_0_40px_rgba(245,158,11,0.2)] mb-8 transition-transform duration-500 hover:scale-105 hover:shadow-[0_0_60px_rgba(245,158,11,0.3)]">
               N
             </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-white/90">
+            <h1 className="text-4xl font-semibold tracking-tight text-white/90">
               Welcome back
             </h1>
-            <p className="text-[#737373] text-sm mt-2 font-medium">Log in to your Neevbill access node.</p>
+            <p className="text-[#737373] text-base mt-3 font-medium">Log in to your Neevbill access node.</p>
           </div>
 
           {/* Premium Tab Bar */}
           <div className="relative flex bg-[#141414] p-1.5 rounded-2xl mb-8 border border-white/[0.03] shadow-inner">
             <button
               onClick={() => { setTab('email'); setError(''); }}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-xl transition-all duration-500 ${tab === 'email' ? 'bg-[#222222] text-white shadow-md shadow-black/50 border border-white/[0.06] scale-100' : 'text-[#737373] hover:text-white hover:bg-white/[0.02] scale-[0.98]'}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-4 text-base font-semibold rounded-xl transition-all duration-500 ${tab === 'email' ? 'bg-[#222222] text-white shadow-md shadow-black/50 border border-white/[0.06] scale-100' : 'text-[#737373] hover:text-white hover:bg-white/[0.02] scale-[0.98]'}`}
             >
-              <Mail size={16} className={tab === 'email' ? 'text-amber-500' : ''} /> 
+              <Mail size={18} className={tab === 'email' ? 'text-amber-500' : ''} /> 
               Email
             </button>
             <button
               onClick={() => { setTab('phone'); setError(''); }}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-xl transition-all duration-500 ${tab === 'phone' ? 'bg-[#222222] text-white shadow-md shadow-black/50 border border-white/[0.06] scale-100' : 'text-[#737373] hover:text-white hover:bg-white/[0.02] scale-[0.98]'}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-4 text-base font-semibold rounded-xl transition-all duration-500 ${tab === 'phone' ? 'bg-[#222222] text-white shadow-md shadow-black/50 border border-white/[0.06] scale-100' : 'text-[#737373] hover:text-white hover:bg-white/[0.02] scale-[0.98]'}`}
             >
-              <Phone size={16} className={tab === 'phone' ? 'text-amber-500' : ''} /> 
+              <Phone size={18} className={tab === 'phone' ? 'text-amber-500' : ''} /> 
               Phone OTP
             </button>
           </div>
@@ -149,17 +149,17 @@ export default function LoginPage() {
                 <style jsx>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
                 <div className="relative group">
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="Email Address"
-                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl px-4 py-4 text-white text-sm placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all"
+                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl px-5 py-5 text-white text-base placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all"
                   />
                 </div>
                 
                 <div className="relative group">
                   <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="Password"
-                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl px-4 py-4 text-white text-sm tracking-widest placeholder:tracking-normal placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all"
+                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl px-5 py-5 text-white text-base tracking-widest placeholder:tracking-normal placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all"
                   />
                 </div>
                 
-                <button type="submit" disabled={loading} className="group relative w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-100 disabled:opacity-50 text-black py-4 rounded-xl transition-all shadow-lg shadow-white/5 mt-6 font-bold text-sm overflow-hidden">
+                <button type="submit" disabled={loading} className="group relative w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-100 disabled:opacity-50 text-black py-5 rounded-xl transition-all shadow-lg shadow-white/5 mt-8 font-bold text-base overflow-hidden">
                   <span className="relative z-10">{loading ? 'Authenticating...' : 'Sign In'}</span>
                   {!loading && <ChevronRight size={18} className="relative z-10 group-hover:translate-x-1 transition-transform" />}
                   <div className="absolute inset-0 h-full w-full object-cover opacity-10 bg-[linear-gradient(45deg,transparent_25%,rgba(0,0,0,1)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%,100%_100%] animate-[shimmer_2s_infinite]" />
@@ -169,7 +169,7 @@ export default function LoginPage() {
               <form onSubmit={handlePhoneLogin} className="space-y-5 animate-[fadeIn_0.5s_ease-out]">
                 <div className="relative group">
                   <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} disabled={otpSent} required placeholder="Phone Number"
-                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl px-4 py-4 text-white text-sm placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#121212] border border-white/[0.06] rounded-xl px-5 py-5 text-white text-base placeholder:text-[#525252] focus:outline-none focus:border-amber-500/50 focus:bg-[#1a1a1a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 
@@ -181,13 +181,13 @@ export default function LoginPage() {
                     </div>
                     <div className="relative group">
                       <input type="text" value={otp} onChange={e => setOtp(e.target.value)} required placeholder="••••••" maxLength={6}
-                        className="w-full bg-amber-500/5 border border-amber-500/30 rounded-xl px-4 py-4 text-amber-500 text-xl tracking-[0.5em] font-medium text-center placeholder:text-amber-500/20 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all shadow-[0_0_20px_rgba(245,158,11,0.05)]"
+                        className="w-full bg-amber-500/5 border border-amber-500/30 rounded-xl px-5 py-5 text-amber-500 text-2xl tracking-[0.5em] font-medium text-center placeholder:text-amber-500/20 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all shadow-[0_0_20px_rgba(245,158,11,0.05)]"
                       />
                     </div>
                   </div>
                 )}
                 
-                <button type="submit" disabled={loading} className="group relative w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-100 disabled:opacity-50 text-black py-4 rounded-xl transition-all shadow-lg shadow-white/5 mt-6 font-bold text-sm overflow-hidden">
+                <button type="submit" disabled={loading} className="group relative w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-100 disabled:opacity-50 text-black py-5 rounded-xl transition-all shadow-lg shadow-white/5 mt-8 font-bold text-base overflow-hidden">
                   <span className="relative z-10">{loading ? 'Processing...' : (otpSent ? 'Verify Protocol' : 'Request Security Code')}</span>
                   {!loading && <ChevronRight size={18} className="relative z-10 group-hover:translate-x-1 transition-transform" />}
                 </button>

@@ -88,6 +88,7 @@ const providers: any[] = [
           phoneVerified: true,
           authProvider: 'phone',
           role: 'cashier',
+          isActive: true,
         }).returning();
       }
       
