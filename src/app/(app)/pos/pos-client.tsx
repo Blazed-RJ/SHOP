@@ -3,6 +3,10 @@
 import { useState, useTransition } from 'react';
 import { createSale, SaleLineItem } from '@/actions/sales';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+const BarcodeScanner = dynamic(() => import('@/components/ui/BarcodeScanner'), { ssr: false });
+const UpiQrModal = dynamic(() => import('@/components/ui/UpiQrModal'), { ssr: false });
 
 interface LiveItem {
   id: number;
@@ -23,11 +27,14 @@ function formatRupees(paise: number) {
 
 const CASHIER_ID = 1;
 
-export default function POSClient({ items }: { items: LiveItem[] }) {
+export default function POSClient({ items, upiId }: { items: LiveItem[]; upiId?: string }) {
   const [cart, setCart] = useState<SaleLineItem[]>([]);
   const [result, setResult] = useState<{ success: boolean; invoiceNumber?: string; grandTotalPaise?: number; error?: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
+  const [showUpiQr, setShowUpiQr] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card' | 'credit'>('cash');
 
   const filteredItems = items.filter(i =>
     i.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -53,6 +60,21 @@ export default function POSClient({ items }: { items: LiveItem[] }) {
     setResult(null);
   };
 
+  // Scanner callback — match SKU or name
+  const handleScanResult = (value: string) => {
+    setShowScanner(false);
+    const matched = items.find(i =>
+      i.sku?.toLowerCase() === value.toLowerCase() ||
+      i.name.toLowerCase() === value.toLowerCase()
+    );
+    if (matched) {
+      addToCart(matched);
+      setSearch('');
+    } else {
+      setSearch(value); // show in search so user can see it
+    }
+  };
+
   const removeFromCart = (itemId: number) => setCart(prev => prev.filter(c => c.inventoryItemId !== itemId));
 
   const updateQty = (itemId: number, qty: number) => {
@@ -67,9 +89,12 @@ export default function POSClient({ items }: { items: LiveItem[] }) {
   const handleCompleteSale = () => {
     if (cart.length === 0) return;
     startTransition(async () => {
-      const res = await createSale({ lineItems: cart, cashierId: CASHIER_ID, paymentMethod: 'cash' });
+      const res = await createSale({ lineItems: cart, cashierId: CASHIER_ID, paymentMethod });
       setResult(res);
-      if (res.success) setCart([]);
+      if (res.success) {
+        setCart([]);
+        if (paymentMethod === 'upi') setShowUpiQr(true);
+      }
     });
   };
 
@@ -80,10 +105,14 @@ export default function POSClient({ items }: { items: LiveItem[] }) {
         <div className="flex items-center gap-3">
           <Link href="/" className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-sm font-bold hover:bg-blue-500 transition-colors">E</Link>
           <span className="font-semibold">Point of Sale</span>
-          <span className="text-slate-500 text-sm">· Shimla (State: 02)</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-500 bg-slate-800 px-3 py-1 rounded-full">{items.length} items in stock</span>
+          <button
+            onClick={() => setShowScanner(true)}
+            className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5"
+          >
+            📷 Scan Barcode
+          </button>
           <Link href="/inventory" className="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded-full transition-colors">📦 Inventory</Link>
         </div>
       </header>
@@ -95,7 +124,7 @@ export default function POSClient({ items }: { items: LiveItem[] }) {
           <div className="p-4 border-b border-slate-800">
             <input
               type="text"
-              placeholder="Search by name or SKU..."
+              placeholder="Search by name or SKU... (or scan a barcode)"
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
@@ -160,7 +189,7 @@ export default function POSClient({ items }: { items: LiveItem[] }) {
             {cart.length === 0 ? (
               <div className="text-center text-slate-500 py-16">
                 <div className="text-4xl mb-2">🛒</div>
-                <div className="text-sm">Tap an item to add</div>
+                <div className="text-sm">Tap an item or scan a barcode</div>
               </div>
             ) : cart.map(line => {
               const meta = items.find(i => i.id === line.inventoryItemId);
@@ -192,7 +221,7 @@ export default function POSClient({ items }: { items: LiveItem[] }) {
           </div>
 
           {/* Totals + Checkout */}
-          <div className="p-4 border-t border-slate-800 space-y-2">
+          <div className="p-4 border-t border-slate-800 space-y-3">
             <div className="flex justify-between text-sm text-slate-400">
               <span>Subtotal</span><span>{formatRupees(subtotal)}</span>
             </div>
@@ -203,9 +232,28 @@ export default function POSClient({ items }: { items: LiveItem[] }) {
               <span>Total</span><span className="text-green-400">{formatRupees(grandTotal)}</span>
             </div>
 
+            {/* Payment Method */}
+            <div className="grid grid-cols-4 gap-1.5">
+              {(['cash', 'upi', 'card', 'credit'] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => setPaymentMethod(m)}
+                  className={`py-1.5 rounded-lg text-xs font-bold capitalize transition-colors ${paymentMethod === m ? 'bg-amber-500 text-black' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                >
+                  {m === 'upi' ? '📱 UPI' : m === 'cash' ? '💵 Cash' : m === 'card' ? '💳 Card' : '📒 Credit'}
+                </button>
+              ))}
+            </div>
+
             {result && (
               <div className={`rounded-xl p-3 text-sm ${result.success ? 'bg-green-900/40 border border-green-600 text-green-300' : 'bg-red-900/40 border border-red-600 text-red-300'}`}>
-                {result.success ? `✅ Invoice ${result.invoiceNumber} — ${formatRupees(result.grandTotalPaise ?? 0)}` : `❌ ${result.error}`}
+                {result.success
+                  ? <>✅ Invoice {result.invoiceNumber} — {formatRupees(result.grandTotalPaise ?? 0)}
+                    {paymentMethod === 'upi' && (
+                      <button onClick={() => setShowUpiQr(true)} className="ml-2 underline text-amber-400 text-xs">Show QR</button>
+                    )}
+                  </>
+                  : `❌ ${result.error}`}
               </div>
             )}
 
@@ -219,6 +267,25 @@ export default function POSClient({ items }: { items: LiveItem[] }) {
           </div>
         </div>
       </div>
+
+      {/* Barcode Scanner Modal */}
+      {showScanner && (
+        <BarcodeScanner
+          onDetected={handleScanResult}
+          onClose={() => setShowScanner(false)}
+          hint="Scan item barcode to add to cart"
+        />
+      )}
+
+      {/* UPI QR Modal */}
+      {showUpiQr && result?.invoiceNumber && (
+        <UpiQrModal
+          amount={(result.grandTotalPaise ?? grandTotal) / 100}
+          invoiceNumber={result.invoiceNumber}
+          upiId={upiId}
+          onClose={() => setShowUpiQr(false)}
+        />
+      )}
     </div>
   );
 }

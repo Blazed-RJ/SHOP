@@ -22,6 +22,8 @@ const NAV_ITEMS: NavItem[] = [
   { icon: '🏪', label: 'Inventory', href: '/inventory' },
   { icon: '📑', label: 'Letterheads', href: '/letterheads' },
   { icon: '🏦', label: 'Cash & Bank', href: '/cash-bank' },
+  { icon: '🧾', label: 'GST Reports', href: '/gst-reports' },
+  { icon: '📇', label: 'Digital Card', href: '/digital-card' },
   { icon: '🗑️', label: 'Recycle Bin', href: '/recycle-bin' },
   { icon: '⚙️', label: 'Settings', href: '/settings' },
 ];

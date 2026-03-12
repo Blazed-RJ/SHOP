@@ -35,5 +35,5 @@ export default async function POSPage() {
     })
   );
 
-  return <POSClient items={itemsWithBatch} />;
+  return <POSClient items={itemsWithBatch} upiId={process.env.UPI_ID} />;
 }

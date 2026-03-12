@@ -1,0 +1,19 @@
+{
+  "name": "Neevbill — Inventory & Billing",
+  "short_name": "Neevbill",
+  "description": "Smart ERP for Indian businesses — GST, billing, inventory, and more",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#f59e0b",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["business", "finance", "productivity"],
+  "lang": "en-IN"
+}
