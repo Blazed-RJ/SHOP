@@ -1,0 +1,70 @@
+
+> next-erp@0.1.0 lint
+> eslint
+
+
+D:\Software\Create\Shop\next-erp\src\actions\analytics.ts
+   4:54  warning  'invoiceDetails' is defined but never used  @typescript-eslint/no-unused-vars
+  42:40  warning  'storeId' is defined but never used         @typescript-eslint/no-unused-vars
+
+D:\Software\Create\Shop\next-erp\src\actions\inventory.ts
+  4:41  warning  'suppliers' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Software\Create\Shop\next-erp\src\actions\sales.ts
+  11:14  warning  'asc' is defined but never used  @typescript-eslint/no-unused-vars
+  11:19  warning  'and' is defined but never used  @typescript-eslint/no-unused-vars
+  11:24  warning  'gt' is defined but never used   @typescript-eslint/no-unused-vars
+
+D:\Software\Create\Shop\next-erp\src\app\(app)\inventory\page.tsx
+  3:10  warning  'eq' is defined but never used    @typescript-eslint/no-unused-vars
+  3:19  warning  'desc' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Software\Create\Shop\next-erp\src\app\(app)\page.tsx
+  14:9   warning  'totalGst' is assigned a value but never used                    @typescript-eslint/no-unused-vars
+  63:65  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+D:\Software\Create\Shop\next-erp\src\app\actions\sale-transactions.ts
+   8:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  86:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Software\Create\Shop\next-erp\src\app\login\page.tsx
+  25:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Software\Create\Shop\next-erp\src\app\login\page.tsx:25:5
+  23 |
+  24 |   useEffect(() => {
+> 25 |     setIsMounted(true);
+     |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  26 |   }, []);
+  27 |
+  28 |   const handleEmailLogin = async (e: React.FormEvent) => {  react-hooks/set-state-in-effect
+
+D:\Software\Create\Shop\next-erp\src\components\providers\QueryProvider.tsx
+  21:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Software\Create\Shop\next-erp\src\components\providers\QueryProvider.tsx:21:7
+  19 |     // Only access navigator on client
+  20 |     if (typeof navigator !== 'undefined') {
+> 21 |       setIsOffline(!navigator.onLine);
+     |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  22 |     }
+  23 |     
+  24 |     const handleOnline = () => setIsOffline(false);  react-hooks/set-state-in-effect
+
+D:\Software\Create\Shop\next-erp\test_db.ts
+  3:5  warning  'users' is defined but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 15 problems (5 errors, 10 warnings)
+

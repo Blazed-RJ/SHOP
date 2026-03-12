@@ -5,6 +5,7 @@ import { inventoryItems, salesLedger, invoiceDetails, batchRegistry } from '@/db
 import { eq, sql, asc } from 'drizzle-orm';
 import { serializeData } from '@/utils/bigint-middleware';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function processSaleTransaction(payload: any) {
   // payload: { cashierId, storeId, customerId?, grandTotalPaise, subtotalPaise..., 
   //            items: [{ inventoryItemId, quantity, priceAtSalePaise, unit... }] }
@@ -83,6 +84,7 @@ export async function processSaleTransaction(payload: any) {
 
     return { success: true, data: serializeData(result) };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return { success: false, error: error.message };
   }

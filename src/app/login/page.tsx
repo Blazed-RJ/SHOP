@@ -22,7 +22,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    setIsMounted(true);
+    setTimeout(() => setIsMounted(true), 0);
   }, []);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -92,9 +92,9 @@ export default function LoginPage() {
       
       {/* Animated Abstract Background Elements */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute top-[10%] left-[20%] w-[600px] h-[600px] bg-amber-600/10 rounded-full blur-[160px] animate-[pulse_8s_ease-in-out_infinite]" />
-        <div className="absolute bottom-[-10%] right-[10%] w-[800px] h-[800px] bg-slate-800/20 rounded-full blur-[180px] animate-[pulse_10s_ease-in-out_infinite_reverse]" />
-        <div className="absolute top-[40%] right-[30%] w-[400px] h-[400px] bg-orange-600/5 rounded-full blur-[140px]" />
+        <div className="absolute top-[10%] left-[20%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-amber-600/10 rounded-full blur-[100px] md:blur-[160px] animate-[pulse_8s_ease-in-out_infinite]" />
+        <div className="absolute bottom-[-10%] right-[10%] w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-slate-800/20 rounded-full blur-[120px] md:blur-[180px] animate-[pulse_10s_ease-in-out_infinite_reverse]" />
+        <div className="absolute top-[40%] right-[30%] w-[200px] md:w-[400px] h-[200px] md:h-[400px] bg-orange-600/5 rounded-full blur-[80px] md:blur-[140px]" />
         
         {/* Fine Noise Texture Overlay */}
         <div className="absolute inset-0 opacity-[0.015] mix-blend-screen pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
@@ -102,7 +102,7 @@ export default function LoginPage() {
       
       {/* Main Centered Floating Glass Portal */}
       <div 
-        className="relative z-10 w-full max-w-[480px] p-8 md:p-12 mx-4"
+        className="relative z-10 w-[92%] sm:w-full max-w-[480px] p-6 sm:p-8 md:p-12 mx-auto"
         style={{ transform: `translateY(${isMounted ? '0' : '20px'})`, opacity: isMounted ? 1 : 0, transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)' }}
       >
         

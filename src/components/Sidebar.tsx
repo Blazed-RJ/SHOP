@@ -26,7 +26,11 @@ const NAV_ITEMS: NavItem[] = [
   { icon: '⚙️', label: 'Settings', href: '/settings' },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  onCloseMobile?: () => void;
+}
+
+export default function Sidebar({ onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [isDark, setIsDark] = useState(true);
@@ -37,16 +41,27 @@ export default function Sidebar() {
   const initial = userName.charAt(0).toUpperCase();
 
   return (
-    <aside className="sidebar w-[185px] min-h-screen bg-[#111014] flex flex-col border-r border-[#1e1d24] shrink-0">
+    <aside className="sidebar w-[250px] md:w-[185px] h-full min-h-screen bg-[#111014] flex flex-col border-r border-[#1e1d24] shrink-0 shadow-2xl md:shadow-none">
       {/* Brand */}
-      <div className="flex items-center gap-2.5 px-4 py-4 border-b border-[#1e1d24]">
-        <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black font-black text-sm shadow-lg shadow-amber-500/20">
-          {initial}
+      <div className="flex items-center justify-between px-4 py-4 border-b border-[#1e1d24]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black font-black text-sm shadow-lg shadow-amber-500/20">
+            {initial}
+          </div>
+          <div className="overflow-hidden">
+            <div className="text-white font-semibold text-sm leading-tight truncate">{userName}</div>
+            <div className="text-amber-500 text-[9px] font-semibold uppercase tracking-widest">Inventory &amp; Billing</div>
+          </div>
         </div>
-        <div className="overflow-hidden">
-          <div className="text-white font-semibold text-sm leading-tight truncate">{userName}</div>
-          <div className="text-amber-500 text-[9px] font-semibold uppercase tracking-widest">Inventory &amp; Billing</div>
-        </div>
+        
+        {/* Mobile Close Button */}
+        {onCloseMobile && (
+          <button onClick={onCloseMobile} className="md:hidden text-[#8a8695] hover:text-white p-1">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Nav */}

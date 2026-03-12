@@ -11,7 +11,7 @@ export default async function DashboardPage() {
     getExpiringBatches(30),
   ]);
 
-  const totalGst = summary.totalCgstPaise + summary.totalSgstPaise + summary.totalIgstPaise;
+  // const totalGst = summary.totalCgstPaise + summary.totalSgstPaise + summary.totalIgstPaise;
 
   return (
     <div className="p-6 space-y-6">
@@ -60,7 +60,7 @@ export default async function DashboardPage() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-5 bg-amber-400 rounded-full" />
-          <h2 className="text-sm font-semibold text-white">Today's Overview</h2>
+          <h2 className="text-sm font-semibold text-white">Today&apos;s Overview</h2>
         </div>
         <div className="grid grid-cols-4 gap-4">
           <OverviewCard label="CASH IN HAND" value="₹ 0.00" icon="💵" color="emerald" />

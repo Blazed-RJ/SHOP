@@ -1,13 +1,9 @@
-// App layout — wraps all authenticated pages with the sidebar
-import Sidebar from '@/components/Sidebar';
+import AppShell from '@/components/AppShell';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-[#0e0d12]">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
-    </div>
+    <AppShell>
+      {children}
+    </AppShell>
   );
 }

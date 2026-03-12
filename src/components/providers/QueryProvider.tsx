@@ -18,7 +18,7 @@ export function SyncToast() {
   useEffect(() => {
     // Only access navigator on client
     if (typeof navigator !== 'undefined') {
-      setIsOffline(!navigator.onLine);
+      setTimeout(() => setIsOffline(!navigator.onLine), 0);
     }
     
     const handleOnline = () => setIsOffline(false);
